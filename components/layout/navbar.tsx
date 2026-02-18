@@ -8,11 +8,13 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { useLocale } from '@/lib/locale-context';
 import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
+import { cn } from '@/lib/utils';
 
 export function Navbar() {
   const { t } = useLocale();
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -41,84 +43,99 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, [supabase]);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b shadow-sm">
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 font-semibold text-xl">
-            <UtensilsCrossed className="h-6 w-6 text-primary" />
-            <span className="tracking-tight">Tablo.</span>
+    <header className="fixed top-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+      <nav
+        className={cn(
+          'pointer-events-auto mt-4 mx-4 px-6 h-14 flex items-center gap-1 rounded-full transition-all duration-500 ease-out',
+          scrolled
+            ? 'liquid-glass-dense shadow-soft-lg max-w-4xl w-full'
+            : 'liquid-glass max-w-5xl w-full'
+        )}
+      >
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2 font-semibold text-lg mr-2 shrink-0">
+          <UtensilsCrossed className="h-5 w-5 text-primary" />
+          <span className="tracking-tight">Tablo</span>
+        </Link>
+
+        {/* Center nav links */}
+        <div className="hidden md:flex items-center gap-1 flex-1 justify-center">
+          <Link
+            href="/restaurants"
+            className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground rounded-full hover:bg-white/40 smooth-transition"
+          >
+            {t('navigation.restaurants')}
           </Link>
-
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href="/restaurants" className="text-sm font-medium text-foreground hover:text-primary smooth-transition">
-              {t('navigation.restaurants')}
-            </Link>
-            <Link href="#how-it-works" className="text-sm font-medium text-foreground hover:text-primary smooth-transition">
-              {t('navigation.howItWorks')}
-            </Link>
-            <Link href="#" className="text-sm font-medium text-foreground hover:text-primary smooth-transition">
-              {t('navigation.about')}
-            </Link>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            {/* Language Switcher */}
-            <LanguageSwitcher />
-
-            {user ? (
-              <>
-                {/* Show Admin Dashboard for admins */}
-                {userRole === 'admin' && (
-                  <Link href="/dashboard/admin">
-                    <Button variant="ghost" size="sm">
-                      Admin Panel
-                    </Button>
-                  </Link>
-                )}
-                {/* Show Dashboard only for restaurant owners */}
-                {userRole === 'restaurant_owner' && (
-                  <Link href="/dashboard">
-                    <Button variant="ghost" size="sm">
-                      {t('navigation.dashboard')}
-                    </Button>
-                  </Link>
-                )}
-                {/* Show My Bookings for customers */}
-                {userRole === 'customer' && (
-                  <Link href="/my-bookings">
-                    <Button variant="ghost" size="sm">
-                      {t('navigation.myBookings')}
-                    </Button>
-                  </Link>
-                )}
-                {/* Profile link for all logged-in users */}
-                <Link href="/profile">
-                  <Button size="sm" className="bg-primary hover:bg-tablo-red-600">
-                    {t('navigation.profile')}
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link href="/login">
-                  <Button variant="ghost" size="sm">
-                    {t('navigation.signIn')}
-                  </Button>
-                </Link>
-                <Link href="/contact">
-                  <Button size="sm" className="bg-primary hover:bg-tablo-red-600">
-                    {t('navigation.forRestaurants')}
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
+          <Link
+            href="#how-it-works"
+            className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground rounded-full hover:bg-white/40 smooth-transition"
+          >
+            {t('navigation.howItWorks')}
+          </Link>
+          <Link
+            href="#"
+            className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:text-foreground rounded-full hover:bg-white/40 smooth-transition"
+          >
+            {t('navigation.about')}
+          </Link>
         </div>
-      </div>
-    </nav>
+
+        {/* Right actions */}
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <LanguageSwitcher />
+
+          {user ? (
+            <>
+              {userRole === 'admin' && (
+                <Link href="/dashboard/admin">
+                  <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                    Admin Panel
+                  </Button>
+                </Link>
+              )}
+              {userRole === 'restaurant_owner' && (
+                <Link href="/dashboard">
+                  <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                    {t('navigation.dashboard')}
+                  </Button>
+                </Link>
+              )}
+              {userRole === 'customer' && (
+                <Link href="/my-bookings">
+                  <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                    {t('navigation.myBookings')}
+                  </Button>
+                </Link>
+              )}
+              <Link href="/profile">
+                <Button size="sm" className="rounded-full h-8 px-4 text-xs">
+                  {t('navigation.profile')}
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                  {t('navigation.signIn')}
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button size="sm" className="rounded-full h-8 px-4 text-xs">
+                  {t('navigation.forRestaurants')}
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+    </header>
   );
 }

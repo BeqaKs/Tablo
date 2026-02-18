@@ -4,75 +4,82 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    /* Pure White */
-    --foreground: 0 0% 3.9%;
-    /* Almost Black #111 */
+    /* Warm stone / ivory — calm, welcoming base */
+    --background: 38 24% 97%;
+    --foreground: 222 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
+    --popover-foreground: 222 30% 15%;
 
-    /* Brand Red - Vineyard Red (Tablo Red) */
-    --primary: 343 90% 51%;
-    /* #e11d48 */
-    --primary-foreground: 0 0% 100%;
+    /* Deep wine — appetite + luxury without feeling aggressive */
+    --primary: 346 58% 40%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 96.1%;
-    /* #FAFAFA */
-    --secondary-foreground: 0 0% 9%;
+    /* Soft warm neutrals — comfort & simplicity */
+    --secondary: 35 22% 94%;
+    --secondary-foreground: 222 30% 20%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 35 18% 92%;
+    --muted-foreground: 222 15% 42%;
 
-    --accent: 343 100% 97%;
-    /* #FEF2F4 - Soft Red Tint */
-    --accent-foreground: 343 90% 51%;
+    /* Subtle golden accent — premium cue, sparingly used */
+    --accent: 39 72% 78%;
+    --accent-foreground: 26 30% 22%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 65% 48%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 343 90% 51%;
+    --border: 35 18% 88%;
+    --input: 35 18% 88%;
+    --ring: 346 58% 40%;
 
-    --radius: 0.75rem;
-    /* rounded-xl for premium feel */
+    --radius: 0.5rem;
+    --radius-lg: 0.75rem;
 
-    --chart-1: 343 90% 51%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --chart-1: 346 42% 32%;
+    --chart-2: 173 42% 32%;
+    --chart-3: 220 25% 28%;
+    --chart-4: 38 35% 52%;
+    --chart-5: 27 45% 42%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --background: 222 40% 6%;
+    --foreground: 40 12% 96%;
+
+    --card: 222 36% 9%;
+    --card-foreground: 40 12% 96%;
+
+    --popover: 222 36% 9%;
+    --popover-foreground: 40 12% 96%;
+
+    --primary: 346 64% 56%;
+    --primary-foreground: 222 40% 6%;
+
+    --secondary: 222 28% 14%;
+    --secondary-foreground: 40 12% 96%;
+
+    --muted: 222 26% 16%;
+    --muted-foreground: 220 15% 62%;
+
+    --accent: 39 72% 72%;
+    --accent-foreground: 26 30% 18%;
+
+    --destructive: 0 60% 40%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+
+    --border: 222 28% 18%;
+    --input: 222 28% 18%;
+    --ring: 346 64% 56%;
+
+    --chart-1: 346 38% 55%;
+    --chart-2: 173 40% 45%;
+    --chart-3: 38 35% 55%;
+    --chart-4: 280 35% 55%;
+    --chart-5: 27 50% 52%;
   }
 }
 
@@ -82,45 +89,124 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Tablo Luxury Utility Classes */
+/* ─── Liquid Glass ─── */
+.liquid-glass {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.60) 0%,
+    rgba(255, 255, 255, 0.30) 40%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.50),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.10),
+    0 8px 32px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.liquid-glass-dense {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 255, 255, 0.42) 50%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  backdrop-filter: blur(32px) saturate(1.8);
+  -webkit-backdrop-filter: blur(32px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.60),
+    inset 0 -1px 0 0 rgba(255, 255, 255, 0.12),
+    0 12px 40px rgba(15, 23, 42, 0.10),
+    0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.liquid-glass-subtle {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.35) 0%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.30),
+    0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+/* ─── Utility classes ─── */
 .glass-panel {
-  @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-lg;
+  @apply liquid-glass;
 }
 
 .premium-card {
-  @apply bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300;
+  @apply bg-card border border-border/80 shadow-soft transition-all duration-300;
 }
 
-.tablo-gradient {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+.premium-card:hover {
+  @apply shadow-soft-lg;
+  transform: translateY(-2px);
 }
 
 .smooth-transition {
-  @apply transition-all duration-300 ease-in-out;
+  @apply transition-all duration-300 ease-out;
 }
 
-/* High-density dashboard layouts */
+/* ─── Dashboard & metrics ─── */
 .metric-card {
-  @apply bg-white rounded-xl border border-gray-100 p-4 hover:border-primary/20 smooth-transition;
+  @apply bg-card rounded-[var(--radius-lg)] border border-border/80 p-4 hover:border-primary/20 smooth-transition shadow-soft;
 }
 
 .stat-value {
-  @apply text-2xl font-bold tracking-tight text-foreground;
+  @apply text-2xl font-semibold tracking-tight text-foreground;
 }
 
 .stat-label {
-  @apply text-sm font-medium text-muted-foreground uppercase tracking-wide;
+  @apply text-xs font-medium text-muted-foreground uppercase tracking-widest;
 }
 
-/* Premium shadows */
-.shadow-luxury {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+/* ─── Refined shadows ─── */
+.shadow-luxury,
+.shadow-soft {
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.06),
+    0 8px 18px rgba(15, 23, 42, 0.04),
+    0 0 0 1px rgba(148, 163, 184, 0.04);
 }
 
-.shadow-luxury-lg {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+.shadow-luxury-lg,
+.shadow-soft-lg {
+  box-shadow:
+    0 28px 80px rgba(15, 23, 42, 0.14),
+    0 12px 32px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(148, 163, 184, 0.06);
+}
+
+/* ─── Hero background ─── */
+.luxury-page-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(190, 18, 60, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(39, 72, 78, 0.06), transparent 50%),
+    linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+}
+
+/* ─── Divider line with fade ─── */
+.divider-fade {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--border)) 25%,
+    hsl(var(--border)) 75%,
+    transparent 100%
+  );
 }

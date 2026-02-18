@@ -34,7 +34,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden h-screen flex-col border-r bg-white md:flex fixed left-0 top-0 z-40 smooth-transition',
+        'hidden h-screen flex-col border-r border-border/80 bg-card md:flex fixed left-0 top-0 z-40 smooth-transition',
         isCollapsed ? 'w-16' : 'w-64'
       )}
     >
@@ -48,7 +48,7 @@ export function Sidebar() {
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 hover:bg-gray-100 rounded-lg smooth-transition"
+          className="p-2 hover:bg-muted rounded-lg smooth-transition"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -99,7 +99,7 @@ export function Sidebar() {
                 'flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg smooth-transition',
                 isActive
                   ? 'bg-primary/10 text-primary'
-                  : 'text-muted-foreground hover:bg-gray-100 hover:text-foreground',
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 isCollapsed && 'justify-center'
               )}
               title={isCollapsed ? item.label : undefined}
@@ -118,8 +118,8 @@ export function Sidebar() {
         <form action={signout}>
           <button
             type="submit"
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 smooth-transition',
+className={cn(
+                'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive smooth-transition',
               isCollapsed && 'justify-center'
             )}
             title={isCollapsed ? 'Sign Out' : undefined}
