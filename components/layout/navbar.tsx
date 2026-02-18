@@ -109,7 +109,7 @@ export function Navbar() {
                     {t('navigation.signIn')}
                   </Button>
                 </Link>
-                <Link href="/login">
+                <Link href="/contact">
                   <Button size="sm" className="bg-primary hover:bg-tablo-red-600">
                     {t('navigation.forRestaurants')}
                   </Button>
