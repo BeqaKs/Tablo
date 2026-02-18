@@ -1,0 +1,216 @@
+{
+    "navigation": {
+        "restaurants": "Restaurants",
+        "howItWorks": "How It Works",
+        "about": "About",
+        "signIn": "Sign In",
+        "signOut": "Sign Out",
+        "profile": "Profile",
+        "myBookings": "My Bookings",
+        "dashboard": "Dashboard",
+        "forRestaurants": "For Restaurants"
+    },
+    "home": {
+        "hero": {
+            "badge": "Premium Dining Experience",
+            "title1": "Reserve Your Table at",
+            "highlight": "Georgia's Finest",
+            "subtitle": "Discover and book the best dining experiences across Tbilisi and beyond with real-time availability.",
+            "cta": "Browse Restaurants",
+            "ctaOwner": "List Your Restaurant"
+        },
+        "search": {
+            "placeholder": "Search restaurants, cuisines, or locations...",
+            "button": "Search",
+            "today": "Today",
+            "tomorrow": "Tomorrow",
+            "thisWeekend": "This Weekend",
+            "guests": "guests"
+        },
+        "stats": {
+            "restaurants": "Restaurants",
+            "instant": "Instant Confirmation",
+            "tbilisi": "Tbilisi & Beyond"
+        },
+        "featured": {
+            "title": "Featured Restaurants",
+            "subtitle": "Hand-picked favorites based on quality and dining experience",
+            "viewAll": "View All Restaurants"
+        },
+        "howItWorks": {
+            "title": "How It Works",
+            "subtitle": "Three simple steps to your next amazing meal",
+            "step1": {
+                "title": "Browse & Discover",
+                "description": "Explore hundreds of restaurants with real-time availability and visual table selection."
+            },
+            "step2": {
+                "title": "Choose Your Table",
+                "description": "Select your preferred date, time, and even your exact table from our interactive maps."
+            },
+            "step3": {
+                "title": "Instant Confirmation",
+                "description": "Get confirmed instantly and manage your bookings easily through your dashboard."
+            }
+        },
+        "cta": {
+            "title": "Ready to Dine?",
+            "subtitle": "Join thousands of food lovers discovering amazing restaurants daily.",
+            "button1": "Join Tablo Now",
+            "button2": "For Restaurants"
+        }
+    },
+    "auth": {
+        "signIn": "Sign In",
+        "signUp": "Sign Up",
+        "email": "Email",
+        "password": "Password",
+        "fullName": "Full Name",
+        "haveAccount": "Already have an account?",
+        "noAccount": "Don't have an account?",
+        "signInButton": "Sign In",
+        "signUpButton": "Sign Up",
+        "signingIn": "Signing in...",
+        "signingUp": "Signing up...",
+        "errors": {
+            "invalidCredentials": "Invalid email or password",
+            "userExists": "User already registered",
+            "weakPassword": "Password must be at least 6 characters",
+            "invalidEmail": "Please enter a valid email address",
+            "required": "This field is required"
+        },
+        "success": {
+            "checkEmail": "Please check your email to confirm your account before signing in.",
+            "accountCreated": "Account created successfully!"
+        }
+    },
+    "bookings": {
+        "title": "My Bookings",
+        "subtitle": "Manage your restaurant reservations",
+        "active": "Active Reservations",
+        "past": "Past Reservations",
+        "cancel": "Cancel",
+        "modify": "Modify",
+        "viewRestaurant": "View Restaurant",
+        "guests": "Guests",
+        "guest": "Guest",
+        "table": "Table",
+        "specialRequests": "Special Requests",
+        "status": {
+            "pending": "Pending",
+            "confirmed": "Confirmed",
+            "seated": "Seated",
+            "completed": "Completed",
+            "cancelled": "Cancelled",
+            "no_show": "No Show"
+        },
+        "empty": {
+            "noActive": "No Active Reservations",
+            "noActiveDesc": "You don't have any upcoming reservations. Discover amazing restaurants and make your next booking!",
+            "noPast": "No Past Reservations",
+            "noPastDesc": "Your booking history will appear here once you've dined at restaurants through Tablo.",
+            "cta": "Browse Restaurants",
+            "ctaFirst": "Make Your First Booking"
+        },
+        "cancelDialog": {
+            "title": "Cancel Reservation?",
+            "message": "Are you sure you want to cancel your reservation at {restaurant} on {date} at {time}?",
+            "keep": "Keep Reservation",
+            "confirm": "Yes, Cancel",
+            "cancelling": "Cancelling..."
+        }
+    },
+    "profile": {
+        "title": "My Profile",
+        "subtitle": "Manage your personal information and preferences",
+        "personalInfo": "Personal Information",
+        "editProfile": "Edit Profile",
+        "saveChanges": "Save Changes",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "fullName": "Full Name",
+        "email": "Email",
+        "phone": "Phone Number",
+        "emailNote": "Email cannot be changed. Contact support if needed.",
+        "dietaryRestrictions": "Dietary Restrictions",
+        "dietaryDesc": "Select any dietary restrictions to help restaurants accommodate your needs.",
+        "preferredCuisines": "Preferred Cuisines",
+        "cuisinesDesc": "Select your favorite cuisines to get personalized restaurant recommendations.",
+        "notifications": "Notification Preferences",
+        "emailNotifications": "Email Notifications",
+        "emailNotificationsDesc": "Receive booking confirmations and reminders via email",
+        "smsNotifications": "SMS Notifications",
+        "smsNotificationsDesc": "Receive booking confirmations and reminders via SMS",
+        "dietary": {
+            "vegetarian": "Vegetarian",
+            "vegan": "Vegan",
+            "glutenFree": "Gluten-Free",
+            "dairyFree": "Dairy-Free",
+            "nutAllergy": "Nut Allergy",
+            "shellfishAllergy": "Shellfish Allergy",
+            "halal": "Halal",
+            "kosher": "Kosher"
+        },
+        "cuisines": {
+            "georgian": "Georgian",
+            "italian": "Italian",
+            "japanese": "Japanese",
+            "french": "French",
+            "mediterranean": "Mediterranean",
+            "asianFusion": "Asian Fusion",
+            "steakhouse": "Steakhouse",
+            "seafood": "Seafood"
+        }
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "Error",
+        "success": "Success",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "close": "Close",
+        "back": "Back",
+        "next": "Next",
+        "previous": "Previous",
+        "search": "Search",
+        "filter": "Filter",
+        "sort": "Sort",
+        "viewAll": "View All",
+        "at": "at",
+        "upTo": "up to",
+        "optional": "Optional",
+        "closed": "Closed",
+        "restaurant": "Restaurant"
+    },
+    "restaurant": {
+        "back": "Back to Restaurants",
+        "reviews": "reviews",
+        "makeReservation": "Make a Reservation",
+        "date": "Date",
+        "partySize": "Party Size",
+        "time": "Time",
+        "chooseTable": "Choose Table",
+        "change": "Change",
+        "availableTables": "Available Tables",
+        "guest": "guest",
+        "guests": "guests",
+        "confirmContinue": "Continue to Confirmation",
+        "summary": "Reservation Summary",
+        "confirmBooking": "Confirm Booking",
+        "openingHours": "Opening Hours",
+        "specialRequests": "Special Requests",
+        "name": "Name",
+        "phone": "Phone",
+        "days": {
+            "monday": "Monday",
+            "tuesday": "Tuesday",
+            "wednesday": "Wednesday",
+            "thursday": "Thursday",
+            "friday": "Friday",
+            "saturday": "Saturday",
+            "sunday": "Sunday"
+        }
+    }
+}
