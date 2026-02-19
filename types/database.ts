@@ -26,6 +26,10 @@ export interface Restaurant {
   is_open: boolean; // Service status toggle
   images: string[];
   floor_plan_json: FloorPlanSchema | null;
+  rating?: number;
+  review_count?: number;
+  lat?: number;
+  lng?: number;
 }
 
 export interface Table {
@@ -63,6 +67,7 @@ export interface FloorPlanSchema {
   canvasWidth: number;
   canvasHeight: number;
   gridSize: number;
+  backgroundImage?: string | null;
   zones: Zone[];
 }
 

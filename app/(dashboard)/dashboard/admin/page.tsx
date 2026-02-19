@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
 import {
     Users,
     Utensils,
     CalendarDays,
     TrendingUp,
-    LayoutDashboard,
-    Settings,
-    ShieldCheck
+    ShieldCheck,
+    PanelTop,
+    BookOpen,
+    ArrowRight,
 } from 'lucide-react';
 
 export default async function AdminDashboardPage() {
@@ -25,6 +27,10 @@ export default async function AdminDashboardPage() {
         .from('users')
         .select('*', { count: 'exact', head: true });
 
+    const { count: tableCount } = await supabase
+        .from('tables')
+        .select('*', { count: 'exact', head: true });
+
     const stats = [
         {
             title: 'Total Restaurants',
@@ -34,7 +40,7 @@ export default async function AdminDashboardPage() {
             bg: 'bg-blue-50',
         },
         {
-            title: 'Active Bookings',
+            title: 'Total Bookings',
             value: reservationCount || 0,
             icon: CalendarDays,
             color: 'text-green-600',
@@ -48,21 +54,57 @@ export default async function AdminDashboardPage() {
             bg: 'bg-purple-50',
         },
         {
-            title: 'Platform Role',
-            value: 'Super Admin',
-            icon: ShieldCheck,
-            color: 'text-red-600',
-            bg: 'bg-red-50',
+            title: 'Total Tables',
+            value: tableCount || 0,
+            icon: PanelTop,
+            color: 'text-orange-600',
+            bg: 'bg-orange-50',
+        },
+    ];
+
+    const quickActions = [
+        {
+            title: 'Restaurant Management',
+            description: 'Add, edit, and manage all restaurants',
+            icon: Utensils,
+            href: '/dashboard/admin/restaurants',
+            color: 'from-blue-500 to-blue-600',
+        },
+        {
+            title: 'User Management',
+            description: 'Manage user roles and permissions',
+            icon: Users,
+            href: '/dashboard/admin/users',
+            color: 'from-purple-500 to-purple-600',
+        },
+        {
+            title: 'Table Management',
+            description: 'Manage tables and floor plans',
+            icon: PanelTop,
+            href: '/dashboard/admin/tables',
+            color: 'from-orange-500 to-orange-600',
+        },
+        {
+            title: 'Booking Management',
+            description: 'View and manage all bookings',
+            icon: BookOpen,
+            href: '/dashboard/admin/bookings',
+            color: 'from-green-500 to-green-600',
         },
     ];
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Admin Overview</h1>
-                <p className="text-muted-foreground">
-                    Platform-wide metrics and management.
-                </p>
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-50 rounded-lg">
+                    <ShieldCheck className="h-7 w-7 text-red-600" />
+                </div>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Admin Overview</h1>
+                    <p className="text-muted-foreground">
+                        Platform-wide metrics and management
+                    </p>
+                </div>
             </div>
 
             {/* Stats Grid */}
@@ -82,53 +124,51 @@ export default async function AdminDashboardPage() {
                 ))}
             </div>
 
-            {/* Welcome Section */}
-            <div className="grid gap-8 lg:grid-cols-2">
-                <div className="premium-card p-8 bg-gradient-to-br from-gray-900 to-gray-800 text-white rounded-2xl shadow-luxury">
-                    <div className="flex items-center gap-3 mb-6">
-                        <LayoutDashboard className="h-8 w-8 text-primary" />
-                        <h2 className="text-2xl font-bold">Quick Actions</h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-left smooth-transition">
-                            <p className="font-semibold mb-1">Verify Restaurants</p>
-                            <p className="text-xs text-white/60">Manage pending approvals</p>
-                        </button>
-                        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-left smooth-transition">
-                            <p className="font-semibold mb-1">System Audit</p>
-                            <p className="text-xs text-white/60">View global log history</p>
-                        </button>
-                        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-left smooth-transition">
-                            <p className="font-semibold mb-1">User Management</p>
-                            <p className="text-xs text-white/60">Update roles & permissions</p>
-                        </button>
-                        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-left smooth-transition">
-                            <p className="font-semibold mb-1">Global Settings</p>
-                            <p className="text-xs text-white/60">Configure platform rules</p>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="premium-card p-8 bg-white rounded-2xl shadow-sm border">
-                    <div className="flex items-center gap-3 mb-6">
-                        <TrendingUp className="h-8 w-8 text-primary" />
-                        <h2 className="text-2xl font-bold">Platform Activity</h2>
-                    </div>
-                    <div className="space-y-4">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-sm font-semibold">
-                                        R{i}
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">New Restaurant Joined</p>
-                                        <p className="text-xs text-muted-foreground">2 hours ago</p>
-                                    </div>
+            {/* Quick Action Cards */}
+            <div>
+                <h2 className="text-xl font-bold mb-4">Management Areas</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                    {quickActions.map((action) => (
+                        <Link
+                            key={action.href}
+                            href={action.href}
+                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br text-white p-6 hover:shadow-luxury-lg smooth-transition"
+                            style={{
+                                background: `linear-gradient(135deg, var(--tw-gradient-stops))`,
+                            }}
+                        >
+                            <div className={`absolute inset-0 bg-gradient-to-br ${action.color} opacity-100`} />
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-3">
+                                    <action.icon className="h-8 w-8 text-white/90" />
+                                    <ArrowRight className="h-5 w-5 text-white/60 group-hover:translate-x-1 smooth-transition" />
                                 </div>
-                                <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Auto-confirmed</span>
+                                <h3 className="text-lg font-bold mb-1">{action.title}</h3>
+                                <p className="text-sm text-white/80">{action.description}</p>
                             </div>
-                        ))}
+                        </Link>
+                    ))}
+                </div>
+            </div>
+
+            {/* Platform Activity */}
+            <div className="premium-card p-8 bg-white rounded-2xl shadow-sm border">
+                <div className="flex items-center gap-3 mb-6">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                    <h2 className="text-xl font-bold">Platform Summary</h2>
+                </div>
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="text-center p-4 bg-gray-50 rounded-xl">
+                        <p className="text-3xl font-bold text-primary">{restaurantCount || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Restaurants</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-xl">
+                        <p className="text-3xl font-bold text-green-600">{reservationCount || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">All-time Bookings</p>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-xl">
+                        <p className="text-3xl font-bold text-purple-600">{userCount || 0}</p>
+                        <p className="text-sm text-muted-foreground mt-1">Registered Users</p>
                     </div>
                 </div>
             </div>

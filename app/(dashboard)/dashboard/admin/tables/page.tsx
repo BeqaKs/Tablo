@@ -3,22 +3,23 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { getOwnerRestaurant, getOwnerTables, createOwnerTable, deleteOwnerTable, saveOwnerFloorPlan } from '@/app/actions/owner';
+import { getAdminRestaurants, getAdminTables, createAdminTable, updateAdminTable, deleteAdminTable, saveFloorPlan } from '@/app/actions/admin';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2, Save, Undo, ZoomIn, ZoomOut, Upload } from 'lucide-react';
 import { useFloorPlanStore } from '@/lib/stores/floor-plan-store';
 import { Canvas } from '@/components/floor-plan/canvas';
 import { TablePosition } from '@/lib/stores/floor-plan-store';
 
-export default function OwnerFloorPlanPage() {
-    const [restaurant, setRestaurant] = useState<any>(null);
+export default function AdminTablesPage() {
+    const [restaurants, setRestaurants] = useState<any[]>([]);
+    const [selectedRestaurant, setSelectedRestaurant] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
     const [zoom, setZoom] = useState(0.8);
     const [bgImageUrl, setBgImageUrl] = useState('');
 
     // Store Access
-    const { tables: storeTables, loadTables, addTable, deleteTable, setBackgroundImage, backgroundImage, reset } = useFloorPlanStore();
+    const { tables: storeTables, loadTables, addTable, deleteTable, setBackgroundImage, backgroundImage } = useFloorPlanStore();
 
     const [form, setForm] = useState({
         table_number: '', capacity: 2, shape: 'square' as string,
@@ -27,53 +28,56 @@ export default function OwnerFloorPlanPage() {
 
     useEffect(() => {
         async function load() {
-            setLoading(true);
-            const { data, error } = await getOwnerRestaurant();
-            if (error) {
-                toast.error(error);
-                setLoading(false);
-                return;
-            }
+            const { data } = await getAdminRestaurants();
             if (data) {
-                setRestaurant(data);
-
-                // Load background image from restaurant data
-                if (data.floor_plan_json?.backgroundImage) {
-                    setBackgroundImage(data.floor_plan_json.backgroundImage);
-                    setBgImageUrl(data.floor_plan_json.backgroundImage);
-                } else {
-                    setBackgroundImage(null);
-                    setBgImageUrl('');
-                }
-
-                const { data: tablesData, error: tablesError } = await getOwnerTables();
-                if (tablesError) {
-                    toast.error(tablesError);
-                } else if (tablesData) {
-                    const mappedTables: TablePosition[] = tablesData.map((t: any) => ({
-                        ...t,
-                        x_coord: Number(t.x_coord) || 0,
-                        y_coord: Number(t.y_coord) || 0,
-                        rotation: Number(t.rotation) || 0,
-                    }));
-                    loadTables(mappedTables);
-                }
-            } else {
-                toast.error("No restaurant found for you.");
+                setRestaurants(data);
+                if (data.length > 0) setSelectedRestaurant(data[0].id);
             }
             setLoading(false);
         }
         load();
-
-        return () => reset();
     }, []);
+
+    useEffect(() => {
+        if (selectedRestaurant) {
+            loadRestaurantTables();
+            // Load background image from restaurant data
+            const restaurant = restaurants.find(r => r.id === selectedRestaurant);
+            if (restaurant?.floor_plan_json?.backgroundImage) {
+                setBackgroundImage(restaurant.floor_plan_json.backgroundImage);
+                setBgImageUrl(restaurant.floor_plan_json.backgroundImage);
+            } else {
+                setBackgroundImage(null);
+                setBgImageUrl('');
+            }
+        }
+    }, [selectedRestaurant, restaurants]); // Added restaurants dep to catch initial load
+
+    async function loadRestaurantTables() {
+        const { data, error } = await getAdminTables(selectedRestaurant);
+        if (error) toast.error(error);
+        if (data) {
+            // Map DB tables to store format
+            const mappedTables: TablePosition[] = data.map((t: any) => ({
+                ...t,
+                // Ensure coords are numbers
+                x_coord: Number(t.x_coord) || 0,
+                y_coord: Number(t.y_coord) || 0,
+                rotation: Number(t.rotation) || 0,
+            }));
+            loadTables(mappedTables);
+        }
+    }
 
     async function handleCreate() {
         if (!form.table_number) { toast.error('Table number is required'); return; }
 
-        const { data: newTable, error } = await createOwnerTable({
+        // 1. Create in DB first
+        const { data: newTable, error } = await createAdminTable({
+            restaurant_id: selectedRestaurant,
             ...form,
             capacity: Number(form.capacity),
+            // Use current zoom center if possible, or default
             x_coord: 100,
             y_coord: 100,
         });
@@ -83,12 +87,13 @@ export default function OwnerFloorPlanPage() {
         } else if (newTable) {
             toast.success('Table created!');
             setShowCreate(false);
+            // 2. Add to store directly without full reload to preserve unsaved drags
             addTable({
                 ...newTable,
                 x_coord: Number(newTable.x_coord),
                 y_coord: Number(newTable.y_coord),
                 rotation: Number(newTable.rotation),
-            } as any);
+            } as any); // Cast to handle id mismatch if any
 
             setForm({ table_number: '', capacity: 2, shape: 'square', x_coord: 0, y_coord: 0, zone_name: 'Main', width: 60, height: 60 });
         }
@@ -96,7 +101,7 @@ export default function OwnerFloorPlanPage() {
 
     async function handleDelete(id: string) {
         if (!confirm('Delete this table?')) return;
-        const { error } = await deleteOwnerTable(id);
+        const { error } = await deleteAdminTable(id);
         if (error) toast.error(error);
         else {
             toast.success('Table deleted');
@@ -106,7 +111,9 @@ export default function OwnerFloorPlanPage() {
 
     async function handleSaveLayout() {
         const toastId = toast.loading('Saving layout...');
-        const { error } = await saveOwnerFloorPlan(
+        // Save store tables + current background image to DB
+        const { error } = await saveFloorPlan(
+            selectedRestaurant,
             storeTables,
             backgroundImage
         );
@@ -118,9 +125,12 @@ export default function OwnerFloorPlanPage() {
             toast.dismiss(toastId);
             toast.success('Floor plan saved successfully!');
 
-            setRestaurant((prev: any) =>
-                prev ? { ...prev, floor_plan_json: { ...prev.floor_plan_json, backgroundImage } } : prev
-            );
+            // Update local restaurants state to reflect new background image
+            setRestaurants(prev => prev.map(r =>
+                r.id === selectedRestaurant
+                    ? { ...r, floor_plan_json: { ...r.floor_plan_json, backgroundImage } }
+                    : r
+            ));
         }
     }
 
@@ -138,8 +148,8 @@ export default function OwnerFloorPlanPage() {
             reader.onload = (event) => {
                 const result = event.target?.result as string;
                 if (result) {
-                    setBgImageUrl(result);
-                    setBackgroundImage(result);
+                    setBgImageUrl(result); // Show in input
+                    setBackgroundImage(result); // Set in store
                     toast.success('Image loaded locally. Save to persist.');
                 }
             };
@@ -155,16 +165,14 @@ export default function OwnerFloorPlanPage() {
         );
     }
 
-    if (!restaurant) {
-        return <div className="text-center p-8 text-muted-foreground mt-20">You need to be assigned to a restaurant to manage a floor plan.</div>;
-    }
+    const selectedRestaurantName = restaurants.find(r => r.id === selectedRestaurant)?.name || 'Select a restaurant';
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Floor Plan Builder</h1>
-                    <p className="text-muted-foreground">{restaurant.name}</p>
+                    <p className="text-muted-foreground">Design your restaurant layout</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1 bg-white border rounded-lg p-1 mr-2">
@@ -177,7 +185,7 @@ export default function OwnerFloorPlanPage() {
                         </Button>
                     </div>
 
-                    <Button variant="outline" onClick={() => window.location.reload()} title="Reset to last saved">
+                    <Button variant="outline" onClick={() => loadRestaurantTables()} title="Reset to last saved">
                         <Undo className="h-4 w-4 mr-2" />
                         Reset
                     </Button>
@@ -189,8 +197,21 @@ export default function OwnerFloorPlanPage() {
             </div>
 
             {/* Controls Bar */}
-            <Card className="p-4 flex gap-6 items-end">
-                <div className="space-y-2 flex-1">
+            <Card className="p-4 grid md:grid-cols-2 gap-6 items-end">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Restaurant</label>
+                    <select
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        value={selectedRestaurant}
+                        onChange={e => setSelectedRestaurant(e.target.value)}
+                    >
+                        {restaurants.map(r => (
+                            <option key={r.id} value={r.id}>{r.name} ({r.city})</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="space-y-2">
                     <label className="text-sm font-medium">Background Image (URL)</label>
                     <div className="flex gap-2">
                         <input
@@ -209,7 +230,7 @@ export default function OwnerFloorPlanPage() {
             {/* Quick Add Table */}
             {showCreate && (
                 <Card className="p-6 border-primary/20 bg-primary/5 mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Add Table</h3>
+                    <h3 className="text-lg font-semibold mb-4">Add Table to {selectedRestaurantName}</h3>
                     <div className="grid md:grid-cols-4 gap-4">
                         <div>
                             <label className="text-xs font-medium mb-1 block">Table No.</label>

@@ -2,40 +2,45 @@
 
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Search, MapPin, Clock, Users, Star, TrendingUp, CalendarCheck, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Clock, Users, Star, TrendingUp, CalendarCheck, ArrowRight, Loader2 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
+import Image from 'next/image';
+
+import { useState, useEffect } from 'react';
+import { getRestaurants } from '@/app/actions/bookings';
+import { Restaurant } from '@/types/database';
 
 export default function HomePage() {
   const { t } = useLocale();
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const featuredRestaurants = [
-    {
-      id: 1,
-      name: 'Shavi Lomi',
-      cuisine: 'Georgian Fine Dining',
-      image: '/placeholder-restaurant.jpg',
-      rating: 4.8,
-      priceRange: '$$$',
-      location: 'Vera, Tbilisi',
-    },
-    {
-      id: 2,
-      name: 'Barbarestan',
-      cuisine: 'Traditional Georgian',
-      image: '/placeholder-restaurant.jpg',
-      rating: 4.9,
-      priceRange: '$$',
-      location: 'Old Tbilisi',
-    },
-    {
-      id: 3,
-      name: 'Café Gabriadze',
-      cuisine: 'European & Georgian',
-      image: '/placeholder-restaurant.jpg',
-      rating: 4.7,
-      priceRange: '$$',
-      location: 'Old Tbilisi',
-    },
+  useEffect(() => {
+    async function loadRestaurants() {
+      try {
+        const result = await getRestaurants();
+        console.log('[HomePage] getRestaurants result:', result);
+        if (result.data) {
+          setRestaurants(result.data.slice(0, 3));
+        }
+        if (result.error) {
+          setError(result.error);
+        }
+      } catch (err: any) {
+        console.error('[HomePage] Failed to fetch restaurants:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadRestaurants();
+  }, []);
+
+  const defaultImages = [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&h=600&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&h=600&fit=crop',
   ];
 
   return (
@@ -95,16 +100,18 @@ export default function HomePage() {
               </div>
             </div>
 
-            <Button size="lg" className="rounded-full px-8 h-12 text-sm smooth-transition">
-              {t('home.search.button')}
-            </Button>
+            <Link href="/restaurants">
+              <Button size="lg" className="rounded-full px-8 h-12 text-sm smooth-transition">
+                {t('home.search.button')}
+              </Button>
+            </Link>
           </div>
 
           {/* Quick Stats */}
           <div className="mt-14 flex items-center justify-center gap-8 text-sm text-muted-foreground animate-fade-in">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-primary/70" />
-              <span>50+ {t('home.stats.restaurants')}</span>
+              <span>{restaurants.length || '50+'} {t('home.stats.restaurants')}</span>
             </div>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2">
@@ -137,39 +144,67 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredRestaurants.map((restaurant) => (
-              <Link
-                key={restaurant.id}
-                href={`/restaurants/${restaurant.id}`}
-                className="group premium-card rounded-2xl overflow-hidden"
-              >
-                <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2">
-                    <span className="liquid-glass-subtle px-2.5 py-1 text-white text-xs font-medium rounded-full">
-                      {restaurant.priceRange}
-                    </span>
-                    <span className="liquid-glass-subtle px-2.5 py-1 text-white text-xs font-medium rounded-full flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-current" />
-                      {restaurant.rating}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-1.5 group-hover:text-primary smooth-transition">
-                    {restaurant.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {restaurant.location}
-                  </div>
-                </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Loading restaurants...</span>
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <p className="text-destructive mb-2">Failed to load restaurants</p>
+              <p className="text-sm text-muted-foreground">{error}</p>
+            </div>
+          ) : restaurants.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-xl font-semibold mb-2">No restaurants yet</p>
+              <p className="text-sm text-muted-foreground mb-6">Be the first to add your restaurant!</p>
+              <Link href="/login">
+                <Button>Get Started</Button>
               </Link>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {restaurants.map((restaurant, index) => {
+                const imgUrl = restaurant.images?.[0] || defaultImages[index % defaultImages.length];
+                return (
+                  <Link
+                    key={restaurant.id}
+                    href={`/restaurants/${restaurant.slug}`}
+                    className="group premium-card rounded-2xl overflow-hidden"
+                  >
+                    <div className="aspect-[4/3] bg-muted relative overflow-hidden">
+                      <img
+                        src={imgUrl}
+                        alt={restaurant.name}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 smooth-transition"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                      <div className="absolute bottom-4 left-4 right-4 flex items-center gap-2">
+                        <span className="liquid-glass-subtle px-2.5 py-1 text-white text-xs font-medium rounded-full">
+                          {restaurant.price_range || '$$$'}
+                        </span>
+                        <span className="liquid-glass-subtle px-2.5 py-1 text-white text-xs font-medium rounded-full flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-current" />
+                          {restaurant.rating || '4.8'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-6">
+                      <h3 className="text-lg font-semibold mb-1.5 group-hover:text-primary smooth-transition">
+                        {restaurant.name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-3">{restaurant.cuisine_type}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5" />
+                        {restaurant.city}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

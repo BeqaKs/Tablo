@@ -1,30 +1,90 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, CalendarCheck, TrendingUp, Clock, MapPin, Phone } from "lucide-react";
 import { formatGEL } from "@/lib/utils/currency";
+import { createClient } from "@/lib/supabase/server";
 
-export default function DashboardPage() {
-  // Mock data - will be replaced with real data from Supabase
-  const metrics = {
-    currentOccupancy: { seated: 42, total: 80 },
-    todayCovers: 124,
-    activeReservations: 18,
-    estimatedRevenue: 4200,
-    averageCheck: 85,
-  };
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const upcomingBookings = [
-    { id: 1, time: "18:30", guestName: "Giorgi Beridze", partySize: 4, table: "12", phone: "+995 555 123 456" },
-    { id: 2, time: "19:00", guestName: "Ana Kvirikashvili", partySize: 2, table: "5", phone: "+995 555 789 012" },
-    { id: 3, time: "19:30", guestName: "Luka Tsiklauri", partySize: 6, table: "8", phone: "+995 555 345 678" },
-    { id: 4, time: "20:00", guestName: "Mariam Janelidze", partySize: 3, table: "15", phone: "+995 555 901 234" },
-  ];
+  if (!user) {
+    return <div>Please log in</div>;
+  }
 
-  const occupancyPercentage = Math.round((metrics.currentOccupancy.seated / metrics.currentOccupancy.total) * 100);
+  // Get restaurant for this user
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('id, name')
+    .eq('owner_id', user.id)
+    .single();
+
+  if (!restaurant) {
+    return (
+      <div className="p-8 text-center bg-white rounded-lg border">
+        <h2 className="text-2xl font-bold mb-2">Welcome to Tablo Dashboard!</h2>
+        <p className="text-muted-foreground">You don't have a restaurant assigned to you yet.</p>
+        <p className="text-muted-foreground mt-2">Please contact an administrator to assign your restaurant.</p>
+      </div>
+    );
+  }
+
+  // Fetch Tables
+  const { data: tables } = await supabase
+    .from('tables')
+    .select('id, capacity, table_number')
+    .eq('restaurant_id', restaurant.id);
+
+  const totalCapacity = (tables || []).reduce((sum, t) => sum + t.capacity, 0);
+
+  // Fetch Reservations for today
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const { data: reservations } = await supabase
+    .from('reservations')
+    .select(`
+      id,
+      guest_name,
+      guest_count,
+      reservation_time,
+      status,
+      guest_phone,
+      tables ( table_number )
+    `)
+    .eq('restaurant_id', restaurant.id)
+    .gte('reservation_time', today.toISOString())
+    .lt('reservation_time', tomorrow.toISOString())
+    .order('reservation_time', { ascending: true });
+
+  const activeReservations = (reservations || []).filter(r => ['pending', 'confirmed'].includes(r.status));
+  const seatedReservations = (reservations || []).filter(r => r.status === 'seated');
+  const todayCovers = (reservations || []).filter(r => r.status !== 'cancelled' && r.status !== 'no_show').reduce((sum, r) => sum + r.guest_count, 0);
+  const seatedCovers = seatedReservations.reduce((sum, r) => sum + r.guest_count, 0);
+
+  const upcomingBookings = (reservations || [])
+    .filter(r => new Date(r.reservation_time) > new Date() && ['pending', 'confirmed'].includes(r.status))
+    .slice(0, 5)
+    .map(r => ({
+      id: r.id,
+      time: new Date(r.reservation_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      guestName: r.guest_name || 'Guest',
+      partySize: r.guest_count,
+      table: (r.tables as any)?.table_number || 'TBD',
+      phone: r.guest_phone || 'No phone'
+    }));
+
+  const occupancyPercentage = totalCapacity > 0 ? Math.round((seatedCovers / totalCapacity) * 100) : 0;
+
+  // Revenue estimation
+  const averageCheck = 85; // Using placeholder since prices aren't connected to payments
+  const estimatedRevenue = todayCovers * averageCheck;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Overview</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Overview - {restaurant.name}</h2>
         <div className="text-sm text-muted-foreground">
           {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
@@ -39,18 +99,18 @@ export default function DashboardPage() {
             <Users className="h-5 w-5 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="stat-value">{metrics.currentOccupancy.seated} / {metrics.currentOccupancy.total}</div>
+            <div className="stat-value">{seatedCovers} / {totalCapacity}</div>
             <div className="mt-2 flex items-center gap-2">
               <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary to-tablo-red-600 smooth-transition"
-                  style={{ width: `${occupancyPercentage}%` }}
+                  style={{ width: `${Math.min(occupancyPercentage, 100)}%` }}
                 />
               </div>
               <span className="text-xs font-semibold text-primary">{occupancyPercentage}%</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {metrics.currentOccupancy.total - metrics.currentOccupancy.seated} tables available
+              {tables?.length || 0} tables total
             </p>
           </CardContent>
         </Card>
@@ -62,10 +122,9 @@ export default function DashboardPage() {
             <Users className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="stat-value">{metrics.todayCovers}</div>
-            <p className="text-xs text-green-600 font-medium mt-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              +12% from yesterday
+            <div className="stat-value">{todayCovers}</div>
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              Guests arriving today
             </p>
           </CardContent>
         </Card>
@@ -77,9 +136,9 @@ export default function DashboardPage() {
             <CalendarCheck className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="stat-value">{metrics.activeReservations}</div>
+            <div className="stat-value">{activeReservations.length}</div>
             <p className="text-xs text-amber-600 font-medium mt-1">
-              3 require confirmation
+              {upcomingBookings.length} upcoming soon
             </p>
           </CardContent>
         </Card>
@@ -91,9 +150,9 @@ export default function DashboardPage() {
             <span className="text-2xl">₾</span>
           </CardHeader>
           <CardContent>
-            <div className="stat-value text-green-600">{formatGEL(metrics.estimatedRevenue)}</div>
+            <div className="stat-value text-green-600">{formatGEL(estimatedRevenue)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Avg. check {formatGEL(metrics.averageCheck)}
+              Avg. check {formatGEL(averageCheck)} (est)
             </p>
           </CardContent>
         </Card>
@@ -111,7 +170,11 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {upcomingBookings.map((booking) => (
+              {upcomingBookings.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  No upcoming reservations for the rest of the day.
+                </div>
+              ) : upcomingBookings.map((booking) => (
                 <div
                   key={booking.id}
                   className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 smooth-transition cursor-pointer"

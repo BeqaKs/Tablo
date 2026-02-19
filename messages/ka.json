@@ -118,7 +118,8 @@
             "keep": "დაჯავშნის შენარჩუნება",
             "confirm": "დიახ, გაუქმება",
             "cancelling": "გაუქმება..."
-        }
+        },
+        "success": "ჯავშანი წარმატებით შეიქმნა!"
     },
     "profile": {
         "title": "ჩემი პროფილი",
@@ -184,6 +185,22 @@
         "closed": "დაკეტილია",
         "restaurant": "რესტორანი"
     },
+    "restaurants": {
+        "title": "რესტორნები",
+        "description": "რესტორანი ხელმისაწვდომია დაჯავშნისთვის",
+        "searchPlaceholder": "მოძებნეთ რესტორნები, კერძები ან ლოკაციები...",
+        "filters": "ფილტრები",
+        "viewList": "სია",
+        "viewMap": "რუკა",
+        "all": "ყველა",
+        "cuisineGeorgian": "ქართული",
+        "cuisineEuropean": "ევროპული",
+        "fineDining": "ფაინ დაინინგი",
+        "availableToday": "დღეს ხელმისაწვდომი",
+        "bookNow": "დაჯავშნა",
+        "viewDetails": "დეტალები",
+        "available": "ხელმისაწვდომი"
+    },
     "restaurant": {
         "back": "დაბრუნება რესტორნებში",
         "reviews": "მიმოხილვა",
@@ -212,5 +229,10 @@
             "saturday": "შაბათი",
             "sunday": "კვირა"
         }
+    },
+    "footer": {
+        "forDiners": "სტუმრებისთვის",
+        "forRestaurants": "რესტორნებისთვის",
+        "company": "კომპანია"
     }
 }

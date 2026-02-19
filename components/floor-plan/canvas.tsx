@@ -69,6 +69,20 @@ export function Canvas({ showGrid, zoom }: CanvasProps) {
             onMouseLeave={handleMouseUp}
             onClick={handleCanvasClick}
         >
+            {/* Background Image */}
+            {useFloorPlanStore.getState().backgroundImage && (
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        backgroundImage: `url(${useFloorPlanStore.getState().backgroundImage})`,
+                        backgroundSize: 'contain',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        opacity: 0.5
+                    }}
+                />
+            )}
+
             {/* Grid overlay */}
             {showGrid && (
                 <div

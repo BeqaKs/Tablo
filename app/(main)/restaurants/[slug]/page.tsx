@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,63 +10,72 @@ import {
     ChevronLeft, Calendar, Check, X
 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
+import { getRestaurantBySlug, createBooking } from '@/app/actions/bookings';
+import { Restaurant, Table } from '@/types/database';
+import { toast } from 'sonner';
+import { FloorPlanViewer } from '@/components/floor-plan/floor-plan-viewer';
+import { TablePosition } from '@/lib/stores/floor-plan-store';
 
-export default function RestaurantProfilePage({ params }: { params: { slug: string } }) {
+export default function RestaurantProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+    const resolvedParams = use(params);
     const { t } = useLocale();
+    const [restaurant, setRestaurant] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
     const [selectedDate, setSelectedDate] = useState<string>('');
     const [selectedTime, setSelectedTime] = useState<string>('');
     const [partySize, setPartySize] = useState<number>(2);
     const [selectedTable, setSelectedTable] = useState<string | null>(null);
     const [step, setStep] = useState<'datetime' | 'table' | 'confirm'>('datetime');
+    const [bookingLoading, setBookingLoading] = useState(false);
+    const [guestName, setGuestName] = useState('');
+    const [guestPhone, setGuestPhone] = useState('');
+    const [guestNotes, setGuestNotes] = useState('');
+    const [viewMode, setViewMode] = useState<'list' | 'floor-plan'>('list');
 
     const resT = (key: string) => t(`restaurant.${key}`);
-
-    // Mock data - will be replaced with Supabase data
-    const restaurant = {
-        name: 'Shavi Lomi',
-        slug: 'shavi-lomi',
-        cuisine: 'Georgian Fine Dining',
-        description: 'Modern Georgian cuisine in an intimate setting with carefully curated wine selection. Our chef combines traditional recipes with contemporary techniques.',
-        priceRange: '$$$',
-        rating: 4.8,
-        reviewCount: 324,
-        location: 'Vera, Tbilisi',
-        address: '123 Rustaveli Avenue, Tbilisi 0108',
-        phone: '+995 555 123 456',
-        email: 'reservations@shavilomi.ge',
-        website: 'www.shavilomi.ge',
-        openingHours: {
-            monday: '12:00 - 23:00',
-            tuesday: '12:00 - 23:00',
-            wednesday: '12:00 - 23:00',
-            thursday: '12:00 - 23:00',
-            friday: '12:00 - 00:00',
-            saturday: '12:00 - 00:00',
-            sunday: 'Closed',
-        },
-        images: ['/placeholder-restaurant.jpg'],
-        features: ['Wine Pairing', 'Private Dining', 'Outdoor Seating', 'Vegetarian Options'],
-    };
 
     const availableTimes = [
         '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
         '18:00', '18:30', '19:00', '19:30', '20:00', '20:30', '21:00', '21:30'
     ];
 
-    const mockTables = [
-        { id: 'T1', number: 'T1', capacity: 2, zone: 'Window', available: true },
-        { id: 'T2', number: 'T2', capacity: 2, zone: 'Window', available: true },
-        { id: 'T3', number: 'T3', capacity: 4, zone: 'Main Hall', available: true },
-        { id: 'T4', number: 'T4', capacity: 4, zone: 'Main Hall', available: false },
-        { id: 'T5', number: 'T5', capacity: 6, zone: 'Private', available: true },
-        { id: 'T6', number: 'T6', capacity: 8, zone: 'Private', available: true },
-    ];
+    useEffect(() => {
+        async function loadData() {
+            const { data } = await getRestaurantBySlug(resolvedParams.slug);
+            if (data) setRestaurant(data);
+            setLoading(false);
+        }
+        loadData();
+    }, [resolvedParams.slug]);
 
-    const filteredTables = mockTables.filter(t => t.capacity >= partySize && t.available);
+    if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    if (!restaurant) return <div className="min-h-screen flex items-center justify-center">Restaurant not found.</div>;
 
-    const handleBooking = () => {
-        // TODO: Create reservation in Supabase
-        alert(`Booking confirmed!\nRestaurant: ${restaurant.name}\nDate: ${selectedDate}\nTime: ${selectedTime}\nParty: ${partySize}\nTable: ${selectedTable}`);
+    const filteredTables = (restaurant.tables || []).filter((t: any) => t.capacity >= partySize);
+
+    const handleBooking = async () => {
+        if (!selectedTable || !selectedDate || !selectedTime) return;
+
+        setBookingLoading(true);
+        const reservationTime = new Date(`${selectedDate}T${selectedTime}`).toISOString();
+
+        const { success, error } = await createBooking({
+            restaurant_id: restaurant.id,
+            table_id: selectedTable,
+            guest_count: partySize,
+            reservation_time: reservationTime,
+            guest_name: guestName,
+            guest_phone: guestPhone,
+            guest_notes: guestNotes,
+        });
+
+        setBookingLoading(false);
+        if (success) {
+            toast.success(t('bookings.success') || 'Reservation created successfully!');
+            setStep('datetime');
+        } else {
+            toast.error(error || 'Failed to create reservation');
+        }
     };
 
     return (
@@ -113,7 +122,7 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
 
                             {/* Features */}
                             <div className="flex flex-wrap gap-2 mb-6">
-                                {restaurant.features.map((feature) => (
+                                {(restaurant.features || []).map((feature: string) => (
                                     <Badge key={feature} variant="secondary">
                                         {feature}
                                     </Badge>
@@ -142,7 +151,7 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
                         </div>
 
                         {/* Booking Widget */}
-                        <Card className="premium-card p-6 h-fit sticky top-4">
+                        <Card className="premium-card p-6 h-fit sticky top-24">
                             <h2 className="text-2xl font-bold mb-6">{resT('makeReservation')}</h2>
 
                             {/* Step 1: Date, Time, Party Size */}
@@ -219,33 +228,73 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium mb-2">
-                                            {resT('availableTables')} ({filteredTables.length})
-                                        </label>
-                                        <div className="space-y-2 max-h-[400px] overflow-auto">
-                                            {filteredTables.map((table) => (
-                                                <button
-                                                    key={table.id}
-                                                    onClick={() => setSelectedTable(table.id)}
-                                                    className={`w-full p-4 border-2 rounded-lg text-left smooth-transition ${selectedTable === table.id
-                                                        ? 'border-primary bg-primary/5'
-                                                        : 'border-gray-200 hover:border-primary/50'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <p className="font-semibold">{t('bookings.table')} {table.number}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {table.zone} • {t('common.upTo')} {table.capacity} {resT('guests')}
-                                                            </p>
-                                                        </div>
-                                                        {selectedTable === table.id && (
-                                                            <Check className="h-5 w-5 text-primary" />
-                                                        )}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-sm font-medium">
+                                                {resT('availableTables')} ({filteredTables.length})
+                                            </label>
+                                            {restaurant.floor_plan_json?.backgroundImage && (
+                                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                                    <button
+                                                        onClick={() => setViewMode('list')}
+                                                        className={`px-3 py-1 text-xs font-medium rounded-md smooth-transition ${viewMode === 'list' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                                    >
+                                                        List
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setViewMode('floor-plan')}
+                                                        className={`px-3 py-1 text-xs font-medium rounded-md smooth-transition ${viewMode === 'floor-plan' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                                    >
+                                                        Floor Plan
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
+
+                                        {viewMode === 'floor-plan' && restaurant.floor_plan_json ? (
+                                            <div className="mb-4">
+                                                <FloorPlanViewer
+                                                    tables={restaurant.tables} // Show all tables contextually
+                                                    backgroundImage={restaurant.floor_plan_json.backgroundImage}
+                                                    selectedTableId={selectedTable}
+                                                    onTableSelect={(id) => setSelectedTable(id)}
+                                                    getTableStatus={(table) => {
+                                                        // 1. Capacity check
+                                                        if (table.capacity < partySize) return 'disabled';
+                                                        // 2. Availability check (future: check against bookings)
+                                                        // For now, assume all tables matching capacity are available
+                                                        return 'available';
+                                                    }}
+                                                />
+                                                <p className="text-xs text-muted-foreground mt-2 text-center">
+                                                    Click on a green table to select it. Gray tables are too small/unavailable.
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2 max-h-[400px] overflow-auto">
+                                                {(filteredTables || []).map((table: any) => (
+                                                    <button
+                                                        key={table.id}
+                                                        onClick={() => setSelectedTable(table.id)}
+                                                        className={`w-full p-4 border-2 rounded-lg text-left smooth-transition ${selectedTable === table.id
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-gray-200 hover:border-primary/50'
+                                                            }`}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-semibold">{t('bookings.table')} {table.table_number}</p>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    {table.zone_name} • {t('common.upTo')} {table.capacity} {resT('guests')}
+                                                                </p>
+                                                            </div>
+                                                            {selectedTable === table.id && (
+                                                                <Check className="h-5 w-5 text-primary" />
+                                                            )}
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
 
                                     <Button
@@ -278,21 +327,29 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
                                             <label className="block text-sm font-medium mb-2">{resT('name')}</label>
                                             <input
                                                 type="text"
+                                                value={guestName}
+                                                onChange={(e) => setGuestName(e.target.value)}
                                                 placeholder={t('auth.fullName')}
                                                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium mb-2">{resT('phone')}</label>
                                             <input
                                                 type="tel"
+                                                value={guestPhone}
+                                                onChange={(e) => setGuestPhone(e.target.value)}
                                                 placeholder="+995 555 123 456"
                                                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                                required
                                             />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium mb-2">{resT('specialRequests')} ({t('common.optional')})</label>
                                             <textarea
+                                                value={guestNotes}
+                                                onChange={(e) => setGuestNotes(e.target.value)}
                                                 placeholder={t('bookings.specialRequests')}
                                                 rows={3}
                                                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
@@ -304,8 +361,13 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
                                         <Button variant="outline" onClick={() => setStep('table')} className="flex-1">
                                             {t('common.back')}
                                         </Button>
-                                        <Button onClick={handleBooking} className="flex-1" size="lg">
-                                            {resT('confirmBooking')}
+                                        <Button
+                                            onClick={handleBooking}
+                                            className="flex-1"
+                                            size="lg"
+                                            disabled={bookingLoading || !guestName || !guestPhone}
+                                        >
+                                            {bookingLoading ? t('common.loading') : resT('confirmBooking')}
                                         </Button>
                                     </div>
                                 </div>
@@ -323,7 +385,7 @@ export default function RestaurantProfilePage({ params }: { params: { slug: stri
                         {resT('openingHours')}
                     </h2>
                     <div className="grid md:grid-cols-2 gap-3">
-                        {Object.entries(restaurant.openingHours).map(([day, hours]) => (
+                        {restaurant.opening_hours && Object.entries(restaurant.opening_hours).map(([day, hours]: [string, any]) => (
                             <div key={day} className="flex justify-between items-center py-2 border-b last:border-0">
                                 <span className="font-medium capitalize">{t(`restaurant.days.${day}`)}</span>
                                 <span className={hours === 'Closed' ? 'text-red-600' : 'text-muted-foreground'}>

@@ -118,7 +118,8 @@
             "keep": "Keep Reservation",
             "confirm": "Yes, Cancel",
             "cancelling": "Cancelling..."
-        }
+        },
+        "success": "Reservation created successfully!"
     },
     "profile": {
         "title": "My Profile",
@@ -184,6 +185,22 @@
         "closed": "Closed",
         "restaurant": "Restaurant"
     },
+    "restaurants": {
+        "title": "Restaurants",
+        "description": "restaurants available for booking",
+        "searchPlaceholder": "Search restaurants, cuisine, or location...",
+        "filters": "Filters",
+        "viewList": "List",
+        "viewMap": "Map",
+        "all": "All",
+        "cuisineGeorgian": "Georgian",
+        "cuisineEuropean": "European",
+        "fineDining": "Fine Dining",
+        "availableToday": "Available Today",
+        "bookNow": "Book Now",
+        "viewDetails": "View Details",
+        "available": "Available"
+    },
     "restaurant": {
         "back": "Back to Restaurants",
         "reviews": "reviews",
@@ -212,5 +229,10 @@
             "saturday": "Saturday",
             "sunday": "Sunday"
         }
+    },
+    "footer": {
+        "forDiners": "For Diners",
+        "forRestaurants": "For Restaurants",
+        "company": "Company"
     }
 }

@@ -14,6 +14,7 @@ interface FloorPlanState {
     tables: TablePosition[];
     selectedTableId: string | null;
     isDragging: boolean;
+    backgroundImage: string | null;
     gridSize: number;
     canvasWidth: number;
     canvasHeight: number;
@@ -33,6 +34,7 @@ interface FloorPlanState {
 
     // Load/Save
     loadTables: (tables: TablePosition[]) => void;
+    setBackgroundImage: (url: string | null) => void;
     reset: () => void;
 }
 
@@ -40,6 +42,7 @@ export const useFloorPlanStore = create<FloorPlanState>((set, get) => ({
     tables: [],
     selectedTableId: null,
     isDragging: false,
+    backgroundImage: null,
     gridSize: 20, // 20px grid
     canvasWidth: 1200,
     canvasHeight: 800,
@@ -129,11 +132,16 @@ export const useFloorPlanStore = create<FloorPlanState>((set, get) => ({
         set({ tables, selectedTableId: null });
     },
 
+    setBackgroundImage: (url) => {
+        set({ backgroundImage: url });
+    },
+
     reset: () => {
         set({
             tables: [],
             selectedTableId: null,
             isDragging: false,
+            backgroundImage: null,
         });
     },
 }));
