@@ -9,6 +9,8 @@ import { UtensilsCrossed, Loader2, CheckCircle2 } from 'lucide-react'
 import { login, signup } from '@/app/auth/actions'
 import { toast } from 'sonner'
 import { useLocale } from '@/lib/locale-context'
+import { createClient } from '@/lib/supabase/client'
+import { GoogleIcon } from '@/components/icons/google-icon'
 
 type AuthResult = { error?: string; success?: boolean; message?: string } | void;
 
@@ -38,6 +40,22 @@ export default function LoginPage() {
       setIsLoading(false);
       setIsSignUp(false); // Switch to login view
       toast.success(result.message);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    setIsLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?lang=${locale}`,
+      },
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setIsLoading(false);
     }
   }
 
@@ -111,6 +129,30 @@ export default function LoginPage() {
               {isSignUp ? authT('signUpButton') : authT('signInButton')}
             </Button>
           </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-zinc-200"></span>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-zinc-200"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="mr-2 h-4 w-4" />
+            )}
+            {authT('googleSignIn')}
+          </Button>
 
           <div className="mt-4 text-center text-sm">
             <span className="text-muted-foreground">

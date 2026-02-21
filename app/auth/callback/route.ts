@@ -13,6 +13,25 @@ export async function GET(request: Request) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
+            // Ensure user profile exists
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('id')
+                    .eq('id', user.id)
+                    .maybeSingle()
+
+                if (!profile) {
+                    await supabase.from('users').insert({
+                        id: user.id,
+                        email: user.email,
+                        full_name: user.user_metadata.full_name || user.user_metadata.name || 'User',
+                        role: 'customer',
+                    })
+                }
+            }
+
             const forwardedHost = request.headers.get('x-forwarded-host') // if staying on the same site
             const isLocalEnv = process.env.NODE_ENV === 'development'
             if (isLocalEnv) {

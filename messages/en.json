@@ -72,6 +72,7 @@
         "signUpButton": "Sign Up",
         "signingIn": "Signing in...",
         "signingUp": "Signing up...",
+        "googleSignIn": "Continue with Google",
         "errors": {
             "invalidCredentials": "Invalid email or password",
             "userExists": "User already registered",
