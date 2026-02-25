@@ -30,7 +30,7 @@ export default function AboutPage() {
     return (
         <div className="min-h-screen">
             {/* Hero */}
-            <section className="relative bg-foreground text-white overflow-hidden">
+            <section className="relative bg-foreground text-white overflow-hidden pt-20">
                 <div className="absolute inset-0 opacity-[0.04]" style={{
                     backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)`,
                     backgroundSize: '32px 32px',

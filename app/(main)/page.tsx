@@ -130,7 +130,7 @@ export default function HomePage() {
             </div>
 
             {/* Main heading */}
-            <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tight mb-8 text-white leading-[1.05]">
+            <h1 className="text-4xl md:text-7xl lg:text-[5.5rem] font-semibold tracking-tight text-balance mb-8 text-white leading-[1.1] md:leading-[1.05]">
               {t('home.hero.title1')}{' '}
               <span className="relative">
                 <span className="relative z-10 bg-gradient-to-r from-rose-400 via-primary to-rose-300 bg-clip-text text-transparent">

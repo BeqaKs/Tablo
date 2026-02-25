@@ -39,11 +39,11 @@ export async function sendBookingConfirmation({
         }));
 
         const subject = locale === 'ka'
-            ? `ჯავშანი დადასტურებულია: ${restaurantName}`
-            : `Reservation Confirmed: ${restaurantName}`;
+            ? `ჯავშნის მოთხოვნა გაგზავნილია: ${restaurantName}`
+            : `Reservation Request Received: ${restaurantName}`;
 
         const data = await resend.emails.send({
-            from: 'Tablo Reservations <no-reply@tablo.ge>', // Assuming this domain. Usually needs to be a verified domain in Resend
+            from: 'Tablo Reservations <onboarding@resend.dev>', // Required for new Resend accounts before domain verification
             to: [to],
             subject: subject,
             html: emailHtml,

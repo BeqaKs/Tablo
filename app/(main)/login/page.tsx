@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,14 +14,21 @@ import { createClient } from '@/lib/supabase/client'
 
 type AuthResult = { error?: string; success?: boolean; message?: string } | void;
 
-export default function LoginPage() {
+function LoginContent() {
   const { t, locale } = useLocale();
   const authT = (key: string) => t(`auth.${key}`);
+  const searchParams = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(false)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(searchParams.get('signup') === 'true')
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (searchParams.get('signup') === 'true') {
+      setIsSignUp(true);
+    }
+  }, [searchParams]);
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true);
@@ -70,7 +78,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center px-4">
+    <div className="flex min-h-[80vh] items-center justify-center px-4 pt-20">
       <Card className="w-full max-w-sm shadow-xl border-zinc-200">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto bg-primary/10 p-3 rounded-full w-fit">
@@ -189,5 +197,15 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+import { Suspense } from 'react'
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[80vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <LoginContent />
+    </Suspense>
   )
 }

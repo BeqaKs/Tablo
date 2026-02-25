@@ -96,12 +96,10 @@
 
 /* ─── Liquid Glass ─── */
 .liquid-glass {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.60) 0%,
-    rgba(255, 255, 255, 0.30) 40%,
-    rgba(255, 255, 255, 0.15) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.60) 0%,
+      rgba(255, 255, 255, 0.30) 40%,
+      rgba(255, 255, 255, 0.15) 100%);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -113,12 +111,10 @@
 }
 
 .liquid-glass-dense {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.72) 0%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0.22) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 255, 255, 0.22) 100%);
   backdrop-filter: blur(32px) saturate(1.8);
   -webkit-backdrop-filter: blur(32px) saturate(1.8);
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -130,11 +126,9 @@
 }
 
 .liquid-glass-subtle {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.35) 0%,
-    rgba(255, 255, 255, 0.12) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.12) 100%);
   backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid rgba(255, 255, 255, 0.28);
@@ -202,11 +196,19 @@
 /* ─── Divider line with fade ─── */
 .divider-fade {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    hsl(var(--border)) 25%,
-    hsl(var(--border)) 75%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      hsl(var(--border)) 25%,
+      hsl(var(--border)) 75%,
+      transparent 100%);
+}
+
+/* ─── Hide Scrollbar for clean sliders ─── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -20,7 +20,7 @@ export default function ContactPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 pt-20">
             {/* Hero Section */}
             <div className="bg-foreground text-white overflow-hidden relative">
                 <div className="absolute inset-0 opacity-[0.04]" style={{

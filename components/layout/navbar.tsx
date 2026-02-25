@@ -237,9 +237,9 @@ export function Navbar() {
                       {t('navigation.signIn')}
                     </Button>
                   </Link>
-                  <Link href="/contact" onClick={() => setMobileOpen(false)}>
+                  <Link href="/login?signup=true" onClick={() => setMobileOpen(false)}>
                     <Button className="w-full rounded-xl">
-                      {t('navigation.forRestaurants')}
+                      {t('navigation.profile')} {/* Changed this text to contextually represent 'Sign Up / Profile' to clear the confusing contact redirect */}
                     </Button>
                   </Link>
                 </>

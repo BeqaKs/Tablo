@@ -80,7 +80,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 pt-20">
             {/* Back Button */}
             <div className="bg-white border-b">
                 <div className="max-w-7xl mx-auto px-8 py-4">
@@ -131,23 +131,33 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                             </div>
 
                             {/* Contact Info */}
-                            <div className="grid grid-cols-2 gap-4 pt-6 border-t">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span>{restaurant.address}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Phone className="h-4 w-4 text-muted-foreground" />
-                                    <span>{restaurant.phone}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Mail className="h-4 w-4 text-muted-foreground" />
-                                    <span>{restaurant.email}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Globe className="h-4 w-4 text-muted-foreground" />
-                                    <span>{restaurant.website}</span>
-                                </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t">
+                                {restaurant.address && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <span>{restaurant.address}</span>
+                                    </div>
+                                )}
+                                {restaurant.phone && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <span>{restaurant.phone}</span>
+                                    </div>
+                                )}
+                                {restaurant.email && (
+                                    <div className="flex items-center gap-2 text-sm break-all">
+                                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <span>{restaurant.email}</span>
+                                    </div>
+                                )}
+                                {restaurant.website && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                        <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <a href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline truncate">
+                                            {restaurant.website}
+                                        </a>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

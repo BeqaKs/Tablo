@@ -2,6 +2,7 @@
 
 import { Navbar } from '@/components/layout/navbar';
 import { useLocale } from '@/lib/locale-context';
+import { Facebook, Instagram, Twitter } from 'lucide-react';
 
 export default function MainLayout({
   children,
@@ -11,9 +12,9 @@ export default function MainLayout({
   const { t } = useLocale();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
-      <main>{children}</main>
+      <main className="flex-1">{children}</main>
 
       {/* Footer */}
       <footer className="bg-foreground text-white/60">
@@ -25,9 +26,9 @@ export default function MainLayout({
                 {t('footer.description')}
               </p>
               <div className="flex gap-3 mt-4">
-                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold">f</a>
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold">ig</a>
-                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold">x</a>
+                <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold text-white"><Facebook className="h-4 w-4" /></a>
+                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold text-white"><Instagram className="h-4 w-4" /></a>
+                <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 smooth-transition text-xs font-bold text-white"><Twitter className="h-4 w-4" /></a>
               </div>
             </div>
             <div>

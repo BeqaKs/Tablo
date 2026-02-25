@@ -32,10 +32,10 @@ export const BookingConfirmationEmail = ({
 }: BookingConfirmationEmailProps) => {
     const isKa = locale === 'ka';
     const previewText = isKa
-        ? `თქვენი ჯავშანი დადასტურებულია რესტორანში ${restaurantName}`
-        : `Your reservation at ${restaurantName} is confirmed`;
+        ? `თქვენი ჯავშნის მოთხოვნა გაგზავნილია რესტორანში ${restaurantName}`
+        : `Your reservation request at ${restaurantName} has been received`;
 
-    const title = isKa ? 'ჯავშანი დადასტურდა!' : 'Reservation Confirmed!';
+    const title = isKa ? 'მოთხოვნა გაგზავნილია!' : 'Request Received!';
     const greeting = isKa ? `გამარჯობა ${guestName},` : `Hi ${guestName},`;
 
     const detailsHeader = isKa ? 'ჯავშნის დეტალები:' : 'Reservation Details:';
@@ -48,8 +48,8 @@ export const BookingConfirmationEmail = ({
         : 'Thank you for booking with Tablo!';
 
     const footerNotes = isKa
-        ? 'თუ გსურთ გაუქმება ან შეცვლა, გთხოვთ დაუკავშირდეთ რესტორანს წინასწარ, ან მართეთ თქვენი ჯავშანი Tablo-ს საშუალებით.'
-        : 'If you need to cancel or change your reservation, please let the restaurant know in advance or manage it via your Tablo account.';
+        ? 'ეს არის დასტურის მოთხოვნა. თქვენ მიიღებთ ახალ შეტყობინებას როგორც კი რესტორანი დაადასტურებს თქვენს ჯავშანს.'
+        : 'This is a pending request. You will receive another notification as soon as the restaurant confirms your reservation.';
 
     return (
         <Html>
@@ -64,10 +64,10 @@ export const BookingConfirmationEmail = ({
                     <Text style={text}>{greeting}</Text>
                     <Text style={text}>
                         {isKa
-                            ? `თქვენი მაგიდა რესტორანში `
-                            : `Your table at `}
+                            ? `თქვენი მაგიდის მოთხოვნა რესტორანში `
+                            : `We have received your request for a table at `}
                         <strong>{restaurantName}</strong>
-                        {isKa ? ' დაჯავშნილია.' : ' is successfully booked.'}
+                        {isKa ? ' წარმატებით გაიგზავნა და ელოდება რესტორნის დასტურს.' : ' and it is currently awaiting confirmation from the restaurant.'}
                     </Text>
 
                     <Section style={detailsContainer}>

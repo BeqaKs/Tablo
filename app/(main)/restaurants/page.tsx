@@ -69,7 +69,7 @@ function RestaurantsContent() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 pt-20">
             {/* Header */}
             <div className="bg-white border-b">
                 <div className="max-w-7xl mx-auto px-8 py-8">
@@ -124,20 +124,20 @@ function RestaurantsContent() {
                     </div>
 
                     {/* Quick Filters */}
-                    <div className="flex gap-2 mt-4 flex-wrap">
-                        <button className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium">
+                    <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-hide snap-x">
+                        <button className="px-4 py-2 bg-primary text-white rounded-full text-sm font-medium whitespace-nowrap shrink-0 snap-start">
                             {t('restaurants.all')}
                         </button>
-                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition">
+                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition whitespace-nowrap shrink-0 snap-start">
                             {t('restaurants.cuisineGeorgian')}
                         </button>
-                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition">
+                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition whitespace-nowrap shrink-0 snap-start">
                             {t('restaurants.cuisineEuropean')}
                         </button>
-                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition">
+                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition whitespace-nowrap shrink-0 snap-start">
                             {t('restaurants.fineDining')}
                         </button>
-                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition">
+                        <button className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-medium smooth-transition whitespace-nowrap shrink-0 snap-start">
                             {t('restaurants.availableToday')}
                         </button>
                     </div>
