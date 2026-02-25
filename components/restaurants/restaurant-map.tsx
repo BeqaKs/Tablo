@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin } from 'lucide-react';
-
+import { useEffect, useRef, useState } from 'react';
 import { Restaurant as DBRestaurant } from '@/types/database';
 
 interface RestaurantMapProps {
@@ -12,166 +10,234 @@ interface RestaurantMapProps {
 }
 
 export function RestaurantMap({ restaurants, onRestaurantClick, selectedRestaurantId }: RestaurantMapProps) {
-    const [hoveredId, setHoveredId] = useState<string | null>(null);
+    const mapRef = useRef<HTMLDivElement>(null);
+    const mapInstanceRef = useRef<any>(null);
+    const markersRef = useRef<any[]>([]);
+    const [mapReady, setMapReady] = useState(false);
 
-    // Tbilisi center coordinates
-    const centerLat = 41.7151;
-    const centerLng = 44.8271;
+    // Tbilisi center
+    const CENTER_LAT = 41.7151;
+    const CENTER_LNG = 44.8271;
 
-    // Simple map bounds (will be replaced with actual map library)
-    const mapWidth = 800;
-    const mapHeight = 600;
+    useEffect(() => {
+        if (!mapRef.current || mapInstanceRef.current) return;
 
-    // Convert lat/lng to pixel coordinates (simplified projection)
-    const latLngToPixel = (lat: number, lng: number) => {
-        const latRange = 0.05; // ~5km range
-        const lngRange = 0.08;
+        const initMap = async () => {
+            const L = (await import('leaflet')).default;
 
-        const x = ((lng - (centerLng - lngRange / 2)) / lngRange) * mapWidth;
-        const y = ((centerLat + latRange / 2 - lat) / latRange) * mapHeight;
+            // Fix Leaflet default icon paths
+            delete (L.Icon.Default.prototype as any)._getIconUrl;
+            L.Icon.Default.mergeOptions({
+                iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+                iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            });
 
-        return { x, y };
-    };
+            const map = L.map(mapRef.current!, {
+                center: [CENTER_LAT, CENTER_LNG],
+                zoom: 13,
+                zoomControl: false,
+                attributionControl: true,
+            });
+
+            // Use OpenStreetMap tiles — most reliable
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19,
+            }).addTo(map);
+
+            // Zoom controls — bottom right
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            // Force a resize after the map mounts to fix tile loading
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 300);
+
+            mapInstanceRef.current = map;
+            setMapReady(true);
+        };
+
+        initMap();
+
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    // Update markers when restaurants or selection changes
+    useEffect(() => {
+        if (!mapReady || !mapInstanceRef.current) return;
+
+        const loadMarkers = async () => {
+            const L = (await import('leaflet')).default;
+            const map = mapInstanceRef.current;
+
+            // Force re-render tiles
+            map.invalidateSize();
+
+            // Clear existing markers
+            markersRef.current.forEach(m => m.remove());
+            markersRef.current = [];
+
+            const bounds: [number, number][] = [];
+
+            restaurants.forEach((restaurant) => {
+                let lat = (restaurant as any).lat;
+                let lng = (restaurant as any).lng;
+
+                if (!lat || !lng) {
+                    // Deterministic fallback from restaurant ID
+                    const hash = restaurant.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                    const r1 = (hash % 100) / 100;
+                    const r2 = ((hash * 13) % 100) / 100;
+                    lat = CENTER_LAT + (r1 - 0.5) * 0.04;
+                    lng = CENTER_LNG + (r2 - 0.5) * 0.06;
+                }
+
+                bounds.push([lat, lng]);
+
+                const isSelected = selectedRestaurantId === restaurant.id;
+                const size = isSelected ? 38 : 30;
+
+                // Custom HTML marker
+                const icon = L.divIcon({
+                    className: 'custom-map-marker',
+                    html: `
+                        <div style="
+                            width: ${size}px;
+                            height: ${size}px;
+                            border-radius: 50% 50% 50% 0;
+                            transform: rotate(-45deg);
+                            background: ${isSelected ? '#9f1239' : '#e11d48'};
+                            border: 3px solid white;
+                            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            transition: all 0.2s ease;
+                        ">
+                            <span style="
+                                transform: rotate(45deg);
+                                color: white;
+                                font-size: ${isSelected ? '14px' : '11px'};
+                                font-weight: 700;
+                                line-height: 1;
+                            ">${restaurant.price_range || '$$'}</span>
+                        </div>
+                    `,
+                    iconSize: [size, size],
+                    iconAnchor: [size / 2, size],
+                    popupAnchor: [0, -size],
+                });
+
+                const marker = L.marker([lat, lng], { icon }).addTo(map);
+
+                // Rich popup
+                const imgUrl = restaurant.images?.[0] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop';
+                marker.bindPopup(`
+                    <div style="min-width: 220px; font-family: system-ui, sans-serif;">
+                        <img src="${imgUrl}" alt="${restaurant.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -14px -20px 10px -20px; width: calc(100% + 40px);" />
+                        <div style="padding: 0 2px;">
+                            <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; color: #1a1a2e;">${restaurant.name}</h3>
+                            <p style="font-size: 12px; color: #6b7280; margin: 0 0 6px 0;">${restaurant.cuisine_type || 'Restaurant'} · ${restaurant.city}</p>
+                            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 8px;">
+                                <span style="color: #e11d48; font-weight: 600;">★ ${restaurant.rating || '4.8'}</span>
+                                <span style="color: #9ca3af;">·</span>
+                                <span style="font-weight: 600;">${restaurant.price_range || '$$$'}</span>
+                            </div>
+                            <a href="/restaurants/${restaurant.slug}" style="
+                                display: block;
+                                text-align: center;
+                                background: #9f1239;
+                                color: white;
+                                padding: 8px 16px;
+                                border-radius: 8px;
+                                font-size: 13px;
+                                font-weight: 600;
+                                text-decoration: none;
+                                transition: opacity 0.2s;
+                            ">Book Table →</a>
+                        </div>
+                    </div>
+                `, {
+                    maxWidth: 260,
+                    className: 'tablo-popup',
+                });
+
+                marker.on('click', () => {
+                    onRestaurantClick?.(restaurant);
+                });
+
+                if (isSelected) {
+                    marker.openPopup();
+                }
+
+                markersRef.current.push(marker);
+            });
+
+            // Fit map to markers
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+            }
+        };
+
+        loadMarkers();
+    }, [restaurants, selectedRestaurantId, mapReady, onRestaurantClick]);
 
     return (
-        <div className="relative w-full h-full bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-            {/* Map Background - Placeholder for actual map */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-200">
-                {/* Grid pattern to simulate map */}
-                <div
-                    className="absolute inset-0 opacity-10"
-                    style={{
-                        backgroundImage: `
-              linear-gradient(to right, #000 1px, transparent 1px),
-              linear-gradient(to bottom, #000 1px, transparent 1px)
-            `,
-                        backgroundSize: '40px 40px',
-                    }}
-                />
+        <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border" style={{ minHeight: '500px' }}>
+            {/* Leaflet CSS — loaded without integrity hash to avoid CORS issues */}
+            <link
+                rel="stylesheet"
+                href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+            />
+            <style>{`
+                .tablo-popup .leaflet-popup-content-wrapper {
+                    border-radius: 12px;
+                    padding: 14px 20px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+                    border: 1px solid #f3f4f6;
+                }
+                .tablo-popup .leaflet-popup-tip {
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                }
+                .custom-map-marker {
+                    background: none !important;
+                    border: none !important;
+                }
+                .leaflet-control-zoom a {
+                    border-radius: 8px !important;
+                    width: 36px !important;
+                    height: 36px !important;
+                    line-height: 36px !important;
+                    font-size: 18px !important;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+                }
+                .leaflet-control-zoom {
+                    border: none !important;
+                    border-radius: 10px !important;
+                    overflow: hidden;
+                }
+                .leaflet-tile-pane {
+                    z-index: 1 !important;
+                }
+            `}</style>
 
-                {/* Center marker */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    Tbilisi Center
+            <div ref={mapRef} className="w-full h-full" style={{ minHeight: '500px' }} />
+
+            {/* Loading overlay */}
+            {!mapReady && (
+                <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-sm text-muted-foreground">Loading map...</p>
+                    </div>
                 </div>
-            </div>
-
-            {/* Restaurant Markers */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none">
-                {restaurants.map((restaurant) => {
-                    // Use real coordinates if available, otherwise use stable hash-based fallback
-                    let lat = (restaurant as any).lat;
-                    let lng = (restaurant as any).lng;
-
-                    if (!lat || !lng) {
-                        // Generate stable random based on ID
-                        const hash = restaurant.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                        const pseudoRandom1 = (hash % 100) / 100; // 0.00 - 0.99
-                        const pseudoRandom2 = ((hash * 13) % 100) / 100; // 0.00 - 0.99
-
-                        lat = centerLat + (pseudoRandom1 - 0.5) * 0.04; // +/- 0.02 deg
-                        lng = centerLng + (pseudoRandom2 - 0.5) * 0.06; // +/- 0.03 deg
-                    }
-
-                    const { x, y } = latLngToPixel(lat, lng);
-                    const isSelected = selectedRestaurantId === restaurant.id;
-                    const isHovered = hoveredId === restaurant.id;
-
-                    return (
-                        <g key={restaurant.id} className="pointer-events-auto cursor-pointer">
-                            {/* Marker Circle */}
-                            <circle
-                                cx={x}
-                                cy={y}
-                                r={isSelected || isHovered ? 12 : 8}
-                                className={`smooth-transition ${isSelected
-                                    ? 'fill-primary stroke-white'
-                                    : isHovered
-                                        ? 'fill-tablo-red-600 stroke-white'
-                                        : 'fill-tablo-red-500 stroke-white'
-                                    }`}
-                                strokeWidth={2}
-                                onClick={() => onRestaurantClick?.(restaurant)}
-                                onMouseEnter={() => setHoveredId(restaurant.id)}
-                                onMouseLeave={() => setHoveredId(null)}
-                            />
-
-                            {/* Marker Icon */}
-                            <g
-                                transform={`translate(${x - 4}, ${y - 4})`}
-                                className="pointer-events-none"
-                            >
-                                <path
-                                    d="M4 0C1.8 0 0 1.8 0 4c0 1.5.8 2.8 2 3.5V12l2-1.5 2 1.5V7.5c1.2-.7 2-2 2-3.5 0-2.2-1.8-4-4-4z"
-                                    className="fill-white"
-                                    transform="scale(0.5)"
-                                />
-                            </g>
-
-                            {/* Tooltip on hover */}
-                            {(isHovered || isSelected) && (
-                                <g>
-                                    <rect
-                                        x={x - 60}
-                                        y={y - 50}
-                                        width={120}
-                                        height={40}
-                                        rx={6}
-                                        className="fill-white stroke-gray-300"
-                                        strokeWidth={1}
-                                        filter="drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
-                                    />
-                                    <text
-                                        x={x}
-                                        y={y - 35}
-                                        textAnchor="middle"
-                                        className="text-xs font-semibold fill-foreground"
-                                    >
-                                        {restaurant.name}
-                                    </text>
-                                    <text
-                                        x={x}
-                                        y={y - 22}
-                                        textAnchor="middle"
-                                        className="text-xs fill-muted-foreground"
-                                    >
-                                        {restaurant.cuisine_type}
-                                    </text>
-                                    <text
-                                        x={x}
-                                        y={y - 10}
-                                        textAnchor="middle"
-                                        className="text-xs fill-primary font-medium"
-                                    >
-                                        ★ {restaurant.rating || 4.8} • {restaurant.price_range}
-                                    </text>
-                                </g>
-                            )}
-                        </g>
-                    );
-                })}
-            </svg>
-
-            {/* Map Controls */}
-            <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-                <button className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 smooth-transition">
-                    <span className="text-lg font-bold">+</span>
-                </button>
-                <button className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 smooth-transition">
-                    <span className="text-lg font-bold">−</span>
-                </button>
-            </div>
-
-            {/* Legend */}
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-md p-3">
-                <div className="flex items-center gap-2 text-sm">
-                    <div className="w-3 h-3 rounded-full bg-primary"></div>
-                    <span className="text-xs font-medium">Selected</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm mt-1">
-                    <div className="w-3 h-3 rounded-full bg-tablo-red-500"></div>
-                    <span className="text-xs font-medium">Available</span>
-                </div>
-            </div>
+            )}
         </div>
     );
 }

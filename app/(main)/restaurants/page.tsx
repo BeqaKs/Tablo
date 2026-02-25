@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RestaurantMap } from '@/components/restaurants/restaurant-map';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Search, MapPin, Star, Clock, Users, Filter, Map, List, Loader2 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
 import { getRestaurants } from '@/app/actions/bookings';
@@ -17,12 +18,38 @@ const defaultImages = [
 ];
 
 export default function RestaurantsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        }>
+            <RestaurantsContent />
+        </Suspense>
+    );
+}
+
+function RestaurantsContent() {
     const { t } = useLocale();
+    const searchParams = useSearchParams();
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+    // Filter restaurants based on search query
+    const filteredRestaurants = useMemo(() => {
+        if (!searchQuery.trim()) return restaurants;
+        const q = searchQuery.toLowerCase();
+        return restaurants.filter(r =>
+            r.name.toLowerCase().includes(q) ||
+            (r.cuisine_type && r.cuisine_type.toLowerCase().includes(q)) ||
+            (r.city && r.city.toLowerCase().includes(q)) ||
+            (r.description && r.description.toLowerCase().includes(q))
+        );
+    }, [restaurants, searchQuery]);
 
     useEffect(() => {
         async function load() {
@@ -48,7 +75,7 @@ export default function RestaurantsPage() {
                 <div className="max-w-7xl mx-auto px-8 py-8">
                     <h1 className="text-4xl font-bold mb-4">{t('restaurants.title')}</h1>
                     <p className="text-lg text-muted-foreground mb-6">
-                        {loading ? '...' : restaurants.length} {t('restaurants.description')}
+                        {loading ? '...' : filteredRestaurants.length} {t('restaurants.description')}
                     </p>
 
                     {/* Search and Filters */}
@@ -57,6 +84,8 @@ export default function RestaurantsPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                             <input
                                 type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder={t('restaurants.searchPlaceholder')}
                                 className="w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                             />
@@ -135,7 +164,7 @@ export default function RestaurantsPage() {
                 ) : viewMode === 'list' ? (
                     /* List View */
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {restaurants.map((restaurant, index) => {
+                        {filteredRestaurants.map((restaurant, index) => {
                             const imgUrl = restaurant.images?.[0] || defaultImages[index % defaultImages.length];
                             return (
                                 <Link
@@ -205,7 +234,7 @@ export default function RestaurantsPage() {
                     <div className="grid lg:grid-cols-[400px_1fr] gap-6 h-[calc(100vh-300px)]">
                         {/* Restaurant List Sidebar */}
                         <div className="space-y-4 overflow-auto">
-                            {restaurants.map((restaurant) => (
+                            {filteredRestaurants.map((restaurant) => (
                                 <Card
                                     key={restaurant.id}
                                     className={`p-4 cursor-pointer smooth-transition ${selectedRestaurantId === restaurant.id
@@ -247,7 +276,7 @@ export default function RestaurantsPage() {
                         {/* Map */}
                         <div className="rounded-lg overflow-hidden">
                             <RestaurantMap
-                                restaurants={restaurants}
+                                restaurants={filteredRestaurants}
                                 selectedRestaurantId={selectedRestaurantId}
                                 onRestaurantClick={(restaurant) => setSelectedRestaurantId(restaurant.id)}
                             />

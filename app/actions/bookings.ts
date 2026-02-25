@@ -45,25 +45,71 @@ export async function createBooking(data: {
 }) {
     const supabase = await createClient()
 
+    // === Server-side Validation ===
+    if (!data.restaurant_id || !data.table_id || !data.reservation_time) {
+        return { error: 'Missing required booking information.' }
+    }
+
+    if (!data.guest_count || data.guest_count < 1 || data.guest_count > 20) {
+        return { error: 'Party size must be between 1 and 20 guests.' }
+    }
+
+    const startTime = new Date(data.reservation_time)
+    if (isNaN(startTime.getTime())) {
+        return { error: 'Invalid reservation date/time.' }
+    }
+
+    // Prevent booking in the past (allow 30 min buffer)
+    const now = new Date()
+    if (startTime.getTime() < now.getTime() - 30 * 60000) {
+        return { error: 'Cannot create a reservation in the past.' }
+    }
+
+    // Prevent bookings more than 30 days out
+    const maxDate = new Date()
+    maxDate.setDate(maxDate.getDate() + 30)
+    if (startTime > maxDate) {
+        return { error: 'Reservations can only be made up to 30 days in advance.' }
+    }
+
     // Get user session
     const { data: { user } } = await supabase.auth.getUser()
+
+    // Validate table belongs to restaurant and has enough capacity
+    const { data: table, error: tableError } = await supabase
+        .from('tables')
+        .select('id, capacity, restaurant_id')
+        .eq('id', data.table_id)
+        .eq('restaurant_id', data.restaurant_id)
+        .single()
+
+    if (tableError || !table) {
+        return { error: 'Selected table is not available at this restaurant.' }
+    }
+
+    if (table.capacity < data.guest_count) {
+        return { error: `This table only seats ${table.capacity} guests. Please choose a larger table.` }
+    }
 
     // Get restaurant turn duration to calculate end_time
     const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('turn_duration_minutes')
+        .select('turn_duration_minutes, is_open')
         .eq('id', data.restaurant_id)
         .single()
 
+    if (!restaurant?.is_open) {
+        return { error: 'This restaurant is not currently accepting reservations.' }
+    }
+
     const turnDuration = restaurant?.turn_duration_minutes || 90
-    const startTime = new Date(data.reservation_time)
     const endTime = new Date(startTime.getTime() + turnDuration * 60000)
 
     const { data: booking, error } = await supabase
         .from('reservations')
         .insert({
             ...data,
-            user_id: user?.id || null, // Allow anonymous or logged in
+            user_id: user?.id || null,
             end_time: endTime.toISOString(),
             status: 'pending' as ReservationStatus
         })
@@ -71,6 +117,10 @@ export async function createBooking(data: {
         .single()
 
     if (error) {
+        // Check for temporal overlap constraint
+        if (error.message.includes('exclusion')) {
+            return { error: 'This table is already booked for the selected time. Please choose a different time or table.' }
+        }
         console.error('Error creating booking:', error)
         return { error: error.message }
     }

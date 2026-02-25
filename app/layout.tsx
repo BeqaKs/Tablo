@@ -9,9 +9,35 @@ const fontSans = Plus_Jakarta_Sans({
     weight: ["400", "500", "600", "700"],
 });
 
-export const metadata = {
-    title: "Tablo - Premium Restaurant Reservations",
-    description: "Book the finest restaurants in Tbilisi instantly.",
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: {
+        default: 'Tablo - Premium Restaurant Reservations in Tbilisi',
+        template: '%s | Tablo',
+    },
+    description: 'Discover and book the finest restaurants in Tbilisi, Georgia. Real-time availability, interactive floor plans, and instant confirmation. Your table awaits.',
+    keywords: ['restaurant reservations', 'Tbilisi', 'Georgia', 'dining', 'book a table', 'fine dining', 'Georgian restaurants'],
+    authors: [{ name: 'Tablo LLC' }],
+    creator: 'Tablo',
+    openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        url: 'https://tablo.ge',
+        siteName: 'Tablo',
+        title: 'Tablo - Premium Restaurant Reservations',
+        description: 'Discover and book the finest restaurants in Tbilisi instantly.',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Tablo - Premium Restaurant Reservations',
+        description: 'Book your perfect table in Tbilisi. Interactive floor plans, real-time availability.',
+    },
+    robots: {
+        index: true,
+        follow: true,
+    },
+    metadataBase: new URL('https://tablo.ge'),
 };
 
 export default function RootLayout({

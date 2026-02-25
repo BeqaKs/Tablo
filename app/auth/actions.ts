@@ -51,9 +51,26 @@ export async function signup(formData: FormData) {
     const supabase = await createClient()
     const locale = formData.get('locale') as string || defaultLocale
 
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
-    const fullName = formData.get('full_name') as string
+    const email = (formData.get('email') as string || '').trim().toLowerCase()
+    const password = formData.get('password') as string || ''
+    const fullName = (formData.get('full_name') as string || '').trim()
+
+    // === Server-side Validation ===
+    if (!fullName || fullName.length < 2) {
+        return { error: locale === 'ka' ? 'სახელი მინიმუმ 2 სიმბოლოს უნდა შეიცავდეს.' : 'Name must be at least 2 characters.' }
+    }
+    if (fullName.length > 100) {
+        return { error: locale === 'ka' ? 'სახელი ძალიან გრძელია.' : 'Name is too long.' }
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email || !emailRegex.test(email)) {
+        return { error: locale === 'ka' ? 'გთხოვთ შეიყვანოთ სწორი ელ-ფოსტა.' : 'Please enter a valid email address.' }
+    }
+
+    if (!password || password.length < 6) {
+        return { error: locale === 'ka' ? 'პაროლი მინიმუმ 6 სიმბოლოს უნდა შეიცავდეს.' : 'Password must be at least 6 characters.' }
+    }
 
     // Sign up the user
     const { data: authData, error: signUpError } = await supabase.auth.signUp({

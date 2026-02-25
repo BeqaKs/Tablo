@@ -3,12 +3,14 @@
         "restaurants": "Restaurants",
         "howItWorks": "How It Works",
         "about": "About",
+        "contact": "Contact",
         "signIn": "Sign In",
         "signOut": "Sign Out",
         "profile": "Profile",
         "myBookings": "My Bookings",
         "dashboard": "Dashboard",
-        "forRestaurants": "For Restaurants"
+        "forRestaurants": "For Restaurants",
+        "adminPanel": "Admin Panel"
     },
     "home": {
         "hero": {
@@ -29,35 +31,72 @@
         },
         "stats": {
             "restaurants": "Restaurants",
+            "reservations": "Reservations",
+            "averageRating": "Average Rating",
+            "availability": "Availability",
             "instant": "Instant Confirmation",
             "tbilisi": "Tbilisi & Beyond"
         },
         "featured": {
             "title": "Featured Restaurants",
             "subtitle": "Hand-picked favorites based on quality and dining experience",
-            "viewAll": "View All Restaurants"
+            "viewAll": "View All Restaurants",
+            "featured": "Featured",
+            "noRestaurants": "No restaurants yet",
+            "noRestaurantsDesc": "Be the first restaurant to join Tablo and start receiving reservations today.",
+            "getStarted": "Get Started",
+            "loadingRestaurants": "Loading restaurants...",
+            "loadFailed": "Failed to load restaurants",
+            "curatedForYou": "Curated for you"
         },
         "howItWorks": {
             "title": "How It Works",
             "subtitle": "Three simple steps to your next amazing meal",
+            "simpleQuick": "Simple & Quick",
             "step1": {
                 "title": "Browse & Discover",
-                "description": "Explore hundreds of restaurants with real-time availability and visual table selection."
+                "description": "Explore hundreds of restaurants with real-time availability and visual table selection.",
+                "badge": "Browse"
             },
             "step2": {
-                "title": "Choose Your Table",
-                "description": "Select your preferred date, time, and even your exact table from our interactive maps."
+                "title": "Interactive Floor Plans",
+                "description": "Choose your exact table from an interactive layout. See the whole dining room before you arrive.",
+                "badge": "Select"
             },
             "step3": {
                 "title": "Instant Confirmation",
-                "description": "Get confirmed instantly and manage your bookings easily through your dashboard."
+                "description": "Get confirmed instantly and manage your bookings easily through your dashboard.",
+                "badge": "Confirm"
+            },
+            "step4": {
+                "title": "Enjoy the Experience",
+                "description": "Show up to your reserved table, no waiting. Your preferences are remembered for next time.",
+                "badge": "Dine"
             }
+        },
+        "forOwners": {
+            "label": "For Restaurant Owners",
+            "floorPlan": "Visual Floor Plan Editor",
+            "floorPlanDesc": "Digitize your layout with drag-and-drop table placement",
+            "calendar": "Smart Calendar",
+            "calendarDesc": "Manage all reservations from one beautiful dashboard",
+            "crm": "Guest CRM",
+            "crmDesc": "Track preferences, visit history, and special requests",
+            "confirmations": "Automated Confirmations",
+            "confirmationsDesc": "Reduce no-shows with instant booking notifications",
+            "partnerWithUs": "Partner With Us"
         },
         "cta": {
             "title": "Ready to Dine?",
             "subtitle": "Join thousands of food lovers discovering amazing restaurants daily.",
             "button1": "Join Tablo Now",
-            "button2": "For Restaurants"
+            "button2": "For Restaurants",
+            "finalTitle": "Your table is waiting",
+            "finalSubtitle": "Join thousands of diners who discover and book exceptional restaurants through Tablo every day.",
+            "browseRestaurants": "Browse Restaurants",
+            "tbilisiGeorgia": "Tbilisi, Georgia",
+            "thisMonth": "This Month",
+            "activeGuests": "Active Guests"
         }
     },
     "auth": {
@@ -70,6 +109,8 @@
         "noAccount": "Don't have an account?",
         "signInButton": "Sign In",
         "signUpButton": "Sign Up",
+        "continueWithGoogle": "Continue with Google",
+        "orContinueWith": "or continue with email",
         "signingIn": "Signing in...",
         "signingUp": "Signing up...",
         "errors": {
@@ -199,7 +240,8 @@
         "availableToday": "Available Today",
         "bookNow": "Book Now",
         "viewDetails": "View Details",
-        "available": "Available"
+        "available": "Available",
+        "bookTable": "Book Table"
     },
     "restaurant": {
         "back": "Back to Restaurants",
@@ -233,6 +275,139 @@
     "footer": {
         "forDiners": "For Diners",
         "forRestaurants": "For Restaurants",
-        "company": "Company"
+        "company": "Company",
+        "description": "Premium restaurant reservations in Tbilisi. Discover, book, and enjoy Georgia's finest dining.",
+        "partnerWithUs": "Partner With Us",
+        "featuresAndBenefits": "Features & Benefits",
+        "privacyPolicy": "Privacy Policy",
+        "termsAndConditions": "Terms & Conditions",
+        "allRightsReserved": "All rights reserved.",
+        "privacy": "Privacy",
+        "terms": "Terms"
+    },
+    "notFound": {
+        "title": "Page Not Found",
+        "description": "The page you're looking for doesn't exist or has been moved. Perhaps you'd like to explore our restaurants instead?",
+        "goHome": "Go Home",
+        "browseRestaurants": "Browse Restaurants"
+    },
+    "about": {
+        "badge": "About Tablo",
+        "title": "Redefining Restaurant Reservations in Georgia",
+        "subtitle": "Born in Tbilisi, Tablo bridges the gap between exceptional restaurants and the guests who love them — through technology that feels invisible.",
+        "statsPartner": "Partner Restaurants",
+        "statsReservations": "Reservations Made",
+        "statsRating": "Average Rating",
+        "statsAvailability": "Platform Availability",
+        "storyLabel": "Our Story",
+        "storyTitle": "From a simple idea to Georgia's dining platform",
+        "storyP1": "Tablo was born from a familiar frustration: trying to book a table at a popular Tbilisi restaurant. Phone calls went unanswered, social media DMs got lost, and walk-ins were always a gamble.",
+        "storyP2": "We built Tablo to solve this — a seamless platform where diners can discover, select their exact table, and get instant confirmation. For restaurant owners, we provide powerful tools to manage reservations, optimize seating, and grow their business.",
+        "storyP3": "Today, Tablo is the leading restaurant reservation platform in Georgia, trusted by dozens of premium restaurants and thousands of happy diners.",
+        "valuesLabel": "Our Values",
+        "valuesTitle": "What drives everything we do",
+        "value1Title": "Seamless Experience",
+        "value1Desc": "Every interaction should feel effortless — from browsing to booking to dining.",
+        "value2Title": "Restaurant First",
+        "value2Desc": "We build tools that genuinely make restaurant owners' lives easier and businesses stronger.",
+        "value3Title": "Local Focus",
+        "value3Desc": "Deep understanding of Georgian hospitality, culture, and dining traditions drives our design.",
+        "value4Title": "Innovation",
+        "value4Desc": "Interactive floor plans, real-time availability, and smart CRM — we push boundaries.",
+        "featuresLabel": "Platform Features",
+        "featuresTitle": "Everything you need to dine and manage",
+        "feature1": "Interactive floor plans & table selection",
+        "feature2": "Real-time availability & instant booking",
+        "feature3": "Restaurant owner dashboard & analytics",
+        "feature4": "Guest CRM & preference tracking",
+        "feature5": "Multi-language support (Georgian & English)",
+        "feature6": "Mobile-optimized experience",
+        "ctaTitle": "Ready to experience Tablo?",
+        "ctaSubtitle": "Whether you're a diner looking for the perfect table or a restaurant owner ready to modernize your bookings, we're here for you.",
+        "ctaDiner": "Browse Restaurants",
+        "ctaOwner": "Partner With Us"
+    },
+    "contact": {
+        "badge": "Get in Touch",
+        "title": "Let's Start a Conversation",
+        "subtitle": "Whether you're a restaurant owner interested in partnering with us, or a diner with feedback — we'd love to hear from you.",
+        "formTitle": "Send us a message",
+        "formName": "Your Name",
+        "formEmail": "Email Address",
+        "formSubject": "Subject",
+        "formMessage": "Your Message",
+        "formNamePlaceholder": "Enter your name",
+        "formEmailPlaceholder": "your@email.com",
+        "formSubjectPlaceholder": "What is this regarding?",
+        "formMessagePlaceholder": "Tell us more...",
+        "formSubmit": "Send Message",
+        "formSending": "Sending...",
+        "formSuccess": "Your message has been sent. We'll get back to you soon!",
+        "infoTitle": "Contact Information",
+        "infoEmail": "Email",
+        "infoPhone": "Phone",
+        "infoAddress": "Address",
+        "infoHours": "Hours",
+        "infoAddressValue": "Tbilisi, Georgia",
+        "infoHoursValue": "Mon-Fri: 9:00 - 18:00"
+    },
+    "privacy": {
+        "title": "Privacy Policy",
+        "lastUpdated": "Last updated",
+        "intro": "At Tablo, your privacy is important to us. This policy explains how we collect, use, and protect your personal information when you use our restaurant reservation platform.",
+        "section1Title": "Information We Collect",
+        "section1Content": "We collect information you provide directly, such as your name, email address, phone number, and dining preferences when you create an account or make a reservation. We also automatically collect usage data including your IP address, browser type, and how you interact with our platform.",
+        "section2Title": "How We Use Your Information",
+        "section2Content": "We use your information to process reservations, communicate booking confirmations, improve our services, personalize your experience, and send relevant notifications about your bookings.",
+        "section3Title": "Information Sharing",
+        "section3Content": "We share relevant booking details with the restaurant you've reserved at (such as your name, party size, and special requests). We do not sell your personal information to third parties.",
+        "section4Title": "Data Security",
+        "section4Content": "We implement industry-standard security measures to protect your data, including encryption in transit and at rest. We use Supabase for secure data storage with row-level security policies.",
+        "section5Title": "Cookies & Tracking",
+        "section5Content": "We use essential cookies to maintain your session and preferences. We may use analytics cookies to understand how our platform is used and to improve our services.",
+        "section6Title": "Your Rights",
+        "section6Content": "You have the right to access, correct, or delete your personal data. You can update your profile information at any time through your account settings, or contact us to request data deletion.",
+        "section7Title": "Data Retention",
+        "section7Content": "We retain your personal data for as long as your account is active or as needed to provide services. Booking history is retained for a reasonable period for business and legal purposes.",
+        "section8Title": "Children's Privacy",
+        "section8Content": "Our service is not directed to children under 16. We do not knowingly collect personal information from children.",
+        "section9Title": "Changes to This Policy",
+        "section9Content": "We may update this privacy policy from time to time. We will notify you of any significant changes by posting the updated policy on our platform.",
+        "section10Title": "Contact Us",
+        "section10Content": "If you have questions about this privacy policy, please contact us at privacy@tablo.ge."
+    },
+    "terms": {
+        "title": "Terms & Conditions",
+        "lastUpdated": "Last updated",
+        "intro": "Welcome to Tablo. These terms and conditions govern your use of our restaurant reservation platform. By using Tablo, you agree to these terms.",
+        "section1Title": "Acceptance of Terms",
+        "section1Content": "By accessing or using Tablo, you agree to be bound by these Terms & Conditions. If you do not agree, please do not use our service.",
+        "section2Title": "Service Description",
+        "section2Content": "Tablo is an online platform that connects diners with restaurants for the purpose of making table reservations. We facilitate the booking process but are not responsible for the dining experience itself.",
+        "section3Title": "User Accounts",
+        "section3Content": "You must provide accurate information when creating an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.",
+        "section4Title": "Reservations",
+        "section4Content": "When you make a reservation through Tablo, you enter into a direct arrangement with the restaurant. We facilitate this connection but are not a party to the agreement between you and the restaurant.",
+        "section5Title": "Cancellation Policy",
+        "section5Content": "You may cancel a reservation through your Tablo account. Please respect restaurants' time and cancel as early as possible. Repeated no-shows may result in account restrictions.",
+        "section6Title": "Restaurant Owners",
+        "section6Content": "Restaurant owners who use Tablo agree to honor confirmed reservations and maintain accurate availability information. Restaurants are responsible for their own service quality.",
+        "section7Title": "Prohibited Conduct",
+        "section7Content": "You may not misuse the platform, create fake accounts, make fraudulent reservations, or engage in any activity that disrupts the service or harms other users.",
+        "section8Title": "Intellectual Property",
+        "section8Content": "All content on Tablo, including design, text, graphics, and software, is owned by Tablo LLC and protected by intellectual property laws.",
+        "section9Title": "Limitation of Liability",
+        "section9Content": "Tablo provides the platform 'as is' and is not liable for any direct, indirect, or consequential damages arising from your use of the service or any restaurant experience booked through our platform.",
+        "section10Title": "Privacy",
+        "section10Content": "Your use of Tablo is also governed by our Privacy Policy. Please review it to understand how we collect and use your information.",
+        "section11Title": "Changes to Terms",
+        "section11Content": "We reserve the right to modify these terms at any time. Continued use of Tablo after changes are posted constitutes acceptance of the revised terms.",
+        "section12Title": "Governing Law",
+        "section12Content": "These terms are governed by the laws of Georgia. Any disputes shall be resolved in the courts of Tbilisi, Georgia."
+    },
+    "map": {
+        "loading": "Loading map...",
+        "selected": "Selected",
+        "available": "Available"
     }
 }
