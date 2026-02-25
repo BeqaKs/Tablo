@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { ReservationStatus } from '@/types/database'
+import { sendBookingConfirmation } from '@/lib/email'
 
 export async function getRestaurants() {
     const supabase = await createClient()
@@ -91,10 +92,10 @@ export async function createBooking(data: {
         return { error: `This table only seats ${table.capacity} guests. Please choose a larger table.` }
     }
 
-    // Get restaurant turn duration to calculate end_time
+    // Get restaurant details for validation and email
     const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('turn_duration_minutes, is_open')
+        .select('name, address, turn_duration_minutes, is_open')
         .eq('id', data.restaurant_id)
         .single()
 
@@ -105,11 +106,26 @@ export async function createBooking(data: {
     const turnDuration = restaurant?.turn_duration_minutes || 90
     const endTime = new Date(startTime.getTime() + turnDuration * 60000)
 
+    let validUserId = null;
+    if (user?.id) {
+        // Double check if the user actually exists in the users table to prevent foreign key errors
+        // during fast OAuth redirects before triggers complete
+        const { data: profileCheck } = await supabase
+            .from('users')
+            .select('id')
+            .eq('id', user.id)
+            .single()
+
+        if (profileCheck?.id) {
+            validUserId = user.id;
+        }
+    }
+
     const { error } = await supabase
         .from('reservations')
         .insert({
             ...data,
-            user_id: user?.id || null,
+            user_id: validUserId,
             end_time: endTime.toISOString(),
             status: 'pending' as ReservationStatus
         })
@@ -121,6 +137,26 @@ export async function createBooking(data: {
         }
         console.error('Error creating booking:', error)
         return { error: error.message }
+    }
+
+    // Attempt to send email confirmation if we have an email address
+    const guestEmail = user?.email;
+    const finalGuestName = data.guest_name || user?.user_metadata?.full_name || 'Guest';
+
+    if (guestEmail && restaurant) {
+        // Send asynchronously without blocking the return
+        sendBookingConfirmation({
+            to: guestEmail,
+            guestName: finalGuestName,
+            restaurantName: restaurant.name,
+            restaurantAddress: restaurant.address,
+            reservationTime: new Date(data.reservation_time).toLocaleString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit'
+            }),
+            guestCount: data.guest_count,
+            locale: 'en' // Hardcoded for API boundary, could be passed from client
+        }).catch(err => console.error("Non-critical error sending email:", err));
     }
 
     revalidatePath('/my-bookings')
