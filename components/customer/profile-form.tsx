@@ -94,14 +94,14 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         <div className="space-y-6">
             {/* Personal Information */}
             <Card className="premium-card p-6">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                     <h2 className="text-2xl font-bold">{t('profile.personalInfo')}</h2>
                     {!isEditing ? (
-                        <Button onClick={() => setIsEditing(true)} variant="outline">
+                        <Button onClick={() => setIsEditing(true)} variant="outline" className="w-full sm:w-auto shrink-0">
                             {t('profile.editProfile')}
                         </Button>
                     ) : (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
                             <Button
                                 onClick={() => {
                                     setIsEditing(false);
@@ -116,6 +116,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                                 }}
                                 variant="outline"
                                 size="sm"
+                                className="flex-1 sm:flex-none"
                             >
                                 <X className="h-4 w-4 mr-2" />
                                 {t('profile.cancel')}
@@ -124,7 +125,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                                 onClick={handleSave}
                                 disabled={isSaving}
                                 size="sm"
-                                className="bg-primary hover:bg-tablo-red-600"
+                                className="bg-primary hover:bg-tablo-red-600 flex-1 sm:flex-none"
                             >
                                 <Save className="h-4 w-4 mr-2" />
                                 {isSaving ? t('profile.saving') : t('profile.saveChanges')}
@@ -234,7 +235,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
             <Card className="premium-card p-6">
                 <h2 className="text-2xl font-bold mb-4">{t('profile.notifications')}</h2>
                 <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="font-medium">{t('profile.emailNotifications')}</p>
                             <p className="text-sm text-muted-foreground">
@@ -247,7 +248,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                             onClick={() =>
                                 setFormData({ ...formData, email_notifications: !formData.email_notifications })
                             }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full smooth-transition ${formData.email_notifications ? 'bg-primary' : 'bg-gray-200'
+                            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full smooth-transition ${formData.email_notifications ? 'bg-primary' : 'bg-gray-200'
                                 } ${!isEditing && 'cursor-not-allowed opacity-60'}`}
                         >
                             <span
@@ -257,7 +258,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                         </button>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-4">
                         <div>
                             <p className="font-medium">{t('profile.smsNotifications')}</p>
                             <p className="text-sm text-muted-foreground">
@@ -270,7 +271,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                             onClick={() =>
                                 setFormData({ ...formData, sms_notifications: !formData.sms_notifications })
                             }
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full smooth-transition ${formData.sms_notifications ? 'bg-primary' : 'bg-gray-200'
+                            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full smooth-transition ${formData.sms_notifications ? 'bg-primary' : 'bg-gray-200'
                                 } ${!isEditing && 'cursor-not-allowed opacity-60'}`}
                         >
                             <span

@@ -250,6 +250,7 @@
         "makeReservation": "Make a Reservation",
         "date": "Date",
         "partySize": "Party Size",
+        "chooseDay": "Choose Day",
         "time": "Time",
         "chooseTable": "Choose Table",
         "change": "Change",

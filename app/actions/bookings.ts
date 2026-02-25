@@ -105,7 +105,7 @@ export async function createBooking(data: {
     const turnDuration = restaurant?.turn_duration_minutes || 90
     const endTime = new Date(startTime.getTime() + turnDuration * 60000)
 
-    const { data: booking, error } = await supabase
+    const { error } = await supabase
         .from('reservations')
         .insert({
             ...data,
@@ -113,8 +113,6 @@ export async function createBooking(data: {
             end_time: endTime.toISOString(),
             status: 'pending' as ReservationStatus
         })
-        .select()
-        .single()
 
     if (error) {
         // Check for temporal overlap constraint
@@ -126,9 +124,9 @@ export async function createBooking(data: {
     }
 
     revalidatePath('/my-bookings')
-    revalidatePath(`/(main)/restaurants/${booking.restaurant_id}`)
+    revalidatePath(`/(main)/restaurants/${data.restaurant_id}`)
 
-    return { success: true, booking }
+    return { success: true }
 }
 
 export async function getCustomerBookings(userId: string) {

@@ -72,6 +72,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
         setBookingLoading(false);
         if (success) {
             toast.success(t('bookings.success') || 'Reservation created successfully!');
+            toast.info(t('profile.emailNotificationsDesc') || 'A confirmation has been sent via email & SMS.', { duration: 6000 });
             setStep('datetime');
         } else {
             toast.error(error || 'Failed to create reservation');
@@ -158,7 +159,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                             {step === 'datetime' && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-2">{resT('date')}</label>
+                                        <label className="block text-sm font-medium mb-2">{resT('chooseDay')}</label>
                                         <input
                                             type="date"
                                             value={selectedDate}
