@@ -15,10 +15,12 @@ export async function GET(request: Request) {
         if (!error) {
             // Ensure user profile exists
             const { data: { user } } = await supabase.auth.getUser()
+            let userRole = 'customer'
+
             if (user) {
                 const { data: profile } = await supabase
                     .from('users')
-                    .select('id')
+                    .select('id, role')
                     .eq('id', user.id)
                     .maybeSingle()
 
@@ -29,6 +31,20 @@ export async function GET(request: Request) {
                         full_name: user.user_metadata.full_name || user.user_metadata.name || 'User',
                         role: 'customer',
                     })
+                } else {
+                    userRole = profile.role || 'customer'
+                }
+            }
+
+            // Determine appropriate redirect path if "next" is default
+            let redirectPath = next;
+            if (next === '/') {
+                if (userRole === 'admin') {
+                    redirectPath = '/dashboard/admin'
+                } else if (userRole === 'restaurant_owner') {
+                    redirectPath = '/dashboard'
+                } else {
+                    redirectPath = '/profile'
                 }
             }
 
@@ -36,11 +52,11 @@ export async function GET(request: Request) {
             const isLocalEnv = process.env.NODE_ENV === 'development'
             if (isLocalEnv) {
                 // we can be sure it's on localhost here
-                return NextResponse.redirect(`${origin}${next}`)
+                return NextResponse.redirect(`${origin}${redirectPath}`)
             } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}${next}`)
+                return NextResponse.redirect(`https://${forwardedHost}${redirectPath}`)
             } else {
-                return NextResponse.redirect(`${origin}${next}`)
+                return NextResponse.redirect(`${origin}${redirectPath}`)
             }
         }
     }
