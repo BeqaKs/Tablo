@@ -113,6 +113,7 @@
         "orContinueWith": "ან გააგრძელეთ ელ-ფოსტით",
         "signingIn": "შესვლა...",
         "signingUp": "რეგისტრაცია...",
+        "googleSignIn": "გააგრძელეთ Google-ით",
         "errors": {
             "invalidCredentials": "არასწორი ელ-ფოსტა ან პაროლი",
             "userExists": "მომხმარებელი უკვე რეგისტრირებულია",
