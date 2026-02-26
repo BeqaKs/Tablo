@@ -200,32 +200,32 @@ export function Navbar() {
               {t('navigation.contact')}
             </Link>
 
-            <div className="pt-3 mt-3 border-t space-y-2">
+            <div className="pt-6 mt-6 border-t space-y-4">
               {user ? (
                 <>
                   {userRole === 'admin' && (
                     <Link href="/dashboard/admin" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start rounded-xl">
+                      <Button variant="outline" className="w-full justify-start rounded-xl h-11">
                         {t('navigation.adminPanel')}
                       </Button>
                     </Link>
                   )}
                   {userRole === 'restaurant_owner' && (
                     <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start rounded-xl">
+                      <Button variant="outline" className="w-full justify-start rounded-xl h-11">
                         {t('navigation.dashboard')}
                       </Button>
                     </Link>
                   )}
                   {userRole === 'customer' && (
                     <Link href="/my-bookings" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start rounded-xl">
+                      <Button variant="outline" className="w-full justify-start rounded-xl h-11">
                         {t('navigation.myBookings')}
                       </Button>
                     </Link>
                   )}
                   <Link href="/profile" onClick={() => setMobileOpen(false)}>
-                    <Button className="w-full rounded-xl">
+                    <Button className="w-full rounded-xl h-11">
                       {t('navigation.profile')}
                     </Button>
                   </Link>
@@ -233,13 +233,13 @@ export function Navbar() {
               ) : (
                 <>
                   <Link href="/login" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full rounded-xl">
+                    <Button variant="outline" className="w-full rounded-xl h-11">
                       {t('navigation.signIn')}
                     </Button>
                   </Link>
                   <Link href="/login?signup=true" onClick={() => setMobileOpen(false)}>
-                    <Button className="w-full rounded-xl">
-                      {t('navigation.profile')} {/* Changed this text to contextually represent 'Sign Up / Profile' to clear the confusing contact redirect */}
+                    <Button className="w-full rounded-xl h-11">
+                      {t('auth.signUp')}
                     </Button>
                   </Link>
                 </>

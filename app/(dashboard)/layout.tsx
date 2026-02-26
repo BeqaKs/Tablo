@@ -1,27 +1,31 @@
 import { Sidebar } from '@/components/layout/sidebar';
+import { createClient } from '@/lib/supabase/server';
+import { DashboardHeader } from '@/components/layout/dashboard-header';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let restaurantName = 'Restaurant Panel';
+  if (user) {
+    const { data: restaurant } = await supabase
+      .from('restaurants')
+      .select('name')
+      .eq('owner_id', user.id)
+      .maybeSingle();
+    if (restaurant?.name) restaurantName = restaurant.name;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="dark min-h-screen" style={{ background: 'hsl(231 38% 6%)' }}>
       <Sidebar />
-
-      {/* Main content - padding adjusts based on sidebar state */}
-      <main className="pl-64 smooth-transition">
-        {/* Top Header */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-white/80 px-8 backdrop-blur-sm shadow-sm">
-          <h1 className="text-sm font-semibold text-foreground">Restaurant Control Center</h1>
-          <div className="flex items-center gap-4">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-tablo-red-600 flex items-center justify-center text-white text-sm font-semibold">
-              R
-            </div>
-          </div>
-        </header>
-
-        <div className="mx-auto max-w-7xl p-8 animate-fade-in">
+      <main className="pl-64 smooth-transition" style={{ minHeight: '100vh' }}>
+        <DashboardHeader restaurantName={restaurantName} />
+        <div className="mx-auto max-w-7xl p-6 animate-fade-in">
           {children}
         </div>
       </main>

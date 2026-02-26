@@ -1,14 +1,76 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { getOwnerRestaurant } from '@/app/actions/owner';
-// We'd need an updateOwnerRestaurant function in actions/owner.ts
-// for now, let's keep it read-only or a mock form if not strictly requested.
 import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, Store, Phone, Globe, Map } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+
+const PRICE_RANGES = ['₾', '₾₾', '₾₾₾', '₾₾₾₾'];
+
+function FormField({
+    label,
+    type = 'text',
+    value,
+    onChange,
+    placeholder,
+    span,
+}: {
+    label: string;
+    type?: string;
+    value: string;
+    onChange: (v: string) => void;
+    placeholder?: string;
+    span?: boolean;
+}) {
+    return (
+        <div className={span ? 'sm:col-span-2' : ''}>
+            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                {label}
+            </label>
+            <input
+                type={type}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                placeholder={placeholder}
+                className="dash-input"
+            />
+        </div>
+    );
+}
+
+function FormTextarea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+    return (
+        <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                {label}
+            </label>
+            <textarea
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                className="dash-input min-h-[100px] resize-y"
+                style={{ paddingTop: '0.625rem', paddingBottom: '0.625rem' }}
+            />
+        </div>
+    );
+}
+
+function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) {
+    return (
+        <div className="flex items-center gap-4 mb-5">
+            <div
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{ background: 'hsl(347 78% 58% / 0.12)' }}
+            >
+                <Icon className="h-5 w-5" style={{ color: 'hsl(347 78% 65%)' }} />
+            </div>
+            <div>
+                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <p className="text-xs" style={{ color: 'hsl(220 15% 42%)' }}>{subtitle}</p>
+            </div>
+        </div>
+    );
+}
 
 export default function OwnerSettingsPage() {
     const [restaurant, setRestaurant] = useState<any>(null);
@@ -25,143 +87,115 @@ export default function OwnerSettingsPage() {
         setLoading(false);
     }
 
+    function set(field: string, value: string) {
+        setRestaurant((prev: any) => ({ ...prev, [field]: value }));
+    }
+
     async function handleSave(e: React.FormEvent) {
         e.preventDefault();
         setSaving(true);
         const supabase = createClient();
-
-        // Simple client-side update for demonstration (can also be moved to server action)
-        const { error } = await supabase
-            .from('restaurants')
-            .update({
-                name: restaurant.name,
-                description: restaurant.description,
-                address: restaurant.address,
-                city: restaurant.city,
-                cuisine_type: restaurant.cuisine_type,
-                price_range: restaurant.price_range,
-                phone: restaurant.phone,
-                email: restaurant.email,
-                website: restaurant.website,
-            })
-            .eq('id', restaurant.id);
-
-        if (error) {
-            toast.error(error.message);
-        } else {
-            toast.success('Restaurant settings saved!');
-        }
+        const { error } = await supabase.from('restaurants').update({
+            name: restaurant.name,
+            description: restaurant.description,
+            address: restaurant.address,
+            city: restaurant.city,
+            cuisine_type: restaurant.cuisine_type,
+            price_range: restaurant.price_range,
+            phone: restaurant.phone,
+            email: restaurant.email,
+            website: restaurant.website,
+        }).eq('id', restaurant.id);
+        if (error) toast.error(error.message);
+        else toast.success('Settings saved!');
         setSaving(false);
     }
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="flex items-center justify-center py-24">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'hsl(347 78% 58%)' }} />
+                    <p className="text-sm" style={{ color: 'hsl(220 15% 45%)' }}>Loading settings...</p>
+                </div>
             </div>
         );
     }
 
     if (!restaurant) {
-        return <div className="text-center p-8 text-muted-foreground mt-20">You need to be assigned to a restaurant to manage settings.</div>;
+        return <div className="text-center p-8 mt-20" style={{ color: 'hsl(220 15% 45%)' }}>No restaurant assigned.</div>;
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Restaurant Settings</h1>
-                    <p className="text-muted-foreground">Manage your public profile ({restaurant.name})</p>
+        <form onSubmit={handleSave}>
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-white">Restaurant Settings</h1>
+                        <p className="text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>Manage your public profile — {restaurant.name}</p>
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={saving}
+                        className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth-transition btn-dash-primary disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {saving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
-                <Button onClick={handleSave} disabled={saving}>
-                    {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                    Save Changes
-                </Button>
-            </div>
 
-            <Card className="p-6">
-                <form className="space-y-6" onSubmit={handleSave}>
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Restaurant Name</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.name || ''}
-                                onChange={e => setRestaurant({ ...restaurant, name: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Cuisine Type</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.cuisine_type || ''}
-                                onChange={e => setRestaurant({ ...restaurant, cuisine_type: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2 md:col-span-2">
-                            <label className="text-sm font-medium">Description</label>
-                            <textarea
-                                className="w-full border rounded-lg px-3 py-2 min-h-[100px]"
-                                value={restaurant.description || ''}
-                                onChange={e => setRestaurant({ ...restaurant, description: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Phone</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.phone || ''}
-                                onChange={e => setRestaurant({ ...restaurant, phone: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Email</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                type="email"
-                                value={restaurant.email || ''}
-                                onChange={e => setRestaurant({ ...restaurant, email: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">City</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.city || ''}
-                                onChange={e => setRestaurant({ ...restaurant, city: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Address</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.address || ''}
-                                onChange={e => setRestaurant({ ...restaurant, address: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Website</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.website || ''}
-                                onChange={e => setRestaurant({ ...restaurant, website: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Price Range (e.g., $$, $$$)</label>
-                            <input
-                                className="w-full border rounded-lg px-3 py-2"
-                                value={restaurant.price_range || ''}
-                                onChange={e => setRestaurant({ ...restaurant, price_range: e.target.value })}
-                            />
+                {/* Basic Info */}
+                <div className="dash-card p-6">
+                    <SectionHeader icon={Store} title="Basic Information" subtitle="Your restaurant's public-facing details" />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <FormField label="Restaurant Name" value={restaurant.name || ''} onChange={v => set('name', v)} placeholder="e.g. Shavi Lomi" />
+                        <FormField label="Cuisine Type" value={restaurant.cuisine_type || ''} onChange={v => set('cuisine_type', v)} placeholder="e.g. Georgian, Italian" />
+                        <FormTextarea label="Description" value={restaurant.description || ''} onChange={v => set('description', v)} />
+                        {/* Price Range */}
+                        <div className="sm:col-span-2">
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                                Price Range
+                            </label>
+                            <div className="flex gap-2">
+                                {PRICE_RANGES.map(pr => (
+                                    <button
+                                        key={pr}
+                                        type="button"
+                                        onClick={() => set('price_range', pr)}
+                                        className="px-4 py-2 rounded-lg text-sm font-semibold smooth-transition"
+                                        style={restaurant.price_range === pr
+                                            ? { background: 'hsl(347 78% 52% / 0.18)', color: 'hsl(347 78% 70%)', border: '1px solid hsl(347 78% 52% / 0.4)' }
+                                            : { background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 50%)', border: '1px solid hsl(231 24% 18%)' }
+                                        }
+                                    >
+                                        {pr}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </form>
-            </Card>
-        </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="dash-card p-6">
+                    <SectionHeader icon={Phone} title="Contact Information" subtitle="How guests can reach you" />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <FormField label="Phone" type="tel" value={restaurant.phone || ''} onChange={v => set('phone', v)} placeholder="+995 555 000 000" />
+                        <FormField label="Email" type="email" value={restaurant.email || ''} onChange={v => set('email', v)} placeholder="info@restaurant.ge" />
+                        <FormField label="Website" value={restaurant.website || ''} onChange={v => set('website', v)} placeholder="https://restaurant.ge" span />
+                    </div>
+                </div>
+
+                {/* Location */}
+                <div className="dash-card p-6">
+                    <SectionHeader icon={Map} title="Location" subtitle="Your restaurant's physical address" />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <FormField label="City" value={restaurant.city || ''} onChange={v => set('city', v)} placeholder="Tbilisi" />
+                        <FormField label="Address" value={restaurant.address || ''} onChange={v => set('address', v)} placeholder="14 Rustaveli Ave" />
+                    </div>
+                </div>
+            </div>
+        </form>
     );
 }
