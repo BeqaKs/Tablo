@@ -223,7 +223,7 @@ export default function OwnerCalendarPage() {
                                         onClick={btn.action}
                                         className="flex h-8 items-center justify-center rounded-lg px-3 text-xs font-medium smooth-transition btn-dash-ghost"
                                     >
-                                        {(btn as any).icon ? < (btn as any).icon className="h-3.5 w-3.5" /> : (btn as any).label}
+                                        {(() => { const Icon = (btn as any).icon; return Icon ? <Icon className="h-3.5 w-3.5" /> : (btn as any).label; })()}
                                     </button>
                                 ))}
                             </div>
