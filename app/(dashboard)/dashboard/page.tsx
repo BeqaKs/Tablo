@@ -235,10 +235,8 @@ export default async function DashboardPage() {
               return (
                 <div
                   key={booking.id}
-                  className="flex items-center gap-4 rounded-lg px-4 py-3 smooth-transition"
+                  className="flex items-center gap-4 rounded-lg px-4 py-3 smooth-transition cursor-default"
                   style={{ background: 'hsl(231 24% 11%)' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'hsl(231 24% 13%)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = 'hsl(231 24% 11%)'}
                 >
                   {/* Table chip */}
                   <div

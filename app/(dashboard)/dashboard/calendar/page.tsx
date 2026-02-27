@@ -1,457 +1,1041 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getOwnerBookings, updateOwnerBookingStatus, getOwnerRestaurant, getOwnerTables } from '@/app/actions/owner';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    getOwnerBookings, updateOwnerBookingStatus, getOwnerRestaurant,
+    getOwnerTables, createWalkInBooking, updateBookingNotes
+} from '@/app/actions/owner';
+import { getRestaurantWaitlist, promoteFromWaitlist, leaveWaitlist } from '@/app/actions/waitlist';
 import { toast } from 'sonner';
-import { CalendarDays, Check, X, Clock, Loader2, Filter, ChevronLeft, ChevronRight, User, LayoutGrid } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay, isToday } from 'date-fns';
-import { FloorPlanViewer } from '@/components/floor-plan/floor-plan-viewer';
-import { TablePosition } from '@/lib/stores/floor-plan-store';
+import {
+    CalendarDays, ChevronLeft, ChevronRight, Users, Clock,
+    Phone, MessageSquare, Check, X, Plus, Loader2,
+    ChevronDown, CircleDot, AlertCircle, Edit3, Save,
+    UserPlus, LayoutGrid, List, RefreshCw, Coffee, ListChecks
+} from 'lucide-react';
+import {
+    format, addDays, subDays, isSameDay, isToday,
+    startOfWeek, endOfWeek, eachDayOfInterval,
+    parseISO, getHours, getMinutes, differenceInMinutes,
+    startOfDay, addMinutes
+} from 'date-fns';
 
-type TabType = 'calendar' | 'live' | 'list';
+// ─── Constants ─────────────────────────────────────────────────────────────
 
-const statusConfig: Record<string, { badgeClass: string; color: string; dot: string; label: string }> = {
-    pending: { badgeClass: 'badge-pending', color: 'hsl(38 80% 65%)', dot: 'hsl(38 80% 55%)', label: 'Pending' },
-    confirmed: { badgeClass: 'badge-confirmed', color: 'hsl(200 70% 65%)', dot: 'hsl(200 70% 50%)', label: 'Confirmed' },
-    seated: { badgeClass: 'badge-seated', color: 'hsl(160 60% 60%)', dot: 'hsl(160 60% 45%)', label: 'Seated' },
-    completed: { badgeClass: 'badge-completed', color: 'hsl(220 15% 55%)', dot: 'hsl(220 15% 40%)', label: 'Completed' },
-    cancelled: { badgeClass: 'badge-cancelled', color: 'hsl(347 78% 65%)', dot: 'hsl(347 78% 50%)', label: 'Cancelled' },
-    no_show: { badgeClass: 'badge-no-show', color: 'hsl(262 60% 70%)', dot: 'hsl(262 60% 50%)', label: 'No Show' },
+const HOUR_HEIGHT = 64; // px per hour in timeline
+const START_HOUR = 10;  // 10:00
+const END_HOUR = 24;    // midnight
+const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+
+const STATUS_CFG: Record<string, { label: string; bg: string; border: string; text: string; dot: string }> = {
+    pending: { label: 'Pending', bg: 'hsl(38 80% 55% / 0.18)', border: 'hsl(38 80% 55% / 0.5)', text: 'hsl(38 80% 75%)', dot: 'hsl(38 80% 60%)' },
+    confirmed: { label: 'Confirmed', bg: 'hsl(200 70% 50% / 0.18)', border: 'hsl(200 70% 50% / 0.5)', text: 'hsl(200 70% 75%)', dot: 'hsl(200 70% 55%)' },
+    seated: { label: 'Seated', bg: 'hsl(160 60% 45% / 0.20)', border: 'hsl(160 60% 45% / 0.5)', text: 'hsl(160 60% 75%)', dot: 'hsl(160 60% 50%)' },
+    completed: { label: 'Done', bg: 'hsl(220 15% 28% / 0.6)', border: 'hsl(220 15% 35% / 0.5)', text: 'hsl(220 15% 55%)', dot: 'hsl(220 15% 45%)' },
+    cancelled: { label: 'Cancelled', bg: 'hsl(347 78% 50% / 0.15)', border: 'hsl(347 78% 50% / 0.4)', text: 'hsl(347 78% 70%)', dot: 'hsl(347 78% 55%)' },
+    no_show: { label: 'No Show', bg: 'hsl(262 60% 50% / 0.18)', border: 'hsl(262 60% 50% / 0.4)', text: 'hsl(262 60% 70%)', dot: 'hsl(262 60% 55%)' },
 };
 
-export default function OwnerCalendarPage() {
-    const [bookings, setBookings] = useState<any[]>([]);
-    const [restaurant, setRestaurant] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<TabType>('calendar');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [restaurantTables, setRestaurantTables] = useState<TablePosition[]>([]);
-    const [floorPlanBg, setFloorPlanBg] = useState<string | null>(null);
-    const [viewTime, setViewTime] = useState<string>('19:00');
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-    useEffect(() => { loadData(); }, []);
+function minutesSinceStart(dt: Date) {
+    return (getHours(dt) - START_HOUR) * 60 + getMinutes(dt);
+}
 
-    async function loadData() {
-        setLoading(true);
-        const [bookingsRes, restaurantRes, tablesRes] = await Promise.all([
-            getOwnerBookings(), getOwnerRestaurant(), getOwnerTables()
-        ]);
-        if (bookingsRes.data) setBookings(bookingsRes.data);
-        if (restaurantRes.data) {
-            setRestaurant(restaurantRes.data);
-            if (restaurantRes.data.floor_plan_json?.backgroundImage)
-                setFloorPlanBg(restaurantRes.data.floor_plan_json.backgroundImage);
-        }
-        if (tablesRes.data) setRestaurantTables(tablesRes.data);
-        setLoading(false);
-    }
+function topPx(startMin: number) { return (startMin / 60) * HOUR_HEIGHT; }
+function heightPx(durationMin: number) { return Math.max((durationMin / 60) * HOUR_HEIGHT, 28); }
 
-    async function handleStatusChange(bookingId: string, status: string) {
-        const { error } = await updateOwnerBookingStatus(bookingId, status);
-        if (error) toast.error(error);
-        else { toast.success(`Status updated to ${status}`); loadData(); }
-    }
+const sc = (status: string) => STATUS_CFG[status] || STATUS_CFG.pending;
+const now = () => new Date();
 
-    const daysInMonth = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) });
+// ─── StatusBadge ────────────────────────────────────────────────────────────
 
-    const getActiveBookingsForTime = () => {
-        const dayBookings = bookings.filter(b =>
-            isSameDay(new Date(b.reservation_time), selectedDate) &&
-            b.status !== 'cancelled' && b.status !== 'no_show'
-        );
-        const [hours, minutes] = viewTime.split(':').map(Number);
-        const viewDateTime = new Date(selectedDate);
-        viewDateTime.setHours(hours, minutes, 0, 0);
-        return dayBookings.filter(b => {
-            const start = new Date(b.reservation_time);
-            const end = new Date(b.end_time || new Date(start.getTime() + 2 * 60 * 60 * 1000));
-            return viewDateTime >= start && viewDateTime < end;
+function StatusBadge({ status }: { status: string }) {
+    const cfg = sc(status);
+    return (
+        <span
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{ background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}` }}
+        >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+            {cfg.label}
+        </span>
+    );
+}
+
+// ─── WalkInModal ────────────────────────────────────────────────────────────
+
+function WalkInModal({
+    tables, selectedDate, defaultTime, onClose, onSave
+}: {
+    tables: any[]; selectedDate: Date; defaultTime: string;
+    onClose: () => void; onSave: () => void;
+}) {
+    const [form, setForm] = useState({
+        table_id: tables[0]?.id || '',
+        guest_name: '',
+        guest_count: 2,
+        guest_phone: '',
+        guest_notes: '',
+        time: defaultTime,
+        duration_hours: 2,
+    });
+    const [saving, setSaving] = useState(false);
+
+    const handleSubmit = async () => {
+        if (!form.guest_name.trim()) { toast.error('Guest name required'); return; }
+        if (!form.table_id) { toast.error('Select a table'); return; }
+        setSaving(true);
+        const [h, m] = form.time.split(':').map(Number);
+        const dt = new Date(selectedDate);
+        dt.setHours(h, m, 0, 0);
+        const endDt = new Date(dt.getTime() + form.duration_hours * 3600000);
+        const result = await createWalkInBooking({
+            table_id: form.table_id,
+            guest_name: form.guest_name,
+            guest_count: form.guest_count,
+            guest_phone: form.guest_phone || undefined,
+            guest_notes: form.guest_notes || undefined,
+            reservation_time: dt.toISOString(),
+            end_time: endDt.toISOString(),
         });
+        setSaving(false);
+        if (result.error) toast.error(result.error);
+        else { toast.success('Walk-in added!'); onSave(); onClose(); }
     };
 
-    const activeBookings = getActiveBookingsForTime();
+    return (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.65)' }}>
+            <div className="w-full sm:w-[440px] rounded-t-3xl sm:rounded-2xl p-6 space-y-5" style={{ background: 'hsl(231 32% 13%)', border: '1px solid hsl(231 24% 20%)' }}>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'hsl(160 60% 45% / 0.15)' }}>
+                            <UserPlus className="h-4 w-4" style={{ color: 'hsl(160 60% 60%)' }} />
+                        </div>
+                        <h3 className="font-bold text-white">Quick Walk-In</h3>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg btn-dash-ghost"><X className="h-4 w-4" /></button>
+                </div>
 
-    const BookingCard = ({ booking }: { booking: any }) => {
-        const sc = statusConfig[booking.status] || statusConfig.pending;
-        const date = new Date(booking.reservation_time);
-        return (
-            <div
-                className="rounded-xl p-4 smooth-transition"
-                style={{
-                    background: 'hsl(231 32% 10%)',
-                    border: `1px solid hsl(231 24% 16%)`,
-                    borderLeft: `3px solid ${sc.dot}`,
-                }}
-            >
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-3">
-                            <h3 className="font-bold text-white">{booking.guest_name}</h3>
-                            <span className={`${sc.badgeClass} px-2.5 py-0.5 rounded-full text-xs font-medium`}>
-                                {sc.label}
-                            </span>
-                        </div>
-                        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                            {[
-                                { label: 'Time', value: format(date, 'MMM d, h:mm a') },
-                                { label: 'Guests', value: `${booking.guest_count} people` },
-                                { label: 'Table', value: booking.tables?.table_number || 'N/A' },
-                                { label: 'Phone', value: booking.guest_phone || 'N/A' },
-                            ].map(({ label, value }) => (
-                                <div key={label}>
-                                    <p className="text-[10px] uppercase tracking-wider mb-0.5" style={{ color: 'hsl(220 15% 38%)' }}>{label}</p>
-                                    <p className="text-sm font-medium text-white">{value}</p>
-                                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                        <label className="dash-label">Guest Name *</label>
+                        <input className="dash-input w-full" placeholder="Full name" value={form.guest_name}
+                            onChange={e => setForm(f => ({ ...f, guest_name: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="dash-label">Table</label>
+                        <select className="dash-input w-full" value={form.table_id}
+                            onChange={e => setForm(f => ({ ...f, table_id: e.target.value }))}>
+                            {tables.map(t => (
+                                <option key={t.id} value={t.id}>T{t.table_number} (cap {t.capacity})</option>
                             ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="dash-label">Guests</label>
+                        <input type="number" min="1" max="20" className="dash-input w-full" value={form.guest_count}
+                            onChange={e => setForm(f => ({ ...f, guest_count: +e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="dash-label">Start Time</label>
+                        <input type="time" className="dash-input w-full" value={form.time}
+                            onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="dash-label">Duration</label>
+                        <select className="dash-input w-full" value={form.duration_hours}
+                            onChange={e => setForm(f => ({ ...f, duration_hours: +e.target.value }))}>
+                            {[0.5, 1, 1.5, 2, 2.5, 3, 4].map(h => (
+                                <option key={h} value={h}>{h === 0.5 ? '30 min' : `${h}h`}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="dash-label">Phone</label>
+                        <input className="dash-input w-full" placeholder="+1..." value={form.guest_phone}
+                            onChange={e => setForm(f => ({ ...f, guest_phone: e.target.value }))} />
+                    </div>
+                    <div>
+                        <label className="dash-label">Notes</label>
+                        <input className="dash-input w-full" placeholder="Special requests..."
+                            value={form.guest_notes} onChange={e => setForm(f => ({ ...f, guest_notes: e.target.value }))} />
+                    </div>
+                </div>
+
+                <button onClick={handleSubmit} disabled={saving}
+                    className="w-full py-3 rounded-xl font-semibold text-sm smooth-transition btn-dash-primary flex items-center justify-center gap-2">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    {saving ? 'Saving...' : 'Confirm Walk-In'}
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── BookingSlideOver ────────────────────────────────────────────────────────
+
+function BookingSlideOver({
+    booking, tables, onClose, onStatusChange, onRefresh
+}: {
+    booking: any; tables: any[]; onClose: () => void;
+    onStatusChange: (id: string, status: string) => Promise<void>;
+    onRefresh: () => void;
+}) {
+    const [notes, setNotes] = useState(booking.guest_notes || '');
+    const [editingNotes, setEditingNotes] = useState(false);
+    const [savingNotes, setSavingNotes] = useState(false);
+    const [changing, setChanging] = useState<string | null>(null);
+    const date = parseISO(booking.reservation_time);
+    const endDate = booking.end_time ? parseISO(booking.end_time) : null;
+    const cfg = sc(booking.status);
+    const table = tables.find(t => t.id === booking.table_id);
+
+    const handleStatus = async (status: string) => {
+        setChanging(status);
+        await onStatusChange(booking.id, status);
+        setChanging(null);
+        onRefresh();
+        onClose();
+    };
+
+    const handleSaveNotes = async () => {
+        setSavingNotes(true);
+        const { updateBookingNotes } = await import('@/app/actions/owner');
+        await updateBookingNotes(booking.id, notes);
+        setSavingNotes(false);
+        setEditingNotes(false);
+        toast.success('Notes saved');
+    };
+
+    const NEXT_ACTIONS: Record<string, { status: string; label: string; color: string }[]> = {
+        pending: [
+            { status: 'confirmed', label: 'Confirm', color: 'hsl(200 70% 50%)' },
+            { status: 'cancelled', label: 'Cancel', color: 'hsl(347 78% 55%)' },
+        ],
+        confirmed: [
+            { status: 'seated', label: 'Seat Now', color: 'hsl(160 60% 45%)' },
+            { status: 'no_show', label: 'No Show', color: 'hsl(262 60% 50%)' },
+            { status: 'cancelled', label: 'Cancel', color: 'hsl(347 78% 55%)' },
+        ],
+        seated: [
+            { status: 'completed', label: 'Mark Complete', color: 'hsl(220 15% 55%)' },
+        ],
+    };
+    const actions = NEXT_ACTIONS[booking.status] || [];
+
+    return (
+        <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+            {/* Backdrop */}
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.55)' }} />
+            {/* Panel */}
+            <div
+                className="absolute right-0 top-0 bottom-0 w-full sm:w-[420px] flex flex-col shadow-2xl overflow-y-auto"
+                style={{ background: 'hsl(231 32% 11%)', borderLeft: '1px solid hsl(231 24% 18%)' }}
+                onClick={e => e.stopPropagation()}
+            >
+                {/* Header */}
+                <div className="p-6" style={{ borderBottom: '1px solid hsl(231 24% 18%)' }}>
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">{booking.guest_name}</h2>
+                            <p className="text-sm mt-0.5" style={{ color: 'hsl(220 15% 50%)' }}>
+                                {format(date, 'EEE, MMM d')} · {format(date, 'h:mm a')}
+                                {endDate && ` → ${format(endDate, 'h:mm a')}`}
+                            </p>
                         </div>
-                        {booking.guest_notes && (
-                            <div
-                                className="mt-3 rounded-lg px-3 py-2 text-sm italic"
-                                style={{ background: 'hsl(231 24% 14%)', color: 'hsl(220 15% 55%)', borderLeft: '2px solid hsl(231 24% 22%)' }}
-                            >
-                                "{booking.guest_notes}"
+                        <button onClick={onClose} className="p-2 rounded-lg btn-dash-ghost shrink-0">
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                    <StatusBadge status={booking.status} />
+                </div>
+
+                {/* Details */}
+                <div className="p-6 space-y-5 flex-1">
+                    {/* Info grid */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {[
+                            { icon: Users, label: 'Party Size', value: `${booking.guest_count} guest${booking.guest_count !== 1 ? 's' : ''}` },
+                            { icon: LayoutGrid, label: 'Table', value: table ? `Table ${table.table_number} (cap. ${table.capacity})` : booking.tables?.table_number || 'N/A' },
+                            { icon: Clock, label: 'Duration', value: endDate ? `${differenceInMinutes(endDate, date)}min` : '2h (est.)' },
+                            { icon: Phone, label: 'Phone', value: booking.guest_phone || '—' },
+                        ].map(({ icon: Icon, label, value }) => (
+                            <div key={label} className="rounded-xl p-3" style={{ background: 'hsl(231 32% 14%)' }}>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Icon className="h-3 w-3" style={{ color: 'hsl(220 15% 45%)' }} />
+                                    <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(220 15% 45%)' }}>{label}</span>
+                                </div>
+                                <p className="text-sm font-semibold text-white truncate">{value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5">
+                                <MessageSquare className="h-3.5 w-3.5" style={{ color: 'hsl(220 15% 45%)' }} />
+                                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 45%)' }}>Notes</span>
+                            </div>
+                            {!editingNotes && (
+                                <button onClick={() => setEditingNotes(true)} className="flex items-center gap-1 text-xs btn-dash-ghost px-2 py-1 rounded">
+                                    <Edit3 className="h-3 w-3" /> Edit
+                                </button>
+                            )}
+                        </div>
+                        {editingNotes ? (
+                            <div className="space-y-2">
+                                <textarea
+                                    rows={3}
+                                    className="dash-input w-full resize-none"
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    placeholder="Add notes for this booking..."
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={handleSaveNotes} disabled={savingNotes}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-dash-primary">
+                                        {savingNotes ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                                        Save
+                                    </button>
+                                    <button onClick={() => { setEditingNotes(false); setNotes(booking.guest_notes || ''); }}
+                                        className="px-3 py-1.5 rounded-lg text-xs btn-dash-ghost">Cancel</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="rounded-xl p-3 min-h-[56px] text-sm italic"
+                                style={{ background: 'hsl(231 32% 14%)', color: notes ? 'hsl(220 15% 65%)' : 'hsl(220 15% 35%)' }}>
+                                {notes || 'No notes for this booking.'}
                             </div>
                         )}
                     </div>
-                    <div className="flex flex-col gap-2 flex-shrink-0">
-                        {booking.status === 'pending' && (
-                            <>
+
+                    {/* Timeline indicators */}
+                    <div className="rounded-xl p-4" style={{ background: 'hsl(231 32% 14%)', border: '1px solid hsl(231 24% 20%)' }}>
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'hsl(220 15% 42%)' }}>Booking Timeline</p>
+                        <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full" style={{ background: sc(booking.status).dot }} />
+                            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'hsl(231 24% 20%)' }}>
+                                {(() => {
+                                    const now = new Date();
+                                    const start = date;
+                                    const end = endDate || addMinutes(date, 120);
+                                    const total = differenceInMinutes(end, start);
+                                    const elapsed = Math.min(Math.max(differenceInMinutes(now, start), 0), total);
+                                    const pct = total > 0 ? (elapsed / total) * 100 : 0;
+                                    return (
+                                        <div className="h-full rounded-full" style={{
+                                            width: `${pct}%`,
+                                            background: sc(booking.status).dot,
+                                        }} />
+                                    );
+                                })()}
+                            </div>
+                            <div className="h-2 w-2 rounded-full" style={{ background: 'hsl(231 24% 30%)' }} />
+                        </div>
+                        <div className="flex justify-between mt-1.5 text-[10px]" style={{ color: 'hsl(220 15% 40%)' }}>
+                            <span>{format(date, 'h:mm a')}</span>
+                            <span>{endDate ? format(endDate, 'h:mm a') : '+'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Actions footer */}
+                {actions.length > 0 && (
+                    <div className="p-6 space-y-3" style={{ borderTop: '1px solid hsl(231 24% 18%)' }}>
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 42%)' }}>Change Status</p>
+                        <div className="flex flex-col gap-2">
+                            {actions.map(action => (
                                 <button
-                                    onClick={() => handleStatusChange(booking.id, 'confirmed')}
-                                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold smooth-transition"
-                                    style={{ background: 'hsl(160 60% 45% / 0.15)', color: 'hsl(160 60% 60%)', border: '1px solid hsl(160 60% 45% / 0.25)' }}
+                                    key={action.status}
+                                    disabled={!!changing}
+                                    onClick={() => handleStatus(action.status)}
+                                    className="w-full py-2.5 rounded-xl text-sm font-semibold smooth-transition flex items-center justify-center gap-2"
+                                    style={{
+                                        background: `${action.color}22`,
+                                        color: action.color,
+                                        border: `1px solid ${action.color}44`,
+                                        opacity: changing && changing !== action.status ? 0.5 : 1,
+                                    }}
                                 >
-                                    <Check className="h-3 w-3" /> Confirm
+                                    {changing === action.status
+                                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                                        : action.status === 'seated' ? <Check className="h-4 w-4" />
+                                            : action.status === 'cancelled' ? <X className="h-4 w-4" />
+                                                : action.status === 'no_show' ? <AlertCircle className="h-4 w-4" />
+                                                    : <Check className="h-4 w-4" />
+                                    }
+                                    {action.label}
                                 </button>
-                                <button
-                                    onClick={() => handleStatusChange(booking.id, 'cancelled')}
-                                    className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold smooth-transition"
-                                    style={{ background: 'hsl(347 78% 58% / 0.10)', color: 'hsl(347 78% 65%)', border: '1px solid hsl(347 78% 58% / 0.20)' }}
-                                >
-                                    <X className="h-3 w-3" /> Cancel
-                                </button>
-                            </>
-                        )}
-                        {booking.status === 'confirmed' && (
-                            <button
-                                onClick={() => handleStatusChange(booking.id, 'seated')}
-                                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold smooth-transition btn-dash-primary"
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+// ─── Timeline ────────────────────────────────────────────────────────────────
+
+function TimelineView({
+    bookings, tables, selectedDate, onSelectBooking
+}: {
+    bookings: any[]; tables: any[]; selectedDate: Date;
+    onSelectBooking: (b: any) => void;
+}) {
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const nowRef = useRef<HTMLDivElement>(null);
+    const currentMinute = (getHours(new Date()) - START_HOUR) * 60 + getMinutes(new Date());
+    const isCurrentDay = isToday(selectedDate);
+
+    // Auto scroll to 1h before current time on load
+    useEffect(() => {
+        if (isCurrentDay && scrollRef.current) {
+            const scrollTo = Math.max(0, topPx(currentMinute) - HOUR_HEIGHT * 2);
+            scrollRef.current.scrollTop = scrollTo;
+        } else if (scrollRef.current) {
+            // Scroll to first booking
+            const dayBookings = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
+            if (dayBookings.length > 0) {
+                const first = dayBookings.sort((a, b) => +new Date(a.reservation_time) - +new Date(b.reservation_time))[0];
+                const startMin = minutesSinceStart(parseISO(first.reservation_time));
+                scrollRef.current.scrollTop = Math.max(0, topPx(startMin) - HOUR_HEIGHT * 2);
+            }
+        }
+    }, [selectedDate, isCurrentDay]);
+
+    const dayBookings = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
+
+    // Group by table (visible on timeline), unassigned separately
+    const tableIds = tables.map(t => t.id);
+    const assignedBookings = dayBookings.filter(b => tableIds.includes(b.table_id));
+    const unassignedBookings = dayBookings.filter(b => !tableIds.includes(b.table_id));
+
+    const TIMELINE_LABEL_W = 52; // px
+
+    return (
+        <div className="flex flex-col h-full">
+            {/* Column headers */}
+            <div className="flex shrink-0 overflow-hidden" style={{ marginLeft: TIMELINE_LABEL_W }}>
+                {tables.map(t => (
+                    <div key={t.id} className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
+                        style={{ color: 'hsl(220 20% 65%)', borderRight: '1px solid hsl(231 24% 15%)' }}>
+                        T{t.table_number}
+                        <span className="block text-[9px] font-normal" style={{ color: 'hsl(220 15% 38%)' }}>cap {t.capacity}</span>
+                    </div>
+                ))}
+                {unassignedBookings.length > 0 && (
+                    <div className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
+                        style={{ color: 'hsl(38 80% 65%)' }}>
+                        Unassigned
+                    </div>
+                )}
+                {tables.length === 0 && (
+                    <div className="flex-1 text-center py-2 text-xs" style={{ color: 'hsl(220 15% 40%)' }}>All Bookings</div>
+                )}
+            </div>
+
+            {/* Scrollable area */}
+            <div ref={scrollRef} className="flex-1 overflow-auto relative" style={{ borderTop: '1px solid hsl(231 24% 16%)' }}>
+                <div className="flex" style={{ minHeight: `${HOURS.length * HOUR_HEIGHT}px`, position: 'relative' }}>
+                    {/* Time labels */}
+                    <div className="shrink-0 select-none" style={{ width: TIMELINE_LABEL_W }}>
+                        {HOURS.map(h => (
+                            <div key={h} style={{ height: HOUR_HEIGHT, position: 'relative' }}>
+                                <span className="absolute -top-2 right-2 text-[10px] font-medium"
+                                    style={{ color: 'hsl(220 15% 38%)' }}>
+                                    {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Grid + columns */}
+                    <div className="flex flex-1 relative">
+                        {/* Horizontal hour lines */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            {HOURS.map((h, i) => (
+                                <div key={h} style={{
+                                    position: 'absolute', top: i * HOUR_HEIGHT, left: 0, right: 0,
+                                    borderTop: '1px solid hsl(231 24% 15%)',
+                                }} />
+                            ))}
+                            {/* Half-hour lines */}
+                            {HOURS.map((h, i) => (
+                                <div key={`half-${h}`} style={{
+                                    position: 'absolute', top: i * HOUR_HEIGHT + HOUR_HEIGHT / 2, left: 0, right: 0,
+                                    borderTop: '1px dashed hsl(231 24% 11%)',
+                                }} />
+                            ))}
+                        </div>
+
+                        {/* Now line */}
+                        {isCurrentDay && currentMinute >= 0 && currentMinute <= (END_HOUR - START_HOUR) * 60 && (
+                            <div
+                                ref={nowRef}
+                                className="absolute left-0 right-0 z-20 pointer-events-none"
+                                style={{ top: topPx(currentMinute) }}
                             >
-                                <Check className="h-3 w-3" /> Seat
-                            </button>
+                                <div className="flex items-center gap-1">
+                                    <div className="rounded-full h-2.5 w-2.5 shrink-0" style={{ background: 'hsl(347 78% 58%)' }} />
+                                    <div className="flex-1 h-px" style={{ background: 'hsl(347 78% 55%)' }} />
+                                </div>
+                            </div>
                         )}
-                        {booking.status === 'seated' && (
-                            <button
-                                onClick={() => handleStatusChange(booking.id, 'completed')}
-                                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold smooth-transition"
-                                style={{ background: 'hsl(262 60% 56% / 0.14)', color: 'hsl(262 60% 70%)', border: '1px solid hsl(262 60% 56% / 0.25)' }}
-                            >
-                                <Check className="h-3 w-3" /> Complete
-                            </button>
+
+                        {/* Table columns */}
+                        {tables.length > 0 ? (
+                            tables.map(table => {
+                                const tableBookings = assignedBookings.filter(b => b.table_id === table.id);
+                                return (
+                                    <div key={table.id} className="flex-1 min-w-[100px] relative"
+                                        style={{ borderRight: '1px solid hsl(231 24% 13%)', height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+                                        {tableBookings.map(booking => {
+                                            const startMin = minutesSinceStart(parseISO(booking.reservation_time));
+                                            const endMin = booking.end_time
+                                                ? minutesSinceStart(parseISO(booking.end_time))
+                                                : startMin + 120;
+                                            const durMin = endMin - startMin;
+                                            const cfg = sc(booking.status);
+                                            return (
+                                                <button
+                                                    key={booking.id}
+                                                    onClick={() => onSelectBooking(booking)}
+                                                    className="absolute inset-x-1 rounded-lg text-left p-2 smooth-transition overflow-hidden group"
+                                                    style={{
+                                                        top: topPx(startMin), height: heightPx(durMin),
+                                                        background: cfg.bg, border: `1px solid ${cfg.border}`,
+                                                        borderLeft: `3px solid ${cfg.dot}`,
+                                                    }}
+                                                >
+                                                    <p className="text-[11px] font-bold leading-tight truncate" style={{ color: cfg.text }}>
+                                                        {booking.guest_name}
+                                                    </p>
+                                                    {durMin >= 40 && (
+                                                        <p className="text-[10px] mt-0.5" style={{ color: cfg.text, opacity: 0.75 }}>
+                                                            {booking.guest_count}p · {format(parseISO(booking.reservation_time), 'h:mm')}
+                                                        </p>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            /* No tables configured — show all bookings in one column */
+                            <div className="flex-1 relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+                                {dayBookings.map(booking => {
+                                    const startMin = minutesSinceStart(parseISO(booking.reservation_time));
+                                    const endMin = booking.end_time
+                                        ? minutesSinceStart(parseISO(booking.end_time))
+                                        : startMin + 120;
+                                    const cfg = sc(booking.status);
+                                    return (
+                                        <button
+                                            key={booking.id}
+                                            onClick={() => onSelectBooking(booking)}
+                                            className="absolute inset-x-1 rounded-lg text-left p-2 smooth-transition"
+                                            style={{
+                                                top: topPx(startMin), height: heightPx(endMin - startMin),
+                                                background: cfg.bg, border: `1px solid ${cfg.border}`,
+                                                borderLeft: `3px solid ${cfg.dot}`,
+                                            }}
+                                        >
+                                            <p className="text-[11px] font-bold truncate" style={{ color: cfg.text }}>{booking.guest_name}</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Unassigned column */}
+                        {unassignedBookings.length > 0 && (
+                            <div className="flex-1 min-w-[100px] relative"
+                                style={{ borderRight: '1px solid hsl(231 24% 13%)', height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+                                {unassignedBookings.map(booking => {
+                                    const startMin = minutesSinceStart(parseISO(booking.reservation_time));
+                                    const cfg = sc(booking.status);
+                                    return (
+                                        <button
+                                            key={booking.id}
+                                            onClick={() => onSelectBooking(booking)}
+                                            className="absolute inset-x-1 rounded-lg text-left p-2"
+                                            style={{
+                                                top: topPx(startMin), height: heightPx(120),
+                                                background: cfg.bg, border: `1px solid ${cfg.border}`,
+                                                borderLeft: `3px solid ${cfg.dot}`,
+                                            }}
+                                        >
+                                            <p className="text-[11px] font-bold truncate" style={{ color: cfg.text }}>{booking.guest_name}</p>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
-        );
+        </div>
+    );
+}
+
+// ─── WeekStrip ───────────────────────────────────────────────────────────────
+
+function WeekStrip({
+    selectedDate, bookings, onSelectDate, onPrevWeek, onNextWeek
+}: {
+    selectedDate: Date; bookings: any[]; onSelectDate: (d: Date) => void;
+    onPrevWeek: () => void; onNextWeek: () => void;
+}) {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+    const days = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
+
+    return (
+        <div className="flex items-center gap-2">
+            <button onClick={onPrevWeek} className="p-2 rounded-lg btn-dash-ghost shrink-0">
+                <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div className="flex flex-1 gap-1 overflow-x-auto scrollbar-hide">
+                {days.map(day => {
+                    const count = bookings.filter(b => isSameDay(parseISO(b.reservation_time), day)).length;
+                    const active = bookings.filter(b =>
+                        isSameDay(parseISO(b.reservation_time), day) &&
+                        ['pending', 'confirmed', 'seated'].includes(b.status)
+                    ).length;
+                    const isSelected = isSameDay(day, selectedDate);
+                    const today = isToday(day);
+                    return (
+                        <button
+                            key={day.toISOString()}
+                            onClick={() => onSelectDate(day)}
+                            className="flex-1 min-w-[44px] flex flex-col items-center py-2.5 px-1 rounded-xl smooth-transition"
+                            style={{
+                                background: isSelected ? 'hsl(347 78% 58% / 0.15)' : today ? 'hsl(231 32% 14%)' : 'transparent',
+                                border: isSelected ? '1px solid hsl(347 78% 58% / 0.4)' : '1px solid transparent',
+                            }}
+                        >
+                            <span className="text-[10px] font-semibold uppercase tracking-wider"
+                                style={{ color: isSelected ? 'hsl(347 78% 70%)' : 'hsl(220 15% 40%)' }}>
+                                {format(day, 'EEE')}
+                            </span>
+                            <span className="mt-1 text-lg font-bold leading-none"
+                                style={{ color: isSelected ? 'white' : today ? 'hsl(220 20% 80%)' : 'hsl(220 15% 55%)' }}>
+                                {format(day, 'd')}
+                            </span>
+                            {count > 0 && (
+                                <div className="mt-1.5 flex gap-0.5 items-center">
+                                    {active > 0 && (
+                                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'hsl(160 60% 50%)' }} />
+                                    )}
+                                    {count - active > 0 && (
+                                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: 'hsl(220 15% 40%)' }} />
+                                    )}
+                                </div>
+                            )}
+                        </button>
+                    );
+                })}
+            </div>
+            <button onClick={onNextWeek} className="p-2 rounded-lg btn-dash-ghost shrink-0">
+                <ChevronRight className="h-4 w-4" />
+            </button>
+        </div>
+    );
+}
+
+// ─── ListView ───────────────────────────────────────────────────────────────
+
+function ListView({
+    bookings, tables, onSelectBooking
+}: {
+    bookings: any[]; tables: any[]; onSelectBooking: (b: any) => void;
+}) {
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [search, setSearch] = useState('');
+
+    const filtered = bookings.filter(b => {
+        if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+        if (search && !b.guest_name?.toLowerCase().includes(search.toLowerCase()) &&
+            !b.guest_phone?.includes(search)) return false;
+        return true;
+    });
+
+    const grouped: Record<string, any[]> = {};
+    filtered.forEach(b => {
+        const key = format(parseISO(b.reservation_time), 'EEE, MMM d, yyyy');
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(b);
+    });
+    Object.values(grouped).forEach(arr =>
+        arr.sort((a, b) => +new Date(a.reservation_time) - +new Date(b.reservation_time))
+    );
+
+    return (
+        <div className="space-y-4">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-2 items-center">
+                <input
+                    className="dash-input flex-1 min-w-[160px] text-sm"
+                    placeholder="Search guest name or phone..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                />
+                <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'hsl(231 32% 10%)' }}>
+                    {['all', 'pending', 'confirmed', 'seated', 'completed', 'cancelled'].map(s => {
+                        const count = s === 'all' ? bookings.length : bookings.filter(b => b.status === s).length;
+                        const cfg = STATUS_CFG[s];
+                        const active = statusFilter === s;
+                        return (
+                            <button key={s} onClick={() => setStatusFilter(s)}
+                                className="px-3 py-1.5 rounded-md text-[11px] font-semibold smooth-transition capitalize"
+                                style={active
+                                    ? { background: cfg ? cfg.bg : 'hsl(347 78% 58% / 0.15)', color: cfg ? cfg.text : 'hsl(347 78% 70%)' }
+                                    : { color: 'hsl(220 15% 45%)' }
+                                }>
+                                {s === 'all' ? 'All' : s.replace('_', ' ')} ({count})
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Grouped list */}
+            {Object.keys(grouped).length === 0 && (
+                <div className="text-center py-16 text-sm rounded-xl"
+                    style={{ background: 'hsl(231 32% 10%)', color: 'hsl(220 15% 40%)', border: '1px dashed hsl(231 24% 18%)' }}>
+                    No bookings match your filters.
+                </div>
+            )}
+            {Object.entries(grouped).map(([dateLabel, dayBooks]) => (
+                <div key={dateLabel}>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'hsl(220 15% 40%)' }}>{dateLabel}</p>
+                    <div className="space-y-1.5">
+                        {dayBooks.map(booking => {
+                            const cfg = sc(booking.status);
+                            const table = tables.find(t => t.id === booking.table_id);
+                            return (
+                                <button key={booking.id} onClick={() => onSelectBooking(booking)}
+                                    className="w-full text-left rounded-xl px-4 py-3 smooth-transition flex items-center gap-4"
+                                    style={{ background: 'hsl(231 32% 10%)', border: `1px solid hsl(231 24% 16%)`, borderLeft: `3px solid ${cfg.dot}` }}>
+                                    <div className="shrink-0 w-14 text-center">
+                                        <p className="font-bold text-white text-sm">{format(parseISO(booking.reservation_time), 'h:mm')}</p>
+                                        <p className="text-[10px]" style={{ color: 'hsl(220 15% 40%)' }}>{format(parseISO(booking.reservation_time), 'a')}</p>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="font-semibold text-white text-sm truncate">{booking.guest_name}</p>
+                                            <StatusBadge status={booking.status} />
+                                        </div>
+                                        <div className="flex gap-4 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>
+                                            <span className="flex items-center gap-1"><Users className="h-3 w-3" />{booking.guest_count}</span>
+                                            <span>{table ? `T${table.table_number}` : booking.tables?.table_number || 'No table'}</span>
+                                            {booking.guest_phone && <span>{booking.guest_phone}</span>}
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 shrink-0" style={{ color: 'hsl(220 15% 38%)' }} />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ─── StatsBar ────────────────────────────────────────────────────────────────
+
+function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: Date }) {
+    const day = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
+    const active = day.filter(b => ['pending', 'confirmed', 'seated'].includes(b.status));
+    const covers = active.reduce((s, b) => s + b.guest_count, 0);
+    const seated = day.filter(b => b.status === 'seated').length;
+    const pending = day.filter(b => b.status === 'pending').length;
+    const cancelled = day.filter(b => b.status === 'cancelled').length;
+
+    const stats = [
+        { label: 'Bookings', value: day.length, sub: `${active.length} active`, dot: 'hsl(200 70% 55%)' },
+        { label: 'Total Covers', value: covers, sub: 'expected guests', dot: 'hsl(262 60% 60%)' },
+        { label: 'Seated', value: seated, sub: 'currently in', dot: 'hsl(160 60% 50%)' },
+        { label: 'Pending', value: pending, sub: 'need confirm', dot: 'hsl(38 80% 60%)' },
+        { label: 'Cancelled', value: cancelled, sub: 'today', dot: 'hsl(347 78% 58%)' },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {stats.map(s => (
+                <div key={s.label} className="rounded-xl p-4" style={{ background: 'hsl(231 32% 10%)', border: '1px solid hsl(231 24% 16%)' }}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
+                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(220 15% 40%)' }}>{s.label}</span>
+                    </div>
+                    <p className="text-2xl font-bold text-white">{s.value}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'hsl(220 15% 42%)' }}>{s.sub}</p>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ─── Main Page ──────────────────────────────────────────────────────────────
+
+type ViewMode = 'timeline' | 'list';
+
+export default function OwnerCalendarPage() {
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [restaurant, setRestaurant] = useState<any>(null);
+    const [tables, setTables] = useState<any[]>([]);
+    const [waitlist, setWaitlist] = useState<any[]>([]);
+    const [showWaitlist, setShowWaitlist] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
+    const [weekOffset, setWeekOffset] = useState(0);
+    const [viewMode, setViewMode] = useState<ViewMode>('timeline');
+    const [selectedBooking, setSelectedBooking] = useState<any>(null);
+    const [showWalkIn, setShowWalkIn] = useState(false);
+
+    const loadData = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true); else setRefreshing(true);
+        const [bRes, rRes, tRes] = await Promise.all([
+            getOwnerBookings(), getOwnerRestaurant(), getOwnerTables()
+        ]);
+        if (bRes.data) setBookings(bRes.data);
+        if (rRes.data) {
+            setRestaurant(rRes.data);
+            const wRes = await getRestaurantWaitlist(rRes.data.id);
+            if (wRes?.data) setWaitlist(wRes.data);
+        }
+        if (tRes.data) setTables(tRes.data);
+        if (!silent) setLoading(false); else setRefreshing(false);
+    }, []);
+
+    useEffect(() => { loadData(); }, [loadData]);
+
+    // Auto-refresh every 60s
+    useEffect(() => {
+        const interval = setInterval(() => loadData(true), 60000);
+        return () => clearInterval(interval);
+    }, [loadData]);
+
+    const handleStatusChange = async (id: string, status: string) => {
+        const { error } = await updateOwnerBookingStatus(id, status);
+        if (error) toast.error(error);
+        else toast.success(`Booking marked as ${status}`);
+        await loadData(true);
     };
+
+    const weekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset * 7);
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-24">
-                <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'hsl(347 78% 58%)' }} />
-                    <p className="text-sm" style={{ color: 'hsl(220 15% 45%)' }}>Loading bookings...</p>
-                </div>
+            <div className="flex items-center justify-center py-32">
+                <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'hsl(347 78% 58%)' }} />
             </div>
         );
     }
 
     if (!restaurant) {
-        return <div className="text-center p-8 mt-20" style={{ color: 'hsl(220 15% 45%)' }}>No restaurant assigned.</div>;
+        return <div className="text-center p-12 mt-20" style={{ color: 'hsl(220 15% 45%)' }}>No restaurant assigned.</div>;
     }
 
-    const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
-        { id: 'calendar', label: 'Calendar', icon: CalendarDays },
-        { id: 'live', label: 'Live Floor', icon: LayoutGrid },
-        { id: 'list', label: 'List', icon: Filter },
-    ];
+    const nowTime = format(new Date(), 'h:mm a');
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">Calendar & Bookings</h1>
-                <p className="text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>
-                    {bookings.length} total bookings for {restaurant.name}
-                </p>
+        <div className="flex flex-col gap-4 h-[calc(100vh-80px)]">
+            {/* ── Header ── */}
+            <div className="flex items-start justify-between gap-4 shrink-0">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-white">
+                        {format(selectedDate, 'EEEE, MMMM d')}
+                    </h1>
+                    <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: 'hsl(220 15% 44%)' }}>
+                        <Clock className="h-3.5 w-3.5" />
+                        {nowTime} · {restaurant.name}
+                        {refreshing && <RefreshCw className="h-3 w-3 animate-spin" />}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                    {/* Today */}
+                    <button onClick={() => setSelectedDate(startOfDay(new Date()))}
+                        className="px-3 py-2 rounded-lg text-sm font-semibold btn-dash-ghost hidden sm:block">
+                        Today
+                    </button>
+                    {/* View toggle */}
+                    <div className="flex p-0.5 rounded-lg gap-0.5" style={{ background: 'hsl(231 32% 10%)' }}>
+                        {([['timeline', CalendarDays], ['list', List]] as [ViewMode, any][]).map(([mode, Icon]) => (
+                            <button key={mode} onClick={() => setViewMode(mode)}
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold smooth-transition capitalize"
+                                style={viewMode === mode
+                                    ? { background: 'hsl(347 78% 58% / 0.15)', color: 'hsl(347 78% 70%)' }
+                                    : { color: 'hsl(220 15% 45%)' }
+                                }>
+                                <Icon className="h-3.5 w-3.5" /> {mode}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Walk-in */}
+                    <button onClick={() => setShowWalkIn(true)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold smooth-transition btn-dash-primary">
+                        <Coffee className="h-4 w-4" /> Walk-In
+                    </button>
+                    {/* Waitlist Toggle */}
+                    <button onClick={() => setShowWaitlist(true)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold smooth-transition ${showWaitlist ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-zinc-800 text-white hover:bg-zinc-700'}`}>
+                        <ListChecks className="h-4 w-4" />
+                        Waitlist {waitlist.length > 0 && <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">{waitlist.length}</span>}
+                    </button>
+                </div>
             </div>
 
-            {/* Tab Bar */}
-            <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'hsl(231 32% 10%)' }}>
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium smooth-transition"
-                        style={activeTab === tab.id
-                            ? { background: 'hsl(347 78% 58% / 0.15)', color: 'hsl(347 78% 70%)' }
-                            : { color: 'hsl(220 15% 45%)' }
-                        }
-                    >
-                        <tab.icon className="h-4 w-4" />
-                        {tab.label}
-                    </button>
+            {/* ── Week strip ── */}
+            <div className="shrink-0 dash-card p-3">
+                <WeekStrip
+                    selectedDate={selectedDate}
+                    bookings={bookings}
+                    onSelectDate={d => setSelectedDate(d)}
+                    onPrevWeek={() => setWeekOffset(w => w - 1)}
+                    onNextWeek={() => setWeekOffset(w => w + 1)}
+                />
+            </div>
+
+            {/* ── Stats bar ── */}
+            <div className="shrink-0">
+                <StatsBar bookings={bookings} selectedDate={selectedDate} />
+            </div>
+
+            {/* ── Main content ── */}
+            <div className="flex-1 min-h-0 dash-card overflow-hidden">
+                {viewMode === 'timeline' ? (
+                    <TimelineView
+                        bookings={bookings}
+                        tables={tables}
+                        selectedDate={selectedDate}
+                        onSelectBooking={setSelectedBooking}
+                    />
+                ) : (
+                    <div className="h-full overflow-auto p-5">
+                        <ListView
+                            bookings={bookings}
+                            tables={tables}
+                            onSelectBooking={setSelectedBooking}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* ── Status legend ── */}
+            <div className="shrink-0 flex flex-wrap gap-3 items-center pb-2">
+                {Object.entries(STATUS_CFG).map(([key, cfg]) => (
+                    <span key={key} className="flex items-center gap-1.5 text-xs" style={{ color: 'hsl(220 15% 48%)' }}>
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: cfg.dot }} />
+                        {cfg.label}
+                    </span>
                 ))}
             </div>
 
-            {/* CALENDAR TAB */}
-            {activeTab === 'calendar' && (
-                <div className="flex flex-col lg:flex-row gap-5">
-                    {/* Calendar Grid */}
-                    <div className="dash-card lg:w-2/3 p-5">
-                        <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-lg font-bold text-white">{format(currentMonth, 'MMMM yyyy')}</h2>
-                            <div className="flex items-center gap-2">
-                                {[
-                                    { action: () => setCurrentMonth(subMonths(currentMonth, 1)), icon: ChevronLeft },
-                                    { action: () => setCurrentMonth(new Date()), label: 'Today' },
-                                    { action: () => setCurrentMonth(addMonths(currentMonth, 1)), icon: ChevronRight },
-                                ].map((btn, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={btn.action}
-                                        className="flex h-8 items-center justify-center rounded-lg px-3 text-xs font-medium smooth-transition btn-dash-ghost"
-                                    >
-                                        {(() => { const Icon = (btn as any).icon; return Icon ? <Icon className="h-3.5 w-3.5" /> : (btn as any).label; })()}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
+            {/* ── Booking slide-over ── */}
+            {selectedBooking && (
+                <BookingSlideOver
+                    booking={selectedBooking}
+                    tables={tables}
+                    onClose={() => setSelectedBooking(null)}
+                    onStatusChange={handleStatusChange}
+                    onRefresh={() => loadData(true)}
+                />
+            )}
 
-                        <div className="grid grid-cols-7 gap-1 mb-2">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                                <div key={day} className="py-2 text-center text-[11px] font-semibold uppercase tracking-wide"
-                                    style={{ color: 'hsl(220 15% 40%)' }}>
-                                    {day}
-                                </div>
-                            ))}
-                        </div>
+            {/* ── Walk-in modal ── */}
+            {showWalkIn && (
+                <WalkInModal
+                    tables={tables}
+                    selectedDate={selectedDate}
+                    defaultTime={nowTime.split(' ')[0]}
+                    onClose={() => setShowWalkIn(false)}
+                    onSave={() => loadData(true)}
+                />
+            )}
 
-                        <div className="grid grid-cols-7 gap-1">
-                            {Array.from({ length: getDay(startOfMonth(currentMonth)) }).map((_, i) => (
-                                <div key={`prefix-${i}`} className="h-20 rounded-lg" style={{ background: 'hsl(231 32% 8%)' }} />
-                            ))}
-                            {daysInMonth.map(day => {
-                                const dayBookings = bookings.filter(b => isSameDay(new Date(b.reservation_time), day));
-                                const isSelected = isSameDay(day, selectedDate);
-                                const isTodayDate = isToday(day);
-                                return (
-                                    <button
-                                        key={day.toISOString()}
-                                        onClick={() => setSelectedDate(day)}
-                                        className="h-20 rounded-lg p-2 flex flex-col items-start smooth-transition text-left"
-                                        style={{
-                                            background: isSelected ? 'hsl(347 78% 58% / 0.12)' : 'hsl(231 32% 8%)',
-                                            border: isSelected
-                                                ? '1px solid hsl(347 78% 58% / 0.4)'
-                                                : isTodayDate
-                                                    ? '1px solid hsl(262 60% 56% / 0.4)'
-                                                    : '1px solid hsl(231 24% 14%)',
-                                        }}
-                                    >
-                                        <span
-                                            className="text-xs font-semibold h-5 w-5 flex items-center justify-center rounded-full"
-                                            style={{
-                                                background: isTodayDate ? 'hsl(347 78% 52%)' : 'transparent',
-                                                color: isTodayDate ? 'white' : isSelected ? 'hsl(347 78% 70%)' : 'hsl(220 20% 75%)',
-                                            }}
-                                        >
-                                            {format(day, 'd')}
-                                        </span>
-                                        {dayBookings.length > 0 && (
-                                            <div className="mt-auto w-full">
-                                                <div className="flex gap-0.5 flex-wrap mb-1">
-                                                    {dayBookings.slice(0, 3).map((b, i) => (
-                                                        <span
-                                                            key={i}
-                                                            className="h-1.5 w-1.5 rounded-full"
-                                                            style={{ background: statusConfig[b.status]?.dot || 'hsl(220 15% 40%)' }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                                <p className="text-[10px]" style={{ color: 'hsl(220 15% 45%)' }}>
-                                                    {dayBookings.length} bk{dayBookings.length > 1 ? 's' : ''}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Day Detail Panel */}
-                    <div className="lg:w-1/3 space-y-3">
-                        <div className="dash-card p-4">
-                            <h3 className="font-semibold text-white">{format(selectedDate, 'EEEE, MMMM do')}</h3>
-                            <p className="text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>
-                                {bookings.filter(b => isSameDay(new Date(b.reservation_time), selectedDate)).length} bookings
+            {/* ── Waitlist Slide-over ── */}
+            {showWaitlist && (
+                <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[400px] bg-white border-l shadow-2xl flex flex-col" style={{ borderColor: 'hsl(231 24% 14%)' }}>
+                    <div className="p-5 border-b flex items-start justify-between bg-zinc-50">
+                        <div>
+                            <h2 className="text-xl font-bold tracking-tight text-foreground">Waitlist</h2>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {format(selectedDate, 'MMM d, yyyy')} • {waitlist.length} waiting
                             </p>
                         </div>
-                        <div className="space-y-2 max-h-[500px] overflow-auto pr-1 scrollbar-hide">
-                            {(() => {
-                                const dateBookings = bookings.filter(b => isSameDay(new Date(b.reservation_time), selectedDate));
-                                return dateBookings.length === 0
-                                    ? (
-                                        <div className="text-center py-10 text-sm rounded-xl"
-                                            style={{ background: 'hsl(231 32% 10%)', color: 'hsl(220 15% 40%)', border: '1px dashed hsl(231 24% 20%)' }}>
-                                            No bookings for this date.
-                                        </div>
-                                    )
-                                    : dateBookings.map(b => <BookingCard key={b.id} booking={b} />);
-                            })()}
-                        </div>
+                        <button onClick={() => setShowWaitlist(false)} className="p-2 -mr-2 text-muted-foreground hover:bg-black/5 rounded-full smooth-transition">
+                            <X className="h-5 w-5" />
+                        </button>
                     </div>
-                </div>
-            )}
-
-            {/* LIVE FLOOR PLAN TAB */}
-            {activeTab === 'live' && (
-                <div className="space-y-5">
-                    <div className="dash-card p-4 flex flex-wrap items-center gap-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg" style={{ background: 'hsl(347 78% 58% / 0.12)' }}>
-                                <CalendarDays className="h-4 w-4" style={{ color: 'hsl(347 78% 65%)' }} />
+                    <div className="flex-1 overflow-auto p-5 space-y-4">
+                        {waitlist.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground text-sm">
+                                <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" />
+                                No entries on the waitlist.
                             </div>
-                            <div>
-                                <label className="block text-[10px] uppercase tracking-widest mb-1" style={{ color: 'hsl(220 15% 40%)' }}>Date</label>
-                                <input
-                                    type="date"
-                                    className="text-sm font-medium bg-transparent border-none p-0 text-white focus:ring-0"
-                                    value={format(selectedDate, 'yyyy-MM-dd')}
-                                    onChange={e => setSelectedDate(new Date(e.target.value))}
-                                />
-                            </div>
-                        </div>
-                        <div className="h-8 w-px" style={{ background: 'hsl(231 24% 18%)' }} />
-                        <div className="flex items-center gap-3 flex-1">
-                            <div className="p-2 rounded-lg" style={{ background: 'hsl(262 60% 56% / 0.12)' }}>
-                                <Clock className="h-4 w-4" style={{ color: 'hsl(262 60% 65%)' }} />
-                            </div>
-                            <div className="flex-1">
-                                <label className="block text-[10px] uppercase tracking-widest mb-1" style={{ color: 'hsl(220 15% 40%)' }}>
-                                    Time: <span className="text-white font-semibold">{viewTime}</span>
-                                </label>
-                                <input
-                                    type="range" min="0" max="23.5" step="0.5"
-                                    className="w-full accent-[hsl(347,78%,58%)]"
-                                    value={Number(viewTime.split(':')[0]) + (viewTime.endsWith('30') ? 0.5 : 0)}
-                                    onChange={e => {
-                                        const val = parseFloat(e.target.value);
-                                        const h = Math.floor(val);
-                                        const m = (val % 1) === 0.5 ? '30' : '00';
-                                        setViewTime(`${h.toString().padStart(2, '0')}:${m}`);
-                                    }}
-                                />
-                                <div className="flex justify-between text-[10px] mt-1" style={{ color: 'hsl(220 15% 38%)' }}>
-                                    {['00:00', '06:00', '12:00', '18:00', '24:00'].map(t => <span key={t}>{t}</span>)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid lg:grid-cols-3 gap-5">
-                        <div className="lg:col-span-2">
-                            <div className="dash-card p-1">
-                                <FloorPlanViewer
-                                    tables={restaurantTables}
-                                    backgroundImage={floorPlanBg}
-                                    getTableStatus={table => activeBookings.some(b => b.table_id === table.id) ? 'booked' : 'available'}
-                                    getBookingInfo={table => {
-                                        const booking = activeBookings.find(b => b.table_id === table.id);
-                                        if (!booking) return undefined;
-                                        return { guestName: booking.guest_name || 'Guest', time: format(new Date(booking.reservation_time), 'HH:mm'), partySize: booking.guest_count, notes: booking.guest_notes };
-                                    }}
-                                />
-                            </div>
-                            <div className="flex gap-4 justify-center mt-3 text-xs" style={{ color: 'hsl(220 15% 50%)' }}>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="h-2.5 w-2.5 rounded" style={{ background: 'hsl(160 60% 45% / 0.3)', border: '1px solid hsl(160 60% 45%)' }} />
-                                    Available
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <span className="h-2.5 w-2.5 rounded" style={{ background: 'hsl(347 78% 50% / 0.3)', border: '1px solid hsl(347 78% 50%)' }} />
-                                    Booked at {viewTime}
-                                </span>
-                            </div>
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-                                <User className="h-4 w-4" style={{ color: 'hsl(347 78% 60%)' }} />
-                                Active Guests ({activeBookings.length})
-                            </h3>
-                            <div className="space-y-2 max-h-[450px] overflow-auto scrollbar-hide">
-                                {activeBookings.length === 0
-                                    ? <p className="text-sm italic" style={{ color: 'hsl(220 15% 40%)' }}>No active bookings at this time.</p>
-                                    : activeBookings.map(b => (
-                                        <div key={b.id} className="rounded-lg p-3 text-sm" style={{ background: 'hsl(231 32% 10%)', borderLeft: '3px solid hsl(160 60% 45%)' }}>
-                                            <div className="font-medium text-white">{b.guest_name}</div>
-                                            <div className="flex justify-between mt-1" style={{ color: 'hsl(220 15% 48%)' }}>
-                                                <span>Table {b.tables?.table_number}</span>
-                                                <span>{b.guest_count} ppl</span>
+                        ) : (
+                            waitlist.map((entry) => (
+                                <div key={entry.id} className="dash-card p-4 text-sm relative group overflow-hidden">
+                                    {entry.status === 'offered' && (
+                                        <div className="absolute top-0 inset-x-0 h-1 bg-emerald-500" />
+                                    )}
+                                    <div className="flex items-start justify-between">
+                                        <div className="space-y-1">
+                                            <div className="font-semibold text-base">{entry.guest_name || 'Guest'}</div>
+                                            <div className="text-muted-foreground flex gap-3 text-xs">
+                                                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {entry.party_size}</span>
+                                                <span className="flex items-center gap-1">⏱️ {format(new Date(entry.requested_time), 'h:mm a')}</span>
                                             </div>
+                                            {entry.guest_phone && (
+                                                <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                                                    <Phone className="h-3 w-3" /> {entry.guest_phone}
+                                                </div>
+                                            )}
                                         </div>
-                                    ))
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* LIST TAB */}
-            {activeTab === 'list' && (
-                <div className="space-y-5">
-                    {/* Status filter chips */}
-                    <div className="flex flex-wrap gap-2">
-                        {['all', 'pending', 'confirmed', 'seated', 'completed', 'cancelled'].map(status => {
-                            const count = status === 'all' ? bookings.length : bookings.filter(b => b.status === status).length;
-                            const sc = statusConfig[status];
-                            const isActive = statusFilter === status;
-                            return (
-                                <button
-                                    key={status}
-                                    onClick={() => setStatusFilter(status)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium smooth-transition"
-                                    style={isActive
-                                        ? { background: sc ? `${sc.dot}22` : 'hsl(347 78% 58% / 0.14)', color: sc?.color || 'hsl(347 78% 65%)', border: `1px solid ${sc?.dot || 'hsl(347 78% 40%)'}44` }
-                                        : { background: 'hsl(231 32% 10%)', color: 'hsl(220 15% 50%)', border: '1px solid hsl(231 24% 16%)' }
-                                    }
-                                >
-                                    {sc && <span className="h-1.5 w-1.5 rounded-full" style={{ background: sc.dot }} />}
-                                    <span className="capitalize">{status === 'all' ? 'All' : status.replace('_', ' ')}</span>
-                                    <span
-                                        className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                                        style={{ background: 'hsl(231 24% 16%)', color: 'hsl(220 20% 65%)' }}
-                                    >
-                                        {count}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="space-y-3">
-                        {(() => {
-                            const filtered = statusFilter === 'all' ? bookings : bookings.filter(b => b.status === statusFilter);
-                            return filtered.length === 0
-                                ? <div className="text-center py-16 text-sm rounded-xl"
-                                    style={{ background: 'hsl(231 32% 10%)', color: 'hsl(220 15% 40%)', border: '1px dashed hsl(231 24% 20%)' }}>
-                                    No bookings found{statusFilter !== 'all' ? ` with status "${statusFilter}"` : ''}.
+                                        <div className="text-right">
+                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${entry.status === 'offered' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                                {entry.status}
+                                            </span>
+                                            {entry.status === 'waiting' && entry.quoted_wait_time != null && (
+                                                <div className="mt-2 text-[11px] font-medium text-amber-700/80">
+                                                    ~{entry.quoted_wait_time}m wait
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t flex gap-2">
+                                        {entry.status === 'waiting' && (
+                                            <button
+                                                onClick={async () => {
+                                                    const res = await promoteFromWaitlist(restaurant.id, entry.requested_time);
+                                                    if (res.error) toast.error(res.error);
+                                                    else { toast.success('Guest promoted via SMS!'); loadData(true); }
+                                                }}
+                                                className="flex-1 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-semibold smooth-transition"
+                                            >
+                                                Promote
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={async () => {
+                                                const res = await leaveWaitlist(entry.id);
+                                                if (res.error) toast.error(res.error);
+                                                else { toast.success('Removed from waitlist'); loadData(true); }
+                                            }}
+                                            className="px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg text-xs font-semibold smooth-transition"
+                                        >
+                                            Remove
+                                        </button>
+                                    </div>
                                 </div>
-                                : filtered.map(b => <BookingCard key={b.id} booking={b} />);
-                        })()}
+                            ))
+                        )}
                     </div>
                 </div>
             )}

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RestaurantMap } from '@/components/restaurants/restaurant-map';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Search, MapPin, Star, Clock, Users, Filter, Map, List, Loader2 } from 'lucide-react';
+import { Search, MapPin, Star, Clock, Users, Filter, Map, List, Loader2, Navigation, X } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
 import { getRestaurants } from '@/app/actions/bookings';
+import { getRestaurantsNearby } from '@/app/actions/geo';
 import { Restaurant } from '@/types/database';
 
 const defaultImages = [
@@ -39,6 +40,12 @@ function RestaurantsContent() {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
 
+    // Geolocation state
+    const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [locationLoading, setLocationLoading] = useState(false);
+    const [locationError, setLocationError] = useState<string | null>(null);
+    const [radiusMiles, setRadiusMiles] = useState<number>(50);
+
     // Filter restaurants based on search query
     const filteredRestaurants = useMemo(() => {
         if (!searchQuery.trim()) return restaurants;
@@ -51,22 +58,59 @@ function RestaurantsContent() {
         );
     }, [restaurants, searchQuery]);
 
-    useEffect(() => {
-        async function load() {
-            try {
+    // Load restaurants — either nearby or all
+    const loadRestaurants = useCallback(async (coords?: { lat: number; lng: number }) => {
+        setLoading(true);
+        setError(null);
+        try {
+            if (coords) {
+                const result = await getRestaurantsNearby(coords.lat, coords.lng, radiusMiles);
+                if (result.data) setRestaurants(result.data as Restaurant[]);
+                if (result.error) setError(result.error);
+            } else {
                 const result = await getRestaurants();
-                console.log('[RestaurantsPage] getRestaurants result:', result);
                 if (result.data) setRestaurants(result.data);
                 if (result.error) setError(result.error);
-            } catch (err: any) {
-                console.error('[RestaurantsPage] Failed:', err);
-                setError(err.message);
-            } finally {
-                setLoading(false);
             }
+        } catch (err: any) {
+            console.error('[RestaurantsPage] Failed:', err);
+            setError(err.message);
+        } finally {
+            setLoading(false);
         }
-        load();
-    }, []);
+    }, [radiusMiles]);
+
+    useEffect(() => {
+        loadRestaurants(userLocation || undefined);
+    }, [loadRestaurants, userLocation]);
+
+    const handleUseMyLocation = () => {
+        if (!navigator.geolocation) {
+            setLocationError('Geolocation is not supported by your browser');
+            return;
+        }
+        setLocationLoading(true);
+        setLocationError(null);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                });
+                setLocationLoading(false);
+            },
+            (err) => {
+                setLocationError('Unable to get your location. Please allow location access.');
+                setLocationLoading(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    };
+
+    const clearLocation = () => {
+        setUserLocation(null);
+        setLocationError(null);
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 pt-20">
@@ -91,7 +135,44 @@ function RestaurantsContent() {
                             />
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
+                            {/* Use My Location */}
+                            {!userLocation ? (
+                                <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={handleUseMyLocation}
+                                    disabled={locationLoading}
+                                    className="gap-2"
+                                >
+                                    {locationLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Navigation className="h-4 w-4" />
+                                    )}
+                                    {locationLoading ? 'Locating...' : t('restaurants.useMyLocation') || 'Use My Location'}
+                                </Button>
+                            ) : (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm font-medium">
+                                    <Navigation className="h-4 w-4" />
+                                    <span>{t('restaurants.nearYou') || 'Near you'}</span>
+                                    {/* Radius selector */}
+                                    <select
+                                        value={radiusMiles}
+                                        onChange={(e) => setRadiusMiles(parseInt(e.target.value))}
+                                        className="bg-transparent border-none text-primary font-semibold cursor-pointer focus:outline-none text-sm"
+                                    >
+                                        <option value={5}>5 mi</option>
+                                        <option value={10}>10 mi</option>
+                                        <option value={25}>25 mi</option>
+                                        <option value={50}>50 mi</option>
+                                    </select>
+                                    <button onClick={clearLocation} className="ml-1 hover:bg-primary/20 rounded-full p-0.5 smooth-transition">
+                                        <X className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            )}
+
                             <Button variant="outline" size="lg">
                                 <Filter className="h-4 w-4 mr-2" />
                                 {t('restaurants.filters')}
@@ -121,6 +202,11 @@ function RestaurantsContent() {
                                 </button>
                             </div>
                         </div>
+
+                        {/* Location error message */}
+                        {locationError && (
+                            <p className="text-sm text-destructive mt-2">{locationError}</p>
+                        )}
                     </div>
 
                     {/* Quick Filters */}
@@ -146,141 +232,114 @@ function RestaurantsContent() {
 
             {/* Content Area */}
             <div className="max-w-7xl mx-auto px-8 py-8">
-                {loading ? (
-                    <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <span className="ml-3 text-muted-foreground">Loading restaurants...</span>
+                {error ? (
+                    <Card className="p-8 text-center text-red-500">
+                        <Loader2 className="h-8 w-8 mx-auto mb-4" />
+                        <p>{error}</p>
+                        <Button onClick={() => loadRestaurants()} className="mt-4" variant="outline">
+                            Try Again
+                        </Button>
+                    </Card>
+                ) : loading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {[...Array(8)].map((_, i) => (
+                            <div key={i} className="animate-pulse flex flex-col gap-3">
+                                <div className="aspect-square sm:aspect-[4/3] w-full rounded-2xl bg-gray-200" />
+                                <div className="h-4 bg-gray-200 rounded w-3/4" />
+                                <div className="h-3 bg-gray-200 rounded w-1/2" />
+                            </div>
+                        ))}
                     </div>
-                ) : error ? (
-                    <div className="text-center py-20">
-                        <p className="text-destructive mb-2">Failed to load restaurants</p>
-                        <p className="text-sm text-muted-foreground">{error}</p>
-                    </div>
-                ) : restaurants.length === 0 ? (
-                    <div className="text-center py-20">
-                        <p className="text-xl font-semibold mb-2">No restaurants found</p>
-                        <p className="text-sm text-muted-foreground">Check back soon for new listings!</p>
+                ) : filteredRestaurants.length === 0 ? (
+                    <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="h-16 w-16 mx-auto mb-4 text-gray-300 flex items-center justify-center">
+                            <Search className="h-8 w-8" />
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">No restaurants found</h2>
+                        <p className="text-muted-foreground max-w-md mx-auto">
+                            We couldn't find any restaurants matching your search. Try adjusting your filters or location.
+                        </p>
+                        <Button onClick={() => { setSearchQuery(''); userLocation && clearLocation() }} variant="outline" className="mt-6 rounded-full px-6">
+                            Clear Filters
+                        </Button>
                     </div>
                 ) : viewMode === 'list' ? (
-                    /* List View */
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredRestaurants.map((restaurant, index) => {
-                            const imgUrl = restaurant.images?.[0] || defaultImages[index % defaultImages.length];
-                            return (
-                                <Link
-                                    key={restaurant.id}
-                                    href={`/restaurants/${restaurant.slug}`}
-                                    className="group"
-                                >
-                                    <Card className="premium-card overflow-hidden hover:shadow-luxury-lg smooth-transition h-full">
-                                        {/* Image */}
-                                        <div className="aspect-[4/3] bg-gray-200 relative overflow-hidden">
-                                            <img
-                                                src={imgUrl}
-                                                alt={restaurant.name}
-                                                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 smooth-transition"
-                                            />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredRestaurants.map((restaurant) => (
+                            <Link href={`/restaurants/${restaurant.slug}`} key={restaurant.id} className="group flex flex-col gap-3 focus:outline-none">
+                                {/* Image Box */}
+                                <div className="relative aspect-square sm:aspect-[4/3] w-full rounded-2xl overflow-hidden bg-gray-100">
+                                    <img
+                                        src={restaurant.images?.[0] || restaurant.gallery_images?.[0] || defaultImages[restaurant.name.length % defaultImages.length]}
+                                        alt={restaurant.name}
+                                        className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500 will-change-transform"
+                                    />
+                                    {/* Overlay Gradient */}
+                                    <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/40 to-transparent z-10" />
 
-                                            {/* Badges */}
-                                            <div className="absolute top-4 left-4 right-4 flex justify-between">
-                                                <span className="px-3 py-1 bg-white/90 backdrop-blur-sm text-foreground text-xs font-semibold rounded-full">
-                                                    {restaurant.price_range || '$$$'}
-                                                </span>
-                                                {restaurant.is_open && (
-                                                    <span className="px-3 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-                                                        {t('restaurants.availableToday')}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Rating */}
-                                            <div className="absolute bottom-4 left-4">
-                                                <div className="flex items-center gap-1 px-2 py-1 bg-white/20 backdrop-blur-sm rounded">
-                                                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                                    <span className="text-white font-semibold text-sm">{restaurant.rating || 4.8}</span>
-                                                    <span className="text-white/80 text-xs">({restaurant.review_count || 324})</span>
-                                                </div>
-                                            </div>
+                                    {/* Badges */}
+                                    <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-20">
+                                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                            {restaurant.cuisine_type || 'Various'}
                                         </div>
+                                    </div>
 
-                                        {/* Content */}
-                                        <div className="p-6">
-                                            <h3 className="text-xl font-bold mb-2 group-hover:text-primary smooth-transition">
-                                                {restaurant.name}
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground mb-1">{restaurant.cuisine_type}</p>
-                                            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                                                {restaurant.description}
-                                            </p>
-
-                                            <div className="flex items-center justify-between pt-4 border-t">
-                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                    <MapPin className="h-4 w-4" />
-                                                    {restaurant.city}
-                                                </div>
-                                                <Button size="sm" className="bg-primary hover:bg-primary/90">
-                                                    {t('restaurants.bookNow')}
-                                                </Button>
-                                            </div>
+                                    {/* Rating badge */}
+                                    <div className="absolute top-3 right-3 z-20">
+                                        <div className="bg-white/95 backdrop-blur-sm text-gray-900 text-xs font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                                            <Star className="h-3 w-3 fill-primary text-primary" />
+                                            {restaurant.rating ? restaurant.rating.toFixed(1) : 'New'}
                                         </div>
-                                    </Card>
-                                </Link>
-                            );
-                        })}
+                                    </div>
+                                </div>
+
+                                {/* Details */}
+                                <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-start justify-between">
+                                        <h3 className="font-semibold text-base text-gray-900 leading-tight group-hover:text-primary transition-colors line-clamp-1">{restaurant.name}</h3>
+                                        <span className="text-sm font-medium text-gray-600 shrink-0 ml-2">{'$'.repeat(Number(restaurant.price_range) || 2)}</span>
+                                    </div>
+
+                                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-0.5 line-clamp-1">
+                                        <span>{restaurant.city}</span>
+                                        {restaurant.distance_miles !== undefined && (
+                                            <>
+                                                <span className="text-[10px]">•</span>
+                                                <span className="flex items-center gap-0.5 font-medium text-primary"><MapPin className="h-3 w-3" /> {restaurant.distance_miles.toFixed(1)} mi</span>
+                                            </>
+                                        )}
+                                        {restaurant.vibe_tags && restaurant.vibe_tags.length > 0 && (
+                                            <>
+                                                <span className="text-[10px]">•</span>
+                                                <span>{restaurant.vibe_tags[0]}</span>
+                                            </>
+                                        )}
+                                    </p>
+
+                                    {/* Availability Badges (Simulated upcoming spots for UX) */}
+                                    <div className="flex items-center gap-2 mt-2 pt-2 scrollbar-hide overflow-x-auto">
+                                        <span className="shrink-0 px-3 py-1.5 bg-primary/5 text-primary text-xs font-semibold rounded-lg border border-primary/10 transition-colors">
+                                            18:00
+                                        </span>
+                                        <span className="shrink-0 px-3 py-1.5 bg-primary/5 text-primary text-xs font-semibold rounded-lg border border-primary/10 transition-colors">
+                                            19:30
+                                        </span>
+                                        <span className="shrink-0 px-3 py-1.5 bg-primary/5 text-primary text-xs font-semibold rounded-lg border border-primary/10 transition-colors">
+                                            20:00
+                                        </span>
+                                    </div>
+                                </div>
+                            </Link>
+                        ))}
                     </div>
                 ) : (
-                    /* Map View */
-                    <div className="grid lg:grid-cols-[400px_1fr] gap-6 h-[calc(100vh-300px)]">
-                        {/* Restaurant List Sidebar */}
-                        <div className="space-y-4 overflow-auto">
-                            {filteredRestaurants.map((restaurant) => (
-                                <Card
-                                    key={restaurant.id}
-                                    className={`p-4 cursor-pointer smooth-transition ${selectedRestaurantId === restaurant.id
-                                        ? 'border-2 border-primary shadow-lg'
-                                        : 'hover:shadow-md'
-                                        }`}
-                                    onClick={() => setSelectedRestaurantId(restaurant.id)}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h3 className="font-bold text-lg">{restaurant.name}</h3>
-                                        {restaurant.is_open && (
-                                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">
-                                                {t('restaurants.available')}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mb-2">{restaurant.cuisine_type}</p>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-1">
-                                            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                                            <span className="text-sm font-semibold">{restaurant.rating || 4.8}</span>
-                                            <span className="text-xs text-muted-foreground">({restaurant.review_count || 124})</span>
-                                        </div>
-                                        <span className="text-sm font-medium">{restaurant.price_range}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                                        <MapPin className="h-3 w-3" />
-                                        {restaurant.city}
-                                    </div>
-                                    <Link href={`/restaurants/${restaurant.slug}`}>
-                                        <Button size="sm" className="w-full mt-3">
-                                            {t('restaurants.viewDetails')}
-                                        </Button>
-                                    </Link>
-                                </Card>
-                            ))}
-                        </div>
-
-                        {/* Map */}
-                        <div className="rounded-lg overflow-hidden">
-                            <RestaurantMap
-                                restaurants={filteredRestaurants}
-                                selectedRestaurantId={selectedRestaurantId}
-                                onRestaurantClick={(restaurant) => setSelectedRestaurantId(restaurant.id)}
-                            />
-                        </div>
+                    <div className="h-[600px] rounded-xl overflow-hidden shadow-sm border">
+                        <RestaurantMap
+                            restaurants={filteredRestaurants}
+                            selectedId={selectedRestaurantId}
+                            onSelect={setSelectedRestaurantId}
+                            userLocation={userLocation}
+                        />
                     </div>
                 )}
             </div>

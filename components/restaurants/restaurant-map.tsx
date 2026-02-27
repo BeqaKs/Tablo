@@ -5,11 +5,12 @@ import { Restaurant as DBRestaurant } from '@/types/database';
 
 interface RestaurantMapProps {
     restaurants: DBRestaurant[];
-    onRestaurantClick?: (restaurant: DBRestaurant) => void;
-    selectedRestaurantId?: string | null;
+    onSelect?: (id: string | null) => void;
+    selectedId?: string | null;
+    userLocation?: { lat: number; lng: number } | null;
 }
 
-export function RestaurantMap({ restaurants, onRestaurantClick, selectedRestaurantId }: RestaurantMapProps) {
+export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation }: RestaurantMapProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
@@ -98,15 +99,15 @@ export function RestaurantMap({ restaurants, onRestaurantClick, selectedRestaura
                     lng = CENTER_LNG + (r2 - 0.5) * 0.06;
                 }
 
-                bounds.push([lat, lng]);
+                if (lat && lng) {
+                    bounds.push([lat, lng]);
 
-                const isSelected = selectedRestaurantId === restaurant.id;
-                const size = isSelected ? 38 : 30;
+                    const isSelected = selectedId === restaurant.id;
+                    const size = isSelected ? 36 : 28;
 
-                // Custom HTML marker
-                const icon = L.divIcon({
-                    className: 'custom-map-marker',
-                    html: `
+                    const markerElement = document.createElement('div');
+                    markerElement.className = `custom-marker ${selectedId === restaurant.id ? 'selected' : ''}`;
+                    markerElement.innerHTML = `
                         <div style="
                             width: ${size}px;
                             height: ${size}px;
@@ -118,65 +119,66 @@ export function RestaurantMap({ restaurants, onRestaurantClick, selectedRestaura
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            transition: all 0.2s ease;
                         ">
-                            <span style="
-                                transform: rotate(45deg);
-                                color: white;
-                                font-size: ${isSelected ? '14px' : '11px'};
-                                font-weight: 700;
-                                line-height: 1;
-                            ">${restaurant.price_range || '$$'}</span>
-                        </div>
-                    `,
-                    iconSize: [size, size],
-                    iconAnchor: [size / 2, size],
-                    popupAnchor: [0, -size],
-                });
-
-                const marker = L.marker([lat, lng], { icon }).addTo(map);
-
-                // Rich popup
-                const imgUrl = restaurant.images?.[0] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop';
-                marker.bindPopup(`
-                    <div style="min-width: 220px; font-family: system-ui, sans-serif;">
-                        <img src="${imgUrl}" alt="${restaurant.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -14px -20px 10px -20px; width: calc(100% + 40px);" />
-                        <div style="padding: 0 2px;">
-                            <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; color: #1a1a2e;">${restaurant.name}</h3>
-                            <p style="font-size: 12px; color: #6b7280; margin: 0 0 6px 0;">${restaurant.cuisine_type || 'Restaurant'} · ${restaurant.city}</p>
-                            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 8px;">
-                                <span style="color: #e11d48; font-weight: 600;">★ ${restaurant.rating || '4.8'}</span>
-                                <span style="color: #9ca3af;">·</span>
-                                <span style="font-weight: 600;">${restaurant.price_range || '$$$'}</span>
+                            <div style="transform: rotate(45deg); color: white; font-weight: 600; font-size: ${isSelected ? '14px' : '12px'};">
+                                ${'$'.repeat(restaurant.price_range && Number(restaurant.price_range) ? Number(restaurant.price_range) : 2)}
                             </div>
-                            <a href="/restaurants/${restaurant.slug}" style="
-                                display: block;
-                                text-align: center;
-                                background: #9f1239;
-                                color: white;
-                                padding: 8px 16px;
-                                border-radius: 8px;
-                                font-size: 13px;
-                                font-weight: 600;
-                                text-decoration: none;
-                                transition: opacity 0.2s;
-                            ">Book Table →</a>
                         </div>
-                    </div>
-                `, {
-                    maxWidth: 260,
-                    className: 'tablo-popup',
-                });
+                    `;
 
-                marker.on('click', () => {
-                    onRestaurantClick?.(restaurant);
-                });
+                    const icon = L.divIcon({
+                        className: 'custom-map-marker',
+                        html: markerElement.outerHTML,
+                        iconSize: [size, size],
+                        iconAnchor: [size / 2, size],
+                        popupAnchor: [0, -size],
+                    });
 
-                if (isSelected) {
-                    marker.openPopup();
+                    const marker = L.marker([lat, lng], { icon }).addTo(map);
+
+                    // Rich popup
+                    const imgUrl = restaurant.images?.[0] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop';
+                    marker.bindPopup(`
+                        <div style="min-width: 220px; font-family: system-ui, sans-serif;">
+                            <img src="${imgUrl}" alt="${restaurant.name}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px 8px 0 0; margin: -14px -20px 10px -20px; width: calc(100% + 40px);" />
+                            <div style="padding: 0 2px;">
+                                <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; color: #1a1a2e;">${restaurant.name}</h3>
+                                <p style="font-size: 12px; color: #6b7280; margin: 0 0 6px 0;">${restaurant.cuisine_type || 'Restaurant'} · ${restaurant.city}</p>
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 8px;">
+                                    <span style="color: #e11d48; font-weight: 600;">★ ${restaurant.rating || '4.8'}</span>
+                                    <span style="color: #9ca3af;">·</span>
+                                    <span style="font-weight: 600;">${restaurant.price_range || '$$$'}</span>
+                                </div>
+                                <a href="/restaurants/${restaurant.slug}" style="
+                                    display: block;
+                                    text-align: center;
+                                    background: #9f1239;
+                                    color: white;
+                                    padding: 8px 16px;
+                                    border-radius: 8px;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    text-decoration: none;
+                                    transition: opacity 0.2s;
+                                ">Book Table →</a>
+                            </div>
+                        </div>
+                    `, {
+                        maxWidth: 260,
+                        className: 'tablo-popup',
+                    });
+
+                    marker.on('click', () => {
+                        if (onSelect) {
+                            onSelect(restaurant.id);
+                        }
+                    });
+                    if (isSelected) {
+                        marker.openPopup();
+                    }
+
+                    markersRef.current.push(marker);
                 }
-
-                markersRef.current.push(marker);
             });
 
             // Fit map to markers
@@ -186,7 +188,7 @@ export function RestaurantMap({ restaurants, onRestaurantClick, selectedRestaura
         };
 
         loadMarkers();
-    }, [restaurants, selectedRestaurantId, mapReady, onRestaurantClick]);
+    }, [restaurants, selectedId, mapReady]);
 
     return (
         <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border" style={{ minHeight: '500px' }}>

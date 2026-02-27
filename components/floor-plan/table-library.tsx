@@ -14,12 +14,15 @@ export function TableLibrary() {
             table_number: `T${tableCount + 1}`,
             capacity: shape === 'rectangle' ? 6 : 4,
             shape,
-            x_coord: 100 + (tableCount * 20), // Offset each new table
+            x_coord: 100 + (tableCount * 20),
             y_coord: 100 + (tableCount * 20),
             rotation: 0,
             zone_name: 'Main Hall',
             width: shape === 'rectangle' ? 100 : undefined,
             height: shape === 'rectangle' ? 60 : undefined,
+            location_type: 'indoor' as const,
+            requires_prepayment: false,
+            prepayment_amount: undefined,
         });
     };
 

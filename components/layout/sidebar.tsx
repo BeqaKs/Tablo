@@ -21,6 +21,11 @@ import {
   BookOpen,
   Wifi,
   WifiOff,
+  Printer,
+  CalendarClock,
+  ClipboardList,
+  Megaphone,
+  MessageSquare,
 } from 'lucide-react';
 import { signout } from '@/app/auth/actions';
 
@@ -29,6 +34,11 @@ const sidebarItems = [
   { icon: CalendarDays, label: 'Calendar', href: '/dashboard/calendar' },
   { icon: Armchair, label: 'Floor Plan', href: '/dashboard/floor-plan' },
   { icon: Users, label: 'Guests', href: '/dashboard/guests' },
+  { icon: MessageSquare, label: 'Inbox', href: '/dashboard/inbox' },
+  { icon: ClipboardList, label: 'Menu', href: '/dashboard/menu' },
+  { icon: CalendarClock, label: 'Schedule', href: '/dashboard/schedule' },
+  { icon: Printer, label: 'Print Manifest', href: '/dashboard/print' },
+  { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 

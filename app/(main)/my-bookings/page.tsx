@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCustomerBookings } from '@/app/actions/bookings';
+import { checkUserPenalty } from '@/app/actions/no-show';
 import { BookingCard } from '@/components/customer/booking-card';
 import { EmptyState } from '@/components/customer/empty-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocale } from '@/lib/locale-context';
 import { User } from '@supabase/supabase-js';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldOff } from 'lucide-react';
 
 export default function MyBookingsPage() {
     const { t } = useLocale();
@@ -16,6 +17,7 @@ export default function MyBookingsPage() {
     const [bookings, setBookings] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [penalty, setPenalty] = useState<{ isPenalized: boolean; penaltyUntil: string | null; noShowCount: number } | null>(null);
     const supabase = createClient();
 
     useEffect(() => {
@@ -27,12 +29,15 @@ export default function MyBookingsPage() {
             }
             setUser(user);
 
-            const { bookings, error } = await getCustomerBookings(user.id);
-            if (error) {
-                setError(error);
-            } else {
-                setBookings(bookings || []);
-            }
+            const [bookingsResult, penaltyResult] = await Promise.all([
+                getCustomerBookings(user.id),
+                checkUserPenalty(user.id),
+            ]);
+
+            if (bookingsResult.error) setError(bookingsResult.error);
+            else setBookings(bookingsResult.bookings || []);
+
+            setPenalty(penaltyResult);
             setIsLoading(false);
         }
         loadData();
@@ -67,6 +72,26 @@ export default function MyBookingsPage() {
 
     return (
         <div className="min-h-screen bg-gray-50 pt-20">
+            {/* Penalty Banner */}
+            {penalty?.isPenalized && (
+                <div className="bg-red-600 text-white px-6 py-3 flex items-center gap-3 text-sm">
+                    <ShieldOff className="h-4 w-4 shrink-0" />
+                    <span>
+                        <strong>Account temporarily restricted</strong> — You've had {penalty.noShowCount} no-shows.
+                        Booking will be unlocked on{' '}
+                        {penalty.penaltyUntil ? new Date(penalty.penaltyUntil).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}.
+                    </span>
+                </div>
+            )}
+            {!penalty?.isPenalized && (penalty?.noShowCount ?? 0) >= 2 && (
+                <div className="bg-amber-500 text-white px-6 py-3 flex items-center gap-3 text-sm">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <span>
+                        <strong>Warning:</strong> You have {penalty?.noShowCount} no-shows. One more will result in a 30-day booking restriction.
+                    </span>
+                </div>
+            )}
+
             {/* Header */}
             <div className="bg-white border-b">
                 <div className="max-w-5xl mx-auto px-8 py-8">

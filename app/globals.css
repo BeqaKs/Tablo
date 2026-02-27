@@ -274,6 +274,17 @@
   color: hsl(220 15% 38%);
 }
 
+/* --- Dark label --- */
+.dash-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+  color: hsl(220 15% 42%);
+}
+
 /* --- Refined shadows --- */
 .shadow-luxury,
 .shadow-soft {

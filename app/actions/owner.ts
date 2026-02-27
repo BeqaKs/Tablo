@@ -185,6 +185,19 @@ export async function getOwnerBookings() {
     return { data: data || [], error: null }
 }
 
+export async function getOwnerGuestProfiles() {
+    const { supabase, restaurantId, error: authError } = await requireOwner()
+    if (authError) return { data: [], error: authError }
+
+    const { data, error } = await supabase
+        .from('guest_profiles')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+
+    if (error) return { data: [], error: error.message }
+    return { data: data || [], error: null }
+}
+
 export async function updateOwnerBookingStatus(bookingId: string, status: string) {
     const { supabase, restaurantId, error: authError } = await requireOwner()
     if (authError) return { error: authError }
@@ -198,5 +211,76 @@ export async function updateOwnerBookingStatus(bookingId: string, status: string
     if (error) return { error: error.message }
     revalidatePath('/dashboard/calendar')
     revalidatePath('/dashboard/guests')
+    return { success: true }
+}
+
+export async function createWalkInBooking(data: {
+    table_id: string
+    guest_name: string
+    guest_count: number
+    guest_phone?: string
+    guest_notes?: string
+    reservation_time: string
+    end_time?: string
+}) {
+    const { supabase, restaurantId, error: authError } = await requireOwner()
+    if (authError) return { data: null, error: authError }
+
+    const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('turn_duration_minutes, turn_times_config')
+        .eq('id', restaurantId)
+        .single();
+
+    let turnDuration = restaurant?.turn_duration_minutes || 120;
+    if (restaurant?.turn_times_config) {
+        const config = restaurant.turn_times_config as Record<string, number>;
+        const countStr = data.guest_count.toString();
+        if (config[countStr]) {
+            turnDuration = config[countStr];
+        } else {
+            const keys = Object.keys(config).map(Number).filter(k => !isNaN(k)).sort((a, b) => a - b);
+            const bestKey = keys.find(k => k >= data.guest_count) || keys[keys.length - 1];
+            if (bestKey !== undefined && config[bestKey.toString()]) {
+                turnDuration = config[bestKey.toString()];
+            }
+        }
+    }
+
+    const endTime = data.end_time || new Date(new Date(data.reservation_time).getTime() + turnDuration * 60000).toISOString()
+
+    const { data: reservation, error } = await supabase
+        .from('reservations')
+        .insert({
+            restaurant_id: restaurantId,
+            table_id: data.table_id,
+            guest_name: data.guest_name,
+            guest_count: data.guest_count,
+            guest_phone: data.guest_phone || null,
+            guest_notes: data.guest_notes || null,
+            reservation_time: data.reservation_time,
+            end_time: endTime,
+            status: 'seated',
+        })
+        .select()
+        .single()
+
+    if (error) return { data: null, error: error.message }
+    revalidatePath('/dashboard/calendar')
+    return { data: reservation, error: null }
+}
+
+export async function updateBookingNotes(bookingId: string, notes: string) {
+    const { supabase, restaurantId, error: authError } = await requireOwner()
+    if (authError) return { error: authError }
+
+    const { error } = await supabase
+        .from('reservations')
+        .update({ guest_notes: notes })
+        .eq('id', bookingId)
+        .eq('restaurant_id', restaurantId)
+
+    if (error) return { error: error.message }
+    revalidatePath('/dashboard/calendar')
     return { success: true }
 }

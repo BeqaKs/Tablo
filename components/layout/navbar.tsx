@@ -121,11 +121,18 @@ export function Navbar() {
                   </Link>
                 )}
                 {userRole === 'customer' && (
-                  <Link href="/my-bookings">
-                    <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
-                      {t('navigation.myBookings')}
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/my-bookings">
+                      <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                        {t('navigation.myBookings')}
+                      </Button>
+                    </Link>
+                    <Link href="/my-waitlist">
+                      <Button variant="ghost" size="sm" className="rounded-full text-foreground/80 hover:text-foreground hover:bg-white/40 h-8 px-3 text-xs">
+                        Waitlist
+                      </Button>
+                    </Link>
+                  </>
                 )}
                 <Link href="/profile">
                   <Button size="sm" className="rounded-full h-8 px-4 text-xs">
@@ -218,11 +225,18 @@ export function Navbar() {
                     </Link>
                   )}
                   {userRole === 'customer' && (
-                    <Link href="/my-bookings" onClick={() => setMobileOpen(false)}>
-                      <Button variant="outline" className="w-full justify-start rounded-xl h-11">
-                        {t('navigation.myBookings')}
-                      </Button>
-                    </Link>
+                    <>
+                      <Link href="/my-bookings" onClick={() => setMobileOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start rounded-xl h-11">
+                          {t('navigation.myBookings')}
+                        </Button>
+                      </Link>
+                      <Link href="/my-waitlist" onClick={() => setMobileOpen(false)}>
+                        <Button variant="outline" className="w-full justify-start rounded-xl h-11">
+                          Waitlist
+                        </Button>
+                      </Link>
+                    </>
                   )}
                   <Link href="/profile" onClick={() => setMobileOpen(false)}>
                     <Button className="w-full rounded-xl h-11">
