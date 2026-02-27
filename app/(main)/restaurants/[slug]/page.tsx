@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import {
     MapPin, Star, Clock, Users, Phone, Mail, Globe,
-    ChevronLeft, Calendar, Check, X, ShieldCheck, Heart,
+    ChevronLeft, ChevronRight, Calendar, Check, X, ShieldCheck, Heart,
     Briefcase, Info, UtensilsCrossed
 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
@@ -23,8 +24,16 @@ import { FloorPlanViewer } from '@/components/floor-plan/floor-plan-viewer';
 import { TablePosition } from '@/lib/stores/floor-plan-store';
 import { MenuBrowser } from '@/components/menu/menu-browser';
 
+const BOOKING_STEPS = [
+    { key: 'datetime', rawLabel: 'Date & Time', num: 1 },
+    { key: 'table', rawLabel: 'Table', num: 2 },
+    { key: 'menu', rawLabel: 'Extras', num: 3 },
+    { key: 'confirm', rawLabel: 'Confirm', num: 4 },
+];
+
 export default function RestaurantProfilePage({ params }: { params: Promise<{ slug: string }> }) {
     const resolvedParams = use(params);
+    const router = useRouter();
     const { t } = useLocale();
     const [restaurant, setRestaurant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -101,7 +110,33 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
         }
     }, [showWaitlist, restaurant, partySize, selectedDate, selectedTime]);
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    // Lightbox state — must be declared BEFORE any early returns (Rules of Hooks)
+    const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [lightboxIdx, setLightboxIdx] = useState(0);
+    const openLightbox = (idx: number) => { setLightboxIdx(idx); setLightboxOpen(true); };
+
+    // Static reviews data (would come from DB in production)
+    const reviews = [
+        { id: 1, name: 'Sarah M.', avatar: 'SM', rating: 5, date: 'Feb 2026', text: 'Absolutely incredible experience. The ambiance was perfect for our anniversary dinner, and the staff went above and beyond to make it special.', occasion: 'Anniversary' },
+        { id: 2, name: 'David K.', avatar: 'DK', rating: 5, date: 'Jan 2026', text: "Best restaurant in the city. The tasting menu was a journey through flavors I'll never forget. Highly recommend the sommelier's wine pairing.", occasion: 'Date Night' },
+        { id: 3, name: 'Ana L.', avatar: 'AL', rating: 4, date: 'Jan 2026', text: 'Wonderful food and great service. The pasta was exceptional and the desserts were out of this world. Will definitely be back!', occasion: null },
+        { id: 4, name: 'Marco R.', avatar: 'MR', rating: 5, date: 'Dec 2025', text: 'Had our company dinner here and everyone was blown away. The private dining area was perfect and the chef accommodated all dietary restrictions flawlessly.', occasion: 'Business' },
+    ];
+
+    if (loading) return (
+        <div className="min-h-screen bg-gray-50 pt-24">
+            <div className="max-w-7xl mx-auto px-4 sm:px-8">
+                <div className="grid lg:grid-cols-[1fr_400px] gap-12">
+                    <div className="space-y-6">
+                        <div className="skeleton h-[500px] rounded-2xl" />
+                        <div className="skeleton h-8 w-1/2 rounded-lg" />
+                        <div className="skeleton h-32 rounded-xl" />
+                    </div>
+                    <div className="skeleton h-[500px] rounded-2xl" />
+                </div>
+            </div>
+        </div>
+    );
     if (!restaurant) return <div className="min-h-screen flex items-center justify-center">Restaurant not found.</div>;
 
     const filteredTables = (restaurant.tables || []).filter((t: any) => t.capacity >= partySize);
@@ -127,8 +162,6 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
         setBookingLoading(false);
         if (result.success) {
-            toast.success(t('bookings.success') || 'Reservation created successfully!');
-            toast.info('A confirmation email & SMS has been sent.', { duration: 6000 });
             // Create order if cart has items
             if (cartItems.length > 0 && result.reservationId) {
                 createOrder({
@@ -137,8 +170,17 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                     items: cartItems,
                 }).catch(console.error);
             }
-            setStep('datetime');
-            setCartItems([]);
+            // Navigate to the confirmation page
+            const params = new URLSearchParams({
+                restaurant: restaurant.name,
+                date: selectedDate,
+                time: selectedTime,
+                guests: String(partySize),
+                address: restaurant.address || '',
+                occasion: occasion || '',
+                ...(result.reservationId ? { id: result.reservationId } : {}),
+            });
+            router.push(`/booking-confirmed?${params.toString()}`);
         } else {
             toast.error(result.error || 'Failed to create reservation');
         }
@@ -186,7 +228,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
             <div className="relative max-w-7xl mx-auto px-4 sm:px-8 mt-4 mb-10">
                 <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[400px] sm:h-[500px] rounded-2xl overflow-hidden shadow-lg">
                     {/* Main large image */}
-                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden">
+                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden" onClick={() => openLightbox(0)}>
                         <img
                             src={images[0]}
                             alt={`${restaurant.name} interior`}
@@ -205,25 +247,25 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                         </div>
                     </div>
                     {/* Secondary images */}
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer">
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer" onClick={() => openLightbox(1)}>
                         <img src={images[1]} alt="Gallery 2" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative">
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative" onClick={() => openLightbox(2)}>
                         <img src={images[2]} alt="Gallery 3" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                         {/* Favorite button overlay */}
-                        <button className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full transition-colors text-white">
+                        <button className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full transition-colors text-white" onClick={e => e.stopPropagation()}>
                             <Heart className="h-5 w-5" />
                         </button>
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer">
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer" onClick={() => openLightbox(3)}>
                         <img src={images[3]} alt="Gallery 4" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative">
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative" onClick={() => openLightbox(4)}>
                         <img src={images[4]} alt="Gallery 5" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                         {/* View all photos button */}
                         <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                             <button className="bg-white/90 hover:bg-white text-black font-semibold px-4 py-2 rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2 shadow-lg">
-                                <Globe className="h-4 w-4" /> View all photos
+                                <Globe className="h-4 w-4" /> View all {images.length} photos
                             </button>
                         </div>
                     </div>
@@ -241,6 +283,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                             <Badge variant="outline" className="text-sm px-3 py-1 font-semibold flex items-center gap-1 border-primary/20 text-primary bg-primary/5">
                                 {'$'.repeat(restaurant.price_range || 3)}
                             </Badge>
+
                             {restaurant.vibe_tags?.map((vibe: string) => (
                                 <Badge key={vibe} variant="secondary" className="text-sm px-3 py-1 font-medium bg-gray-100">
                                     {vibe}
@@ -320,6 +363,86 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                             </div>
                         </section>
 
+                        {/* Section: Location Map */}
+                        {restaurant.address && (
+                            <section className="pt-6 border-t border-gray-100">
+                                <h2 className="text-2xl font-bold mb-4 font-serif">{resT('findUs')}</h2>
+                                <div className="rounded-xl overflow-hidden border shadow-sm">
+                                    <iframe
+                                        title="Restaurant Location"
+                                        width="100%"
+                                        height="260"
+                                        style={{ border: 0 }}
+                                        loading="lazy"
+                                        referrerPolicy="no-referrer-when-downgrade"
+                                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(restaurant.address)}&marker=0,0&layer=mapnik`}
+                                    />
+                                    <div className="p-4 bg-white flex items-center justify-between">
+                                        <p className="text-sm text-gray-600 flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-primary" />
+                                            {restaurant.address}
+                                        </p>
+                                        <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-primary font-medium hover:underline"
+                                        >
+                                            {resT('openInMaps')}
+                                        </a>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Section: Reviews */}
+                        <section className="pt-6 border-t border-gray-100">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold font-serif">{resT('reviewsTitle')}</h2>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex">
+                                            {[1, 2, 3, 4, 5].map(i => (
+                                                <Star key={i} className={`h-4 w-4 ${i <= 4.8 ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                                            ))}
+                                        </div>
+                                        <span className="text-sm font-semibold">{restaurant.rating || 4.8}</span>
+                                        <span className="text-sm text-gray-500">({reviews.length * 30 + 12} reviews)</span>
+                                    </div>
+                                </div>
+                                <Button variant="outline" size="sm">Write a Review</Button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {reviews.map((review) => (
+                                    <div key={review.id} className="bg-white rounded-xl p-5 border shadow-sm">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                                                    {review.avatar}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-sm">{review.name}</p>
+                                                    <p className="text-xs text-gray-500">{review.date}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                {[1, 2, 3, 4, 5].map(i => (
+                                                    <Star key={i} className={`h-3.5 w-3.5 ${i <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
+                                        {review.occasion && (
+                                            <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium mb-2">
+                                                {review.occasion}
+                                            </span>
+                                        )}
+                                        <p className="text-gray-700 text-sm leading-relaxed">{review.text}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+
                         {/* Contact Info */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-6 border-t">
                             {restaurant.address && (
@@ -353,7 +476,39 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
                     {/* Booking Widget */}
                     <Card id="booking-widget" className="premium-card p-6 h-fit sticky top-24 z-10 scroll-mt-24">
-                        <h2 className="text-2xl font-bold mb-6">{resT('makeReservation')}</h2>
+                        <h2 className="text-2xl font-bold mb-4">{resT('makeReservation')}</h2>
+
+                        {/* Animated Stepper */}
+                        <div className="flex items-center mb-6">
+                            {BOOKING_STEPS.map((s, idx) => {
+                                const currentIdx = BOOKING_STEPS.findIndex(x => x.key === step);
+                                const isDone = idx < currentIdx;
+                                const isCurrent = s.key === step;
+                                return (
+                                    <>
+                                        <div key={s.key} className="flex flex-col items-center">
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${isDone ? 'bg-green-500 text-white' :
+                                                isCurrent ? 'bg-primary text-white ring-4 ring-primary/20' :
+                                                    'bg-gray-100 text-gray-400'
+                                                }`}>
+                                                {isDone ? '✓' : s.num}
+                                            </div>
+                                            <span className={`text-[10px] mt-1 font-medium transition-colors ${isCurrent ? 'text-primary' : isDone ? 'text-green-600' : 'text-gray-400'
+                                                }`}>{
+                                                    s.key === 'datetime' ? resT('stepper.step1').split(': ')[1] || s.rawLabel :
+                                                        s.key === 'table' ? resT('stepper.step2').split(': ')[1] || s.rawLabel :
+                                                            s.key === 'menu' ? resT('stepper.step3').split(': ')[1] || s.rawLabel :
+                                                                s.key === 'confirm' ? resT('stepper.step4').split(': ')[1] || s.rawLabel : s.rawLabel
+                                                }</span>
+                                        </div>
+                                        {idx < BOOKING_STEPS.length - 1 && (
+                                            <div className={`flex-1 h-0.5 mx-1 mb-4 transition-all duration-500 ${idx < currentIdx ? 'bg-green-400' : 'bg-gray-200'
+                                                }`} />
+                                        )}
+                                    </>
+                                );
+                            })}
+                        </div>
 
                         {/* Step 1: Date, Time, Party Size */}
                         {step === 'datetime' && (
@@ -718,6 +873,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                     </Card>
                 </div>
             </div>
+
             {/* Mobile Sticky Booking Bar */}
             <div className="lg:hidden fixed bottom-16 sm:bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
@@ -732,6 +888,52 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                     </Button>
                 </div>
             </div>
+
+            {/* Lightbox Modal */}
+            {lightboxOpen && (
+                <div
+                    className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center"
+                    onClick={() => setLightboxOpen(false)}
+                >
+                    <button
+                        className="absolute top-5 right-5 text-white/60 hover:text-white text-4xl w-10 h-10 flex items-center justify-center"
+                        onClick={() => setLightboxOpen(false)}
+                    >
+                        <X className="h-7 w-7" />
+                    </button>
+                    <button
+                        className="absolute left-4 text-white/60 hover:text-white p-2"
+                        onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i - 1 + images.length) % images.length); }}
+                    >
+                        <ChevronLeft className="h-8 w-8" />
+                    </button>
+                    <img
+                        src={images[lightboxIdx]}
+                        alt={`Photo ${lightboxIdx + 1}`}
+                        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+                        onClick={e => e.stopPropagation()}
+                    />
+                    <button
+                        className="absolute right-4 text-white/60 hover:text-white p-2"
+                        onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i + 1) % images.length); }}
+                    >
+                        <ChevronRight className="h-8 w-8" />
+                    </button>
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                        {images.map((_: string, i: number) => (
+                            <button
+                                key={i}
+                                onClick={(e) => { e.stopPropagation(); setLightboxIdx(i); }}
+                                className={`w-2 h-2 rounded-full transition-all ${i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40'
+                                    }`}
+                            />
+                        ))}
+                    </div>
+                    <p className="absolute bottom-14 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+                        {lightboxIdx + 1} / {images.length}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

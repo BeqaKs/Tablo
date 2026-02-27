@@ -10,7 +10,7 @@ type Messages = typeof enMessages;
 interface LocaleContextType {
     locale: Locale;
     setLocale: (locale: Locale) => void;
-    t: (key: string) => string;
+    t: (key: string, vars?: Record<string, string | number>) => string;
 }
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
@@ -36,7 +36,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('locale', newLocale);
     };
 
-    const t = (key: string): string => {
+    const t = (key: string, vars?: Record<string, string | number>): string => {
         const keys = key.split('.');
         let value: any = messages[locale];
 
@@ -44,7 +44,13 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
             value = value?.[k];
         }
 
-        return value || key;
+        let result = value || key;
+        if (typeof result === 'string' && vars) {
+            for (const [k, v] of Object.entries(vars)) {
+                result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+            }
+        }
+        return result;
     };
 
     return (

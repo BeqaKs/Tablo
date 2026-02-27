@@ -97,6 +97,19 @@
             "tbilisiGeorgia": "Tbilisi, Georgia",
             "thisMonth": "This Month",
             "activeGuests": "Active Guests"
+        },
+        "moodFor": "What are you in the mood for?",
+        "cuisineFilters": {
+            "italian": "Italian",
+            "steakhouse": "Steakhouse",
+            "japanese": "Japanese",
+            "french": "French",
+            "seafood": "Seafood",
+            "georgian": "Georgian",
+            "mediterranean": "Mediterranean",
+            "vegan": "Vegan",
+            "asian": "Asian",
+            "fineDining": "Fine Dining"
         }
     },
     "auth": {
@@ -161,7 +174,41 @@
             "confirm": "Yes, Cancel",
             "cancelling": "Cancelling..."
         },
-        "success": "Reservation created successfully!"
+        "modifyDialog": {
+            "title": "Modify Booking Details",
+            "description": "To change the date, time, or table, please cancel this booking and create a new reservation.",
+            "occasion": "Occasion",
+            "dietary": "Dietary Restrictions",
+            "dietaryPlaceholder": "e.g. Vegan, Nut Allergy",
+            "requests": "Special Requests",
+            "requestsPlaceholder": "Any special notes for the host?",
+            "cancel": "Cancel",
+            "save": "Save Changes",
+            "saving": "Saving...",
+            "success": "Reservation details updated!"
+        },
+        "success": "Reservation created successfully!",
+        "confirmedPage": {
+            "title": "You're confirmed!",
+            "subtitle": "Your table at {restaurant} is reserved.",
+            "celebrationReady": "{occasion} celebration ready!",
+            "scanHostStand": "Show at the host stand",
+            "addToCalendar": "Add to Calendar",
+            "inviteGuests": "Invite Guests",
+            "viewBookings": "View My Bookings",
+            "confirmationSent": "A confirmation has been sent to your email and phone.",
+            "loading": "Loading your confirmation..."
+        },
+        "countdown": {
+            "in": "in",
+            "d": "d",
+            "h": "h",
+            "m": "m",
+            "now": "now"
+        },
+        "checkIn": "Check-In",
+        "ref": "Ref:",
+        "showCode": "Show this code to the host upon arrival"
     },
     "profile": {
         "title": "My Profile",
@@ -242,7 +289,9 @@
         "bookNow": "Book Now",
         "viewDetails": "View Details",
         "available": "Available",
-        "bookTable": "Book Table"
+        "bookTable": "Book Table",
+        "useMyLocation": "Use My Location",
+        "nearYou": "Near you"
     },
     "restaurant": {
         "back": "Back to Restaurants",
@@ -272,6 +321,16 @@
             "friday": "Friday",
             "saturday": "Saturday",
             "sunday": "Sunday"
+        },
+        "reviewsTitle": "What people are saying",
+        "overallRating": "Overall Rating",
+        "findUs": "Find Us",
+        "openInMaps": "Open in Maps →",
+        "stepper": {
+            "step1": "Step 1: Date & Time",
+            "step2": "Step 2: Table",
+            "step3": "Step 3: Extras",
+            "step4": "Step 4: Confirm"
         }
     },
     "footer": {

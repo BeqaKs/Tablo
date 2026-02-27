@@ -8,9 +8,11 @@ interface RestaurantMapProps {
     onSelect?: (id: string | null) => void;
     selectedId?: string | null;
     userLocation?: { lat: number; lng: number } | null;
+    onUseMyLocation?: () => void;
+    locationLoading?: boolean;
 }
 
-export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation }: RestaurantMapProps) {
+export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation, onUseMyLocation, locationLoading }: RestaurantMapProps) {
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<any>(null);
     const markersRef = useRef<any[]>([]);
@@ -181,6 +183,39 @@ export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation 
                 }
             });
 
+            // Add user location marker
+            if (userLocation) {
+                bounds.push([userLocation.lat, userLocation.lng]);
+
+                const userMarkerElement = document.createElement('div');
+                userMarkerElement.innerHTML = `
+                    <div style="
+                        width: 14px;
+                        height: 14px;
+                        background-color: #2563eb;
+                        border: 2px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 0 4px rgba(0,0,0,0.4);
+                    "></div>
+                `;
+
+                const userIcon = L.divIcon({
+                    className: 'custom-map-marker',
+                    html: userMarkerElement.outerHTML,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7],
+                });
+
+                const userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                    icon: userIcon,
+                    zIndexOffset: 1000
+                }).addTo(map);
+
+                userMarker.bindTooltip('Your Location', { direction: 'top', offset: [0, -12], className: 'font-semibold text-sm' });
+
+                markersRef.current.push(userMarker);
+            }
+
             // Fit map to markers
             if (bounds.length > 0) {
                 map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
@@ -188,7 +223,7 @@ export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation 
         };
 
         loadMarkers();
-    }, [restaurants, selectedId, mapReady]);
+    }, [restaurants, selectedId, mapReady, userLocation]);
 
     return (
         <div className="relative w-full h-full rounded-xl overflow-hidden shadow-lg border" style={{ minHeight: '500px' }}>
@@ -239,6 +274,31 @@ export function RestaurantMap({ restaurants, onSelect, selectedId, userLocation 
                         <p className="text-sm text-muted-foreground">Loading map...</p>
                     </div>
                 </div>
+            )}
+
+            {/* Floating Locate Me button — bottom right, above zoom controls */}
+            {onUseMyLocation && (
+                <button
+                    onClick={onUseMyLocation}
+                    disabled={locationLoading}
+                    title="Center on my location"
+                    style={{ bottom: '120px', right: '10px' }}
+                    className={`absolute z-[1000] w-9 h-9 flex items-center justify-center rounded-lg bg-white shadow-md border border-gray-200 hover:bg-gray-50 smooth-transition ${userLocation ? 'text-blue-600' : 'text-gray-500 hover:text-gray-800'
+                        } ${locationLoading ? 'opacity-60 cursor-wait' : 'cursor-pointer'}`}
+                >
+                    {locationLoading ? (
+                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L12 4M12 20L12 22M4 12L2 12M22 12L20 12" />
+                            <circle cx="12" cy="12" r="4" fill={userLocation ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" />
+                            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
+                        </svg>
+                    )}
+                </button>
             )}
         </div>
     );

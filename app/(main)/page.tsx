@@ -198,6 +198,40 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════════════ CUISINE DISCOVERY CHIPS ═══════════════════ */}
+      <section className="py-8 sm:py-10 bg-background border-b border-border/40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4 text-center">
+            {t('home.moodFor')}
+          </p>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 justify-start sm:justify-center">
+            {[
+              { label: t('home.cuisineFilters.italian'), emoji: '🍝', q: 'italian' },
+              { label: t('home.cuisineFilters.steakhouse'), emoji: '🥩', q: 'steak' },
+              { label: t('home.cuisineFilters.japanese'), emoji: '🍱', q: 'japanese' },
+              { label: t('home.cuisineFilters.french'), emoji: '🥐', q: 'french' },
+              { label: t('home.cuisineFilters.seafood'), emoji: '🦞', q: 'seafood' },
+              { label: t('home.cuisineFilters.georgian'), emoji: '🍷', q: 'georgian' },
+              { label: t('home.cuisineFilters.mediterranean'), emoji: '🫒', q: 'mediterranean' },
+              { label: t('home.cuisineFilters.vegan'), emoji: '🌿', q: 'vegan' },
+              { label: t('home.cuisineFilters.asian'), emoji: '🍜', q: 'asian' },
+              { label: t('home.cuisineFilters.fineDining'), emoji: '✨', q: 'fine dining' },
+            ].map((c, i) => (
+              <Link
+                key={i}
+                href={`/restaurants?q=${encodeURIComponent(c.q)}`}
+                className="flex flex-col items-center gap-1.5 shrink-0 px-4 py-3 bg-white/80 hover:bg-primary hover:text-white dark:bg-white/5 dark:hover:bg-primary border border-border rounded-2xl smooth-transition group shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              >
+                <span className="text-xl leading-none">{c.emoji}</span>
+                <span className="text-[11px] font-semibold text-foreground group-hover:text-white whitespace-nowrap smooth-transition">
+                  {c.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ═══════════════════ FEATURED RESTAURANTS ═══════════════════ */}
       <section className="py-16 sm:py-24 lg:py-28 bg-background relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -389,8 +423,8 @@ export default function HomePage() {
                 <div
                   key={i}
                   className={`relative rounded-2xl p-6 smooth-transition cursor-pointer group ${isActive
-                      ? 'bg-white shadow-luxury scale-[1.02] border border-primary/10'
-                      : 'bg-white/50 border border-transparent hover:bg-white hover:shadow-soft'
+                    ? 'bg-white shadow-luxury scale-[1.02] border border-primary/10'
+                    : 'bg-white/50 border border-transparent hover:bg-white hover:shadow-soft'
                     }`}
                   onMouseEnter={() => setActiveFeature(i)}
                 >
