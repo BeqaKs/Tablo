@@ -3,6 +3,7 @@
 import { Navbar } from '@/components/layout/navbar';
 import { useLocale } from '@/lib/locale-context';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { WaitlistNotifier } from '@/components/demo/waitlist-notifier';
 
 export default function MainLayout({
   children,
@@ -14,6 +15,7 @@ export default function MainLayout({
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
+      <WaitlistNotifier />
       <main className="flex-1">{children}</main>
 
       {/* Footer */}

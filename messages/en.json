@@ -210,6 +210,25 @@
         "ref": "Ref:",
         "showCode": "Show this code to the host upon arrival"
     },
+    "waitlist": {
+        "title": "Join the Waitlist for {date} at {time}",
+        "estimatedWait": "Estimated wait: {mins} mins",
+        "namePlaceholder": "Your name",
+        "phonePlaceholder": "Phone (for SMS notification)",
+        "joining": "Joining...",
+        "confirmWaitlist": "Confirm Waitlist",
+        "success": "✅ You're on the waitlist!",
+        "successDesc": "We'll SMS you when a table opens up.",
+        "successToast": "Added to waitlist! We'll SMS you when a table opens."
+    },
+    "menu": {
+        "orderInAdvance": "Order in Advance?",
+        "orderDesc": "Pre-select dishes — we'll have them ready at your table.",
+        "noMenu": "No menu available yet.",
+        "browse": "Browse Menu",
+        "skip": "Skip Menu",
+        "continueWithItems": "Continue ({count} items)"
+    },
     "profile": {
         "title": "My Profile",
         "subtitle": "Manage your personal information and preferences",
@@ -313,6 +332,35 @@
         "specialRequests": "Special Requests",
         "name": "Name",
         "phone": "Phone",
+        "seatingPreference": "Seating Preference",
+        "noPreference": "No Preference",
+        "indoor": "Indoor",
+        "outdoor": "Outdoor",
+        "bar": "Bar",
+        "occasions": {
+            "none": "None",
+            "birthday": "Birthday",
+            "anniversary": "Anniversary",
+            "dateNight": "Date Night",
+            "business": "Business",
+            "other": "Other"
+        },
+        "dietaryRestrictions": "Dietary Restrictions",
+        "dietaryPlaceholder": "e.g. Vegan, Nut Allergy",
+        "mobile": {
+            "bookTableNow": "Book a table now",
+            "tapToReserve": "Tap to reserve a table",
+            "chooseYourTable": "Choose your table",
+            "optionalExtras": "Optional extras",
+            "almostDone": "Almost done!"
+        },
+        "noTables": "No tables available for {partySize} guests at this time.",
+        "joinWaitlist": "Join Waitlist",
+        "floorPlanModes": {
+            "list": "List",
+            "floorPlan": "Floor Plan"
+        },
+        "floorPlanHint": "Click on a green table to select it. Gray tables are too small/unavailable.",
         "days": {
             "monday": "Monday",
             "tuesday": "Tuesday",
