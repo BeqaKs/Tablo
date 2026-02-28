@@ -2,8 +2,9 @@
 
 import { Bell } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { NotificationsPopover } from '@/components/dashboard/notifications-popover';
 
-export function DashboardHeader({ restaurantName }: { restaurantName: string }) {
+export function DashboardHeader({ restaurantName, restaurantId }: { restaurantName: string, restaurantId?: string }) {
     const [time, setTime] = useState('');
     const [date, setDate] = useState('');
 
@@ -52,12 +53,16 @@ export function DashboardHeader({ restaurantName }: { restaurantName: string }) 
                         <span className="font-semibold" style={{ color: 'hsl(220 20% 65%)' }}>{time}</span>
                     </div>
                 )}
-                <button
-                    className="flex h-8 w-8 items-center justify-center rounded-lg smooth-transition"
-                    style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 50%)' }}
-                >
-                    <Bell className="h-4 w-4" />
-                </button>
+                {restaurantId ? (
+                    <NotificationsPopover restaurantId={restaurantId} />
+                ) : (
+                    <button
+                        className="flex h-8 w-8 items-center justify-center rounded-lg smooth-transition"
+                        style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 50%)' }}
+                    >
+                        <Bell className="h-4 w-4" />
+                    </button>
+                )}
             </div>
         </header>
     );

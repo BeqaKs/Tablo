@@ -1,0 +1,17 @@
+                                        <div className="grid grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-auto hide-scrollbar">
+                                            {filteredTables.map((table: any) => (
+                                                <button
+                                                    key={table.id}
+                                                    onClick={() => setSelectedTable(table.id)}
+                                                    className={`p-3 text-left border-2 rounded-xl smooth-transition ${selectedTable === table.id
+                                                        ? 'border-primary bg-primary/5 text-primary'
+                                                        : 'border-gray-200 hover:border-primary/30'
+                                                        }`}
+                                                >
+                                                    <p className="font-bold">{t('bookings.table')} {table.table_number}</p>
+                                                    <p className="text-[10px] text-muted-foreground mt-0.5" suppressHydrationWarning>
+                                                        {t('common.upTo')} {table.capacity} {resT('guests')}
+                                                    </p>
+                                                </button>
+                                            ))}
+                                        </div>

@@ -9,7 +9,9 @@ import { EmptyState } from '@/components/customer/empty-state';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLocale } from '@/lib/locale-context';
 import { User } from '@supabase/supabase-js';
-import { Loader2, AlertTriangle, ShieldOff } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldOff, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function MyBookingsPage() {
     const { t } = useLocale();
@@ -94,11 +96,19 @@ export default function MyBookingsPage() {
 
             {/* Header */}
             <div className="bg-white border-b">
-                <div className="max-w-5xl mx-auto px-8 py-8">
-                    <h1 className="text-4xl font-bold mb-2">{t('bookings.title')}</h1>
-                    <p className="text-lg text-muted-foreground">
-                        {t('bookings.subtitle')}
-                    </p>
+                <div className="max-w-5xl mx-auto px-8 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">{t('bookings.title')}</h1>
+                        <p className="text-lg text-muted-foreground">
+                            {t('bookings.subtitle')}
+                        </p>
+                    </div>
+                    <Button asChild variant="outline" className="gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                        <Link href="/my-waitlist">
+                            <Clock className="h-4 w-4" />
+                            My Waitlist
+                        </Link>
+                    </Button>
                 </div>
             </div>
 

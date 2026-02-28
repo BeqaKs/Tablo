@@ -197,7 +197,17 @@
             "inviteGuests": "Invite Guests",
             "viewBookings": "View My Bookings",
             "confirmationSent": "A confirmation has been sent to your email and phone.",
-            "loading": "Loading your confirmation..."
+            "loading": "Loading your confirmation...",
+            "shareModalTitle": "Invite your crew 🍽️",
+            "shareModalDesc": "Share this reservation",
+            "whosJoining": "Who's joining?",
+            "copyLink": "Copy invite link",
+            "shareVia": "Share via…",
+            "reservationAt": "Your reservation at",
+            "date": "Date",
+            "time": "Time",
+            "guests": "Guests",
+            "bookingId": "Booking ID"
         },
         "countdown": {
             "in": "in",
@@ -518,5 +528,58 @@
         "loading": "Loading map...",
         "selected": "Selected",
         "available": "Available"
+    },
+    "dashboard": {
+        "welcome": "Welcome to Tablo!",
+        "noRestaurant": "No restaurant assigned yet. Contact an admin.",
+        "occupancy": "Current Occupancy",
+        "tablesTotal": "{count} tables total",
+        "totalCovers": "Total Covers Today",
+        "guestsArriving": "Guests arriving today",
+        "activeReservations": "Active Reservations",
+        "upcomingSoon": "{count} upcoming soon",
+        "estRevenue": "Est. Revenue Today",
+        "avgCheck": "Avg. check {amount} (est.)",
+        "upcomingTitle": "Upcoming Reservations",
+        "viewAll": "View all",
+        "noUpcoming": "No upcoming reservations for today.",
+        "guests": "{count} guests",
+        "preOrdered": "Pre-ordered: {items}",
+        "occasion": "Occasion: {event}",
+        "suggestionsTitle": "✨ Upsell Suggestions",
+        "opportunities": "{count} opportunities",
+        "noSuggestions": "No special occasions in upcoming bookings.",
+        "done": "✓ Done",
+        "peakHours": "Today's Peak Hours",
+        "newReservation": "+ New Reservation",
+        "newReservationAlert": "New booking from {name}",
+        "guestsShort": "ppl",
+        "viewFloorPlan": "View Floor Plan",
+        "guestDirectory": "Guest Directory",
+        "risk": {
+            "high": "🔴 High risk",
+            "medium": "🟡 Medium",
+            "low": "🟢 Low risk"
+        },
+        "status": {
+            "pending": "Pending",
+            "confirmed": "Confirmed",
+            "seated": "Seated",
+            "completed": "Completed"
+        }
+    },
+    "aiConcierge": {
+        "title": "Dining Concierge",
+        "online": "Online",
+        "greeting": "Hi! I'm your dining concierge. Looking for a romantic spot, the best khinkali in town, or a great wine bar? Let me know what you're craving.",
+        "placeholder": "Find me a romantic spot...",
+        "book": "Book",
+        "error": "Sorry, I'm having trouble connecting right now."
+    },
+    "hitlist": {
+        "title": "Tonight's Hitlist",
+        "subtitle": "Exclusive tables still available for tonight.",
+        "tablesLeft": "{count} Table Left at {time}",
+        "bookNow": "Book Now"
     }
 }

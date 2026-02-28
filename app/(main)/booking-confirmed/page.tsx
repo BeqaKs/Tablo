@@ -121,8 +121,8 @@ function ConfirmedContent() {
                         {/* Modal Header */}
                         <div className="flex items-center justify-between px-6 pt-6 pb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900">Invite your crew 🍽️</h3>
-                                <p className="text-sm text-gray-500 mt-0.5">Share this reservation</p>
+                                <h3 className="text-lg font-bold text-gray-900">{t('bookings.confirmedPage.shareModalTitle')}</h3>
+                                <p className="text-sm text-gray-500 mt-0.5">{t('bookings.confirmedPage.shareModalDesc')}</p>
                             </div>
                             <button onClick={() => setShareOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
                                 <X className="w-4 h-4 text-gray-600" />
@@ -145,7 +145,7 @@ function ConfirmedContent() {
 
                         {/* Who's Joining? Avatars */}
                         <div className="px-6 mb-5">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Who&apos;s joining?</p>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('bookings.confirmedPage.whosJoining')}</p>
                             <div className="flex items-center gap-2">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-red-400 flex items-center justify-center shadow-sm">
                                     <UserCircle2 className="w-5 h-5 text-white" />
@@ -165,7 +165,7 @@ function ConfirmedContent() {
                                 className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border-2 border-gray-100 hover:border-primary/30 hover:bg-primary/5 transition-all group"
                             >
                                 <div className="text-left">
-                                    <p className="text-sm font-semibold text-gray-900">Copy invite link</p>
+                                    <p className="text-sm font-semibold text-gray-900">{t('bookings.confirmedPage.copyLink')}</p>
                                     <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{shareText.split('\n')[0]}</p>
                                 </div>
                                 {copied ? (
@@ -181,7 +181,7 @@ function ConfirmedContent() {
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition-colors shadow-md shadow-primary/20"
                                 >
                                     <Share2 className="w-4 h-4" />
-                                    Share via…
+                                    {t('bookings.confirmedPage.shareVia')}
                                 </button>
                             )}
                         </div>
@@ -223,7 +223,7 @@ function ConfirmedContent() {
                     {/* Restaurant Name Banner */}
                     <div className="px-7 pt-6 pb-4 flex items-start justify-between">
                         <div>
-                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Your reservation at</p>
+                            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-1">{t('bookings.confirmedPage.reservationAt')}</p>
                             <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">{restaurant}</h2>
                             {address && <p className="text-xs text-gray-400 mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" />{address}</p>}
                         </div>
@@ -235,15 +235,15 @@ function ConfirmedContent() {
                     {/* Booking Details Grid */}
                     <div className="px-7 pb-5 grid grid-cols-3 gap-4">
                         <div>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">Date</p>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">{t('bookings.confirmedPage.date')}</p>
                             <p className="text-sm font-bold text-gray-900">{date ? format(new Date(date + 'T12:00:00'), 'MMM d, yyyy') : '—'}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">Time</p>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">{t('bookings.confirmedPage.time')}</p>
                             <p className="text-sm font-bold text-gray-900">{time || '—'}</p>
                         </div>
                         <div>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">Guests</p>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1">{t('bookings.confirmedPage.guests')}</p>
                             <p className="text-sm font-bold text-gray-900">{guests}</p>
                         </div>
                     </div>

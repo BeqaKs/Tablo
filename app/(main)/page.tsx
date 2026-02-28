@@ -7,11 +7,12 @@ import {
   Search, MapPin, Clock, Users, Star, TrendingUp, CalendarCheck,
   ArrowRight, Loader2, ChefHat, Sparkles, Eye, LayoutGrid, Shield, Utensils, ChevronRight
 } from 'lucide-react';
-import { useLocale } from '@/lib/locale-context';
-
 import { useState, useEffect, useRef } from 'react';
 import { getRestaurants } from '@/app/actions/bookings';
 import { Restaurant } from '@/types/database';
+import { TonightsHitlist } from '@/components/home/tonights-hitlist';
+import { AIConcierge } from '@/components/home/ai-concierge';
+import { useLocale } from '@/lib/locale-context';
 
 export default function HomePage() {
   const { t } = useLocale();
@@ -198,6 +199,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════════════ TONIGHT'S HITLIST ═══════════════════ */}
+      <TonightsHitlist restaurants={restaurants} />
+
       {/* ═══════════════════ CUISINE DISCOVERY CHIPS ═══════════════════ */}
       <section className="py-8 sm:py-10 bg-background border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -232,7 +236,36 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ═══════════════════ FEATURED RESTAURANTS ═══════════════════ */}
+      {/* ═══════════════════ SOCIAL PROOF TICKER ═══════════════════ */}
+      {restaurants.length > 0 && (() => {
+        const NAMES = ['Nino', 'Giorgi', 'Ana', 'Luka', 'Mari', 'David', 'Tamar', 'Sandro', 'Keti', 'Nika', 'Salome', 'Beka', 'Elene', 'Levan'];
+        const ACTIONS = ['just booked', 'reserved a table at', 'made a reservation at'];
+        const TIMES = ['just now', '1 min ago', '2 min ago', '3 min ago', '5 min ago', '8 min ago', '12 min ago'];
+        // Generate deterministic fake activity from restaurant list
+        const items = restaurants.flatMap((r, i) => [
+          { text: `${NAMES[i % NAMES.length]} ${ACTIONS[i % 3]} ${r.name}`, time: TIMES[i % TIMES.length] },
+          { text: `${5 + (i * 7) % 19} people viewing ${r.name} right now`, time: '' },
+        ]).slice(0, 12);
+        return (
+          <div className="bg-gray-50 border-y border-border/50 py-3 overflow-hidden relative">
+            {/* Fade edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
+            <div className="flex gap-8 animate-ticker-scroll whitespace-nowrap">
+              {[...items, ...items].map((item, i) => (
+                <span key={i} className="inline-flex items-center gap-2 text-xs font-medium text-gray-500 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+                  {item.text}
+                  {item.time && <span className="text-gray-400 font-normal">· {item.time}</span>}
+                  <span className="text-gray-300 mx-2">·</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+
       <section className="py-16 sm:py-24 lg:py-28 bg-background relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -626,6 +659,8 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+          {/* ═══════════════════ AI DINING CONCIERGE ═══════════════════ */}
+          <AIConcierge />
         </div>
       </section>
     </div>

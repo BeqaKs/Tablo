@@ -240,18 +240,7 @@ export function BookingCard({ booking, isPast = false }: BookingCardProps) {
                         </div>
                     )}
 
-                    {/* QR Code for check-in */}
-                    {isUpcoming && booking.status !== 'cancelled' && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-dashed flex items-center gap-4">
-                            <img src={qrUrl} alt="Check-in QR" className="w-14 h-14 rounded-lg border bg-white" />
-                            <div>
-                                <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
-                                    <QrCode className="h-3 w-3" /> {t('bookings.confirmedPage.scanHostStand')}
-                                </p>
-                                <p className="text-[10px] font-mono text-gray-400 mt-0.5">#{booking.id.slice(0, 8).toUpperCase()}</p>
-                            </div>
-                        </div>
-                    )}
+
 
                     <div className="flex items-center gap-2 pt-4 border-t">
                         {!isPast && isUpcoming && booking.status !== 'cancelled' && (

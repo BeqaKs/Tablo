@@ -257,6 +257,8 @@ export async function cancelBooking(bookingId: string) {
         .eq('id', bookingId)
 
     if (error) return { error: error.message }
+    revalidatePath('/dashboard')
+    revalidatePath('/profile')
 
     if (reservation) {
         const restaurant = Array.isArray(reservation.restaurants)
@@ -341,4 +343,38 @@ export async function updateBookingDetails(bookingId: string, data: {
 
     revalidatePath('/my-bookings')
     return { success: true }
+}
+
+// Get all tables that are booked or blocked for a specific time slot
+export async function getUnavailableTables(restaurantId: string, date: string, time: string): Promise<string[]> {
+    const supabase = await createClient();
+    const reservationTime = new Date(`${date}T${time}`).toISOString();
+
+    // 1. Get explicitly blocked tables by schedule overrides
+    const { data: blockedTables } = await supabase
+        .from('schedule_overrides')
+        .select('table_id')
+        .eq('restaurant_id', restaurantId)
+        .eq('override_date', date)
+        .eq('status', 'blocked');
+
+    // 2. Get tables currently booked at this time
+    // We assume a 2 hour dining window for simplicity (-1 hr to +1 hr overlapping)
+    const twoHoursBefore = new Date(new Date(reservationTime).getTime() - 2 * 60 * 60 * 1000).toISOString();
+    const twoHoursAfter = new Date(new Date(reservationTime).getTime() + 2 * 60 * 60 * 1000).toISOString();
+
+    const { data: bookedReservations } = await supabase
+        .from('reservations')
+        .select('table_id')
+        .eq('restaurant_id', restaurantId)
+        .in('status', ['pending', 'confirmed', 'seated'])
+        .gte('reservation_time', twoHoursBefore)
+        .lte('reservation_time', twoHoursAfter);
+
+    const unavailablePaths = [
+        ...(blockedTables?.map(t => t.table_id) || []),
+        ...(bookedReservations?.map(r => r.table_id) || [])
+    ].filter(Boolean) as string[];
+
+    return Array.from(new Set(unavailablePaths));
 }

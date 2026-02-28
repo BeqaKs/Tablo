@@ -12,7 +12,7 @@ import {
     Briefcase, Info, UtensilsCrossed
 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
-import { getRestaurantBySlug, createBooking } from '@/app/actions/bookings';
+import { getRestaurantBySlug, createBooking, getUnavailableTables } from '@/app/actions/bookings';
 import { getProfile } from '@/app/actions/profile';
 import { createClient } from '@/lib/supabase/client';
 import { joinWaitlist, calculateWaitTime } from '@/app/actions/waitlist';
@@ -49,7 +49,6 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
     const [guestNotes, setGuestNotes] = useState('');
     const [occasion, setOccasion] = useState('');
     const [dietaryRestrictions, setDietaryRestrictions] = useState('');
-    const [seatingPreference, setSeatingPreference] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'floor-plan'>('list');
     const [mobileBookingOpen, setMobileBookingOpen] = useState(false);
     // Waitlist state
@@ -69,6 +68,10 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    // Past visit memory
+    const [pastVisit, setPastVisit] = useState<{ date: string; time: string; guests: number } | null>(null);
+    // Real-time table availability
+    const [unavailableTables, setUnavailableTables] = useState<string[]>([]);
 
     const resT = (key: string) => t(`restaurant.${key}`);
 
@@ -103,6 +106,26 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                 } else if (user.user_metadata?.full_name) {
                     setGuestName(user.user_metadata.full_name);
                 }
+
+                // Load past visit for this restaurant
+                if (data) {
+                    const { data: pastBookings } = await supabase
+                        .from('reservations')
+                        .select('reservation_time, guest_count')
+                        .eq('user_id', user.id)
+                        .eq('restaurant_id', data.id)
+                        .neq('status', 'cancelled')
+                        .order('reservation_time', { ascending: false })
+                        .limit(1);
+                    if (pastBookings && pastBookings.length > 0) {
+                        const d = new Date(pastBookings[0].reservation_time);
+                        setPastVisit({
+                            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                            time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            guests: pastBookings[0].guest_count,
+                        });
+                    }
+                }
             }
 
             setLoading(false);
@@ -118,6 +141,17 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                 new Date(`${selectedDate}T${selectedTime}`).toISOString()
             ).then(res => {
                 if (res.data) setWaitlistQuote(res.data);
+            });
+        }
+
+        // Fetch booked tables when date/time changes
+        if (restaurant && selectedDate && selectedTime) {
+            getUnavailableTables(restaurant.id, selectedDate, selectedTime).then((ids: string[]) => {
+                setUnavailableTables(ids);
+                // Also clear selected table if it just became unavailable
+                if (selectedTable && ids.includes(selectedTable)) {
+                    setSelectedTable(null);
+                }
             });
         }
     }, [showWaitlist, restaurant, partySize, selectedDate, selectedTime]);
@@ -147,7 +181,9 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
     );
     if (!restaurant) return <div className="min-h-screen flex items-center justify-center">Restaurant not found.</div>;
 
-    const filteredTables = (restaurant.tables || []).filter((t: any) => t.capacity >= partySize);
+    const filteredTables = (restaurant.tables || [])
+        .filter((t: any) => t.capacity >= partySize)
+        .filter((t: any) => !unavailableTables.includes(t.id));
 
     const handleBooking = async () => {
         if (!selectedTable || !selectedDate || !selectedTime) return;
@@ -165,7 +201,6 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
             guest_notes: guestNotes,
             occasion: occasion || undefined,
             dietary_restrictions: dietaryRestrictions || undefined,
-            seating_preference: seatingPreference || undefined,
         });
 
         setBookingLoading(false);
@@ -235,13 +270,24 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
             {/* Hero Gallery */}
             <div className="relative max-w-7xl mx-auto px-4 sm:px-8 mt-4 mb-10">
                 <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[400px] sm:h-[500px] rounded-2xl overflow-hidden shadow-lg">
-                    {/* Main large image */}
-                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden" onClick={() => openLightbox(0)}>
-                        <img
-                            src={images[0]}
-                            alt={`${restaurant.name} interior`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
-                        />
+                    {/* Main large image or video */}
+                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden" onClick={() => !restaurant.video_url && openLightbox(0)}>
+                        {restaurant.video_url ? (
+                            <video
+                                src={restaurant.video_url}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105 pointer-events-none"
+                            />
+                        ) : (
+                            <img
+                                src={images[0]}
+                                alt={`${restaurant.name} interior`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                            />
+                        )}
                         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                         <div className="absolute bottom-6 left-6 text-white">
                             <h1 className="text-4xl font-bold mb-2 tracking-tight">{restaurant.name}</h1>
@@ -567,6 +613,36 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
                     {/* Booking Widget - desktop only */}
                     <Card id="booking-widget" className="hidden lg:block premium-card p-6 h-fit sticky top-24 z-10 scroll-mt-24">
+
+                        {/* Cooking loader overlay */}
+                        {bookingLoading && (
+                            <div className="absolute inset-0 z-50 rounded-2xl bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-3">
+                                <div className="relative w-16 h-16">
+                                    <span className="absolute -top-4 left-3 text-lg animate-steam">💨</span>
+                                    <span className="absolute -top-4 left-6 text-lg animate-steam-2">💨</span>
+                                    <span className="absolute -top-4 left-9 text-lg animate-steam-3">💨</span>
+                                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-4xl">
+                                        👨‍🍳
+                                    </div>
+                                </div>
+                                <p className="text-sm font-semibold text-gray-700">Preparing your table…</p>
+                                <p className="text-xs text-gray-400">Almost there!</p>
+                            </div>
+                        )}
+
+                        {/* Past visit memory banner */}
+                        {pastVisit && (
+                            <div className="mb-4 flex items-start gap-3 px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                                <span className="text-xl shrink-0">👋</span>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-emerald-800">Welcome back!</p>
+                                    <p className="text-[11px] text-emerald-600 mt-0.5">
+                                        Your last visit was on <strong>{pastVisit.date}</strong> for {pastVisit.guests} guests. Same time works great?
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         <h2 className="text-2xl font-bold mb-4">{resT('makeReservation')}</h2>
 
                         {/* Animated Stepper */}
@@ -697,117 +773,110 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                         )}
                                     </div>
 
-                                    {viewMode === 'floor-plan' && restaurant.floor_plan_json ? (
-                                        <div className="mb-4">
+                                    {viewMode === 'floor-plan' && restaurant?.floor_plan_json?.backgroundImage ? (
+                                        <div className="-mx-2 mb-4 bg-gray-50 rounded-xl overflow-hidden border">
                                             <FloorPlanViewer
-                                                tables={restaurant.tables} // Show all tables contextually
+                                                tables={restaurant.tables}
                                                 backgroundImage={restaurant.floor_plan_json.backgroundImage}
                                                 selectedTableId={selectedTable}
-                                                onTableSelect={(id) => setSelectedTable(id)}
+                                                onTableSelect={(id) => {
+                                                    const table = restaurant.tables.find((t: any) => t.id === id);
+                                                    if (!table || table.capacity < partySize || unavailableTables.includes(id)) return;
+                                                    setSelectedTable(id);
+                                                }}
                                                 getTableStatus={(table) => {
-                                                    // 1. Capacity check
                                                     if (table.capacity < partySize) return 'disabled';
-                                                    // 2. Availability check (future: check against bookings)
-                                                    // For now, assume all tables matching capacity are available
+                                                    if (unavailableTables.includes(table.id)) return 'booked';
                                                     return 'available';
                                                 }}
+                                                className="border-none bg-transparent"
                                             />
-                                            <p className="text-xs text-muted-foreground mt-2 text-center">
-                                                {resT('floorPlanHint')}
-                                            </p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-2 max-h-[400px] overflow-auto">
-                                            {(filteredTables || []).map((table: any) => (
+                                        <div className="grid grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-auto hide-scrollbar">
+                                            {filteredTables.map((table: any) => (
                                                 <button
                                                     key={table.id}
                                                     onClick={() => setSelectedTable(table.id)}
-                                                    className={`w-full p-4 border-2 rounded-lg text-left smooth-transition ${selectedTable === table.id
-                                                        ? 'border-primary bg-primary/5'
-                                                        : 'border-gray-200 hover:border-primary/50'
+                                                    className={`p-3 text-left border-2 rounded-xl smooth-transition ${selectedTable === table.id
+                                                        ? 'border-primary bg-primary/5 text-primary'
+                                                        : 'border-gray-200 hover:border-primary/30'
                                                         }`}
                                                 >
-                                                    <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <p className="font-semibold">{t('bookings.table')} {table.table_number}</p>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {table.zone_name} • {t('common.upTo')} {table.capacity} {resT('guests')}
-                                                            </p>
-                                                        </div>
-                                                        {selectedTable === table.id && (
-                                                            <Check className="h-5 w-5 text-primary" />
-                                                        )}
-                                                    </div>
+                                                    <p className="font-bold">{t('bookings.table')} {table.table_number}</p>
+                                                    <p className="text-[10px] text-muted-foreground mt-0.5" suppressHydrationWarning>
+                                                        {t('common.upTo')} {table.capacity} {resT('guests')}
+                                                    </p>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
-                                </div>
 
-                                {/* No tables for party — show waitlist option */}
-                                {filteredTables.length === 0 && !showWaitlist && (
-                                    <div className="text-center py-6 border-2 border-dashed border-muted rounded-xl">
-                                        <p className="text-muted-foreground text-sm mb-3">
-                                            {t('restaurant.noTables', { partySize })}
-                                        </p>
-                                        <Button variant="outline" size="sm" onClick={() => setShowWaitlist(true)}>
-                                            {resT('joinWaitlist')}
-                                        </Button>
-                                    </div>
-                                )}
+                                    {/* No tables for party — show waitlist option */}
+                                    {filteredTables.length === 0 && !showWaitlist && (
+                                        <div className="text-center py-6 border-2 border-dashed border-muted rounded-xl">
+                                            <p className="text-muted-foreground text-sm mb-3">
+                                                {t('restaurant.noTables', { partySize })}
+                                            </p>
+                                            <Button variant="outline" size="sm" onClick={() => setShowWaitlist(true)}>
+                                                {resT('joinWaitlist')}
+                                            </Button>
+                                        </div>
+                                    )}
 
-                                {/* Waitlist form */}
-                                {showWaitlist && (
-                                    <div className="border rounded-xl p-4 space-y-3 bg-amber-50 border-amber-200">
-                                        {waitlistDone ? (
-                                            <div className="text-center py-4">
-                                                <p className="font-semibold text-emerald-700">{t('waitlist.success')}</p>
-                                                <p className="text-sm text-muted-foreground mt-1">{t('waitlist.successDesc')}</p>
-                                                <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setShowWaitlist(false); setWaitlistDone(false); }}>{t('common.close')}</Button>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <h4 className="font-semibold text-sm flex items-center gap-2">
-                                                    🔔 {t('waitlist.title', { date: selectedDate, time: selectedTime })}
-                                                </h4>
-                                                {waitlistQuote !== null && (
-                                                    <div className="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
-                                                        <Clock className="w-3.5 h-3.5 text-amber-700" />
-                                                        {t('waitlist.estimatedWait', { mins: waitlistQuote })}
-                                                    </div>
-                                                )}
-                                                <input
-                                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                                                    placeholder={t('waitlist.namePlaceholder')}
-                                                    value={waitlistName}
-                                                    onChange={e => setWaitlistName(e.target.value)}
-                                                />
-                                                <input
-                                                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
-                                                    placeholder={t('waitlist.phonePlaceholder')}
-                                                    type="tel"
-                                                    value={waitlistPhone}
-                                                    onChange={e => setWaitlistPhone(e.target.value)}
-                                                />
-                                                <div className="flex gap-2">
-                                                    <Button size="sm" onClick={handleJoinWaitlist} disabled={waitlistLoading || !waitlistName} className="flex-1 border-amber-300 text-amber-900 hover:bg-amber-100 hover:text-amber-950">
-                                                        {waitlistLoading ? t('waitlist.joining') : t('waitlist.confirmWaitlist')}
-                                                    </Button>
-                                                    <Button size="sm" variant="ghost" onClick={() => setShowWaitlist(false)} className="text-amber-700 hover:text-amber-900">{t('common.cancel')}</Button>
+                                    {/* Waitlist form */}
+                                    {showWaitlist && (
+                                        <div className="border rounded-xl p-4 space-y-3 bg-amber-50 border-amber-200">
+                                            {waitlistDone ? (
+                                                <div className="text-center py-4">
+                                                    <p className="font-semibold text-emerald-700">{t('waitlist.success')}</p>
+                                                    <p className="text-sm text-muted-foreground mt-1">{t('waitlist.successDesc')}</p>
+                                                    <Button variant="ghost" size="sm" className="mt-3" onClick={() => { setShowWaitlist(false); setWaitlistDone(false); }}>{t('common.close')}</Button>
                                                 </div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                            ) : (
+                                                <>
+                                                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                                                        🔔 {t('waitlist.title', { date: selectedDate, time: selectedTime })}
+                                                    </h4>
+                                                    {waitlistQuote !== null && (
+                                                        <div className="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2">
+                                                            <Clock className="w-3.5 h-3.5 text-amber-700" />
+                                                            {t('waitlist.estimatedWait', { mins: waitlistQuote })}
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                                        placeholder={t('waitlist.namePlaceholder')}
+                                                        value={waitlistName}
+                                                        onChange={e => setWaitlistName(e.target.value)}
+                                                    />
+                                                    <input
+                                                        className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                                                        placeholder={t('waitlist.phonePlaceholder')}
+                                                        type="tel"
+                                                        value={waitlistPhone}
+                                                        onChange={e => setWaitlistPhone(e.target.value)}
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <Button size="sm" onClick={handleJoinWaitlist} disabled={waitlistLoading || !waitlistName} className="flex-1 border-amber-300 text-amber-900 hover:bg-amber-100 hover:text-amber-950">
+                                                            {waitlistLoading ? t('waitlist.joining') : t('waitlist.confirmWaitlist')}
+                                                        </Button>
+                                                        <Button size="sm" variant="ghost" onClick={() => setShowWaitlist(false)} className="text-amber-700 hover:text-amber-900">{t('common.cancel')}</Button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
 
-                                <Button
-                                    onClick={() => setStep('menu')}
-                                    disabled={!selectedTable}
-                                    className="w-full"
-                                    size="lg"
-                                >
-                                    {resT('confirmContinue')}
-                                </Button>
+                                    <Button
+                                        onClick={() => setStep('menu')}
+                                        disabled={!selectedTable}
+                                        className="w-full mt-4"
+                                        size="lg"
+                                    >
+                                        {resT('confirmContinue')}
+                                    </Button>
+                                </div>
                             </div>
                         )}
 
@@ -892,19 +961,6 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium mb-2">{resT('seatingPreference')}</label>
-                                        <select
-                                            value={seatingPreference}
-                                            onChange={(e) => setSeatingPreference(e.target.value)}
-                                            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                        >
-                                            <option value="">{resT('noPreference')}</option>
-                                            <option value="Indoor">{resT('indoor')}</option>
-                                            <option value="Outdoor">{resT('outdoor')}</option>
-                                            <option value="Bar">{resT('bar')}</option>
-                                        </select>
-                                    </div>
-                                    <div>
                                         <label className="block text-sm font-medium mb-2">{resT('dietaryRestrictions')}</label>
                                         <input
                                             type="text"
@@ -963,17 +1019,19 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                         </div>
                     </Card>
                 </div>
-            </div>
+            </div >
 
             {/* Mobile sticky booking bar */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50">
+            < div className="lg:hidden fixed bottom-0 left-0 right-0 z-50" >
                 {/* Backdrop */}
-                {mobileBookingOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-                        onClick={() => setMobileBookingOpen(false)}
-                    />
-                )}
+                {
+                    mobileBookingOpen && (
+                        <div
+                            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                            onClick={() => setMobileBookingOpen(false)}
+                        />
+                    )
+                }
 
                 {/* Drawer */}
                 <div
@@ -1109,30 +1167,70 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                         </div>
                                         <button onClick={() => setStep('datetime')} className="text-sm text-primary font-medium">{resT('change')}</button>
                                     </div>
-                                    <label className="block text-sm font-medium">{resT('availableTables')} ({filteredTables.length})</label>
-                                    <div className="space-y-2 max-h-64 overflow-auto">
-                                        {filteredTables.map((table: any) => (
-                                            <button
-                                                key={table.id}
-                                                onClick={() => setSelectedTable(table.id)}
-                                                className={`w-full p-4 border-2 rounded-xl text-left smooth-transition ${selectedTable === table.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="font-semibold text-sm">{t('bookings.table')} {table.table_number}</p>
-                                                        <p className="text-xs text-muted-foreground">{table.zone_name} · {t('common.upTo')} {table.capacity} {resT('guests')}</p>
-                                                    </div>
-                                                    {selectedTable === table.id && <Check className="h-4 w-4 text-primary" />}
-                                                </div>
-                                            </button>
-                                        ))}
-                                        {filteredTables.length === 0 && (
-                                            <div className="text-center py-6 border-2 border-dashed rounded-xl">
-                                                <p className="text-muted-foreground text-sm">{t('restaurant.noTables', { partySize })}</p>
+                                    <div className="flex items-center justify-between mb-2 mt-4">
+                                        <label className="block text-sm font-medium">{resT('availableTables')} ({filteredTables.length})</label>
+                                        {restaurant.floor_plan_json?.backgroundImage && (
+                                            <div className="flex bg-gray-100 p-1 rounded-lg">
+                                                <button
+                                                    onClick={() => setViewMode('list')}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md smooth-transition ${viewMode === 'list' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                                >
+                                                    {resT('floorPlanModes.list')}
+                                                </button>
+                                                <button
+                                                    onClick={() => setViewMode('floor-plan')}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md smooth-transition ${viewMode === 'floor-plan' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                                >
+                                                    {resT('floorPlanModes.floorPlan')}
+                                                </button>
                                             </div>
                                         )}
                                     </div>
+
+                                    {viewMode === 'floor-plan' && restaurant?.floor_plan_json?.backgroundImage ? (
+                                        <div className="-mx-2 mb-4 bg-gray-50 rounded-xl overflow-hidden border">
+                                            <FloorPlanViewer
+                                                tables={restaurant.tables}
+                                                backgroundImage={restaurant.floor_plan_json.backgroundImage}
+                                                selectedTableId={selectedTable}
+                                                onTableSelect={(id) => {
+                                                    const table = restaurant.tables.find((t: any) => t.id === id);
+                                                    if (!table || table.capacity < partySize || unavailableTables.includes(id)) return;
+                                                    setSelectedTable(id);
+                                                }}
+                                                getTableStatus={(table) => {
+                                                    if (table.capacity < partySize) return 'disabled';
+                                                    if (unavailableTables.includes(table.id)) return 'booked';
+                                                    return 'available';
+                                                }}
+                                                className="border-none bg-transparent"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2 max-h-64 overflow-auto">
+                                            {filteredTables.map((table: any) => (
+                                                <button
+                                                    key={table.id}
+                                                    onClick={() => setSelectedTable(table.id)}
+                                                    className={`w-full p-4 border-2 rounded-xl text-left smooth-transition ${selectedTable === table.id ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-primary/50'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="font-semibold text-sm">{t('bookings.table')} {table.table_number}</p>
+                                                            <p className="text-xs text-muted-foreground">{table.zone_name} · {t('common.upTo')} {table.capacity} {resT('guests')}</p>
+                                                        </div>
+                                                        {selectedTable === table.id && <Check className="h-4 w-4 text-primary" />}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                            {filteredTables.length === 0 && (
+                                                <div className="text-center py-6 border-2 border-dashed rounded-xl">
+                                                    <p className="text-muted-foreground text-sm">{t('restaurant.noTables', { partySize })}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     <button
                                         onClick={() => setStep('menu')}
                                         disabled={!selectedTable}
@@ -1202,53 +1300,55 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
             {/* Lightbox Modal */}
-            {lightboxOpen && (
-                <div
-                    className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center"
-                    onClick={() => setLightboxOpen(false)}
-                >
-                    <button
-                        className="absolute top-5 right-5 text-white/60 hover:text-white text-4xl w-10 h-10 flex items-center justify-center"
+            {
+                lightboxOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center"
                         onClick={() => setLightboxOpen(false)}
                     >
-                        <X className="h-7 w-7" />
-                    </button>
-                    <button
-                        className="absolute left-4 text-white/60 hover:text-white p-2"
-                        onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i - 1 + images.length) % images.length); }}
-                    >
-                        <ChevronLeft className="h-8 w-8" />
-                    </button>
-                    <img
-                        src={images[lightboxIdx]}
-                        alt={`Photo ${lightboxIdx + 1}`}
-                        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
-                        onClick={e => e.stopPropagation()}
-                    />
-                    <button
-                        className="absolute right-4 text-white/60 hover:text-white p-2"
-                        onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i + 1) % images.length); }}
-                    >
-                        <ChevronRight className="h-8 w-8" />
-                    </button>
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-                        {images.map((_: string, i: number) => (
-                            <button
-                                key={i}
-                                onClick={(e) => { e.stopPropagation(); setLightboxIdx(i); }}
-                                className={`w-2 h-2 rounded-full transition-all ${i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40'
-                                    }`}
-                            />
-                        ))}
+                        <button
+                            className="absolute top-5 right-5 text-white/60 hover:text-white text-4xl w-10 h-10 flex items-center justify-center"
+                            onClick={() => setLightboxOpen(false)}
+                        >
+                            <X className="h-7 w-7" />
+                        </button>
+                        <button
+                            className="absolute left-4 text-white/60 hover:text-white p-2"
+                            onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i - 1 + images.length) % images.length); }}
+                        >
+                            <ChevronLeft className="h-8 w-8" />
+                        </button>
+                        <img
+                            src={images[lightboxIdx]}
+                            alt={`Photo ${lightboxIdx + 1}`}
+                            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        />
+                        <button
+                            className="absolute right-4 text-white/60 hover:text-white p-2"
+                            onClick={(e) => { e.stopPropagation(); setLightboxIdx(i => (i + 1) % images.length); }}
+                        >
+                            <ChevronRight className="h-8 w-8" />
+                        </button>
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                            {images.map((_: string, i: number) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => { e.stopPropagation(); setLightboxIdx(i); }}
+                                    className={`w-2 h-2 rounded-full transition-all ${i === lightboxIdx ? 'bg-white scale-125' : 'bg-white/40'
+                                        }`}
+                                />
+                            ))}
+                        </div>
+                        <p className="absolute bottom-14 left-1/2 -translate-x-1/2 text-white/50 text-sm">
+                            {lightboxIdx + 1} / {images.length}
+                        </p>
                     </div>
-                    <p className="absolute bottom-14 left-1/2 -translate-x-1/2 text-white/50 text-sm">
-                        {lightboxIdx + 1} / {images.length}
-                    </p>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

@@ -63,6 +63,7 @@ export interface Restaurant {
   dress_code?: string;
   cancellation_policy?: string;
   gallery_images?: string[];
+  video_url?: string;
   // Computed field from geo queries
   distance_miles?: number;
 }

@@ -12,7 +12,9 @@ export function LanguageSwitcher() {
 
     const switchLocale = (newLocale: 'en' | 'ka') => {
         setLocale(newLocale);
+        document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`; // 1 year
         setIsOpen(false);
+        window.location.reload(); // Reload to apply server-side translations
     };
 
     return (
