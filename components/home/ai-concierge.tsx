@@ -33,6 +33,13 @@ export function AIConcierge() {
         scrollToBottom();
     }, [messages, isOpen]);
 
+    // Reset chat and localization if the user switches languages mid-session
+    useEffect(() => {
+        setMessages([
+            { id: '1', role: 'ai', content: t('aiConcierge.greeting') }
+        ]);
+    }, [locale, t]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim() || isLoading) return;

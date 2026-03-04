@@ -144,130 +144,154 @@ export function BookingCard({ booking, isPast = false }: BookingCardProps) {
 
     return (
         <>
-            <Card className="premium-card overflow-hidden hover:shadow-luxury smooth-transition">
+            <Card className="rounded-[2rem] border-0 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-hidden transition-all duration-500 hover:shadow-[0_20px_40px_rgb(0,0,0,0.12)] hover:-translate-y-1">
                 {/* Color strip based on status */}
-                <div className={`h-1.5 w-full ${booking.status === 'confirmed' ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
-                    booking.status === 'pending' ? 'bg-gradient-to-r from-yellow-400 to-amber-500' :
+                <div className={`h-2 w-full ${booking.status === 'confirmed' ? 'bg-gradient-to-r from-emerald-400 to-teal-500' :
+                    booking.status === 'pending' ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
                         booking.status === 'seated' ? 'bg-gradient-to-r from-blue-400 to-indigo-500' :
-                            booking.status === 'cancelled' ? 'bg-gray-200' :
-                                'bg-gradient-to-r from-primary to-red-400'
+                            booking.status === 'cancelled' ? 'bg-gray-300' :
+                                'bg-gradient-to-r from-red-500 to-rose-600'
                     }`} />
-                <div className="p-6">
-                    <div className="flex justify-between items-start mb-4">
+                <div className="p-7">
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="text-xl font-bold mb-1">{booking.restaurants.name}</h3>
-                            <p className="text-sm text-muted-foreground">{booking.restaurants.cuisine_type}</p>
+                            <h3 className="text-2xl font-bold font-[family-name:var(--font-geist-sans)] tracking-tight mb-1">{booking.restaurants.name}</h3>
+                            <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {booking.restaurants.address}
+                            </p>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                            <Badge className={statusColors[booking.status] || 'bg-gray-100'}>
+                        <div className="flex flex-col items-end gap-2 shrink-0">
+                            <Badge className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${statusColors[booking.status] || 'bg-gray-100 text-gray-700'}`}>
                                 {t(`bookings.status.${booking.status}`)}
                             </Badge>
                             {isUpcoming && countdown && booking.status !== 'cancelled' && (
-                                <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full countdown-pulse">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full animate-pulse uppercase tracking-wider">
                                     <Timer className="h-3 w-3" /> {t('bookings.countdown.in')} {countdown}
                                 </span>
                             )}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
-                            <span>{format(reservationDate, 'MMM dd, yyyy', { locale: dateLocale })}</span>
+                    <div className="grid grid-cols-2 gap-3 mb-6 bg-gray-50/80 p-5 rounded-[1.25rem] border border-gray-100/50">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                <Calendar className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">{t('bookings.date')}</p>
+                                <span className="font-bold text-sm text-gray-900">{format(reservationDate, 'MMM dd', { locale: dateLocale })}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{format(reservationDate, 'h:mm a', { locale: dateLocale })}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                <Clock className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">{t('bookings.time')}</p>
+                                <span className="font-bold text-sm text-gray-900">{format(reservationDate, 'h:mm a', { locale: dateLocale })}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.guest_count} {booking.guest_count === 1 ? t('bookings.guest') : t('bookings.guests')}</span>
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                <Users className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">{booking.guest_count === 1 ? t('bookings.guest') : t('bookings.guests')}</p>
+                                <span className="font-bold text-sm text-gray-900">{booking.guest_count}</span>
+                            </div>
                         </div>
                         {booking.tables && (
-                            <div className="flex items-center gap-2 text-sm">
-                                <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span>{t('bookings.table')} {booking.tables.table_number} {booking.tables.zone_name && `(${booking.tables.zone_name})`}</span>
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                                    <MapPin className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">{t('bookings.table')}</p>
+                                    <span className="font-bold text-sm text-gray-900">{booking.tables.table_number}</span>
+                                </div>
                             </div>
                         )}
                     </div>
 
                     {booking.occasion && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-start gap-2 text-sm">
-                                <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div className="mb-3 p-4 bg-amber-50/50 border border-amber-100 rounded-[1.25rem]">
+                            <div className="flex items-start gap-3 text-sm">
+                                <div className="bg-amber-100 p-1.5 rounded-lg text-amber-600 shrink-0">
+                                    <Calendar className="h-4 w-4" />
+                                </div>
                                 <div>
-                                    <p className="font-medium text-xs text-muted-foreground mb-1">{t('bookings.modifyDialog.occasion')}</p>
-                                    <p className="text-foreground">{booking.occasion}</p>
+                                    <p className="font-bold text-xs text-amber-900/60 uppercase tracking-wider mb-0.5">{t('bookings.modifyDialog.occasion')}</p>
+                                    <p className="font-medium text-amber-950">{booking.occasion}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {booking.dietary_restrictions && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-start gap-2 text-sm">
-                                <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div className="mb-3 p-4 bg-red-50/50 border border-red-100 rounded-[1.25rem]">
+                            <div className="flex items-start gap-3 text-sm">
+                                <div className="bg-red-100 p-1.5 rounded-lg text-red-600 shrink-0">
+                                    <Users className="h-4 w-4" />
+                                </div>
                                 <div>
-                                    <p className="font-medium text-xs text-muted-foreground mb-1">{t('bookings.modifyDialog.dietary')}</p>
-                                    <p className="text-foreground">{booking.dietary_restrictions}</p>
+                                    <p className="font-bold text-xs text-red-900/60 uppercase tracking-wider mb-0.5">{t('bookings.modifyDialog.dietary')}</p>
+                                    <p className="font-medium text-red-950">{booking.dietary_restrictions}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {booking.guest_notes && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <div className="flex items-start gap-2 text-sm">
-                                <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div className="mb-5 p-4 bg-blue-50/50 border border-blue-100 rounded-[1.25rem]">
+                            <div className="flex items-start gap-3 text-sm">
+                                <div className="bg-blue-100 p-1.5 rounded-lg text-blue-600 shrink-0">
+                                    <MessageSquare className="h-4 w-4" />
+                                </div>
                                 <div>
-                                    <p className="font-medium text-xs text-muted-foreground mb-1">{t('bookings.specialRequests')}</p>
-                                    <p className="text-foreground">{booking.guest_notes}</p>
+                                    <p className="font-bold text-xs text-blue-900/60 uppercase tracking-wider mb-0.5">{t('bookings.specialRequests')}</p>
+                                    <p className="font-medium text-blue-950">{booking.guest_notes}</p>
                                 </div>
                             </div>
                         </div>
                     )}
 
                     {!isPast && booking.status !== 'cancelled' && (
-                        <div className="flex gap-2 mb-4">
-                            <Button variant="outline" size="sm" className="flex-1" onClick={generateICS}>
-                                <CalendarPlus className="h-4 w-4 mr-2 text-primary" />
+                        <div className="flex gap-3 mb-6">
+                            <Button variant="outline" className="flex-1 rounded-full font-bold border-gray-200 hover:border-primary hover:text-primary transition-colors hover:bg-primary/5 text-xs py-5" onClick={generateICS}>
+                                <CalendarPlus className="h-4 w-4 mr-1.5" />
                                 {t('bookings.confirmedPage.addToCalendar')}
                             </Button>
-                            <Button variant="outline" size="sm" className="flex-1" onClick={shareBooking}>
-                                <Share2 className="h-4 w-4 mr-2 text-primary" />
+                            <Button variant="outline" className="flex-1 rounded-full font-bold border-gray-200 hover:border-primary hover:text-primary transition-colors hover:bg-primary/5 text-xs py-5" onClick={shareBooking}>
+                                <Share2 className="h-4 w-4 mr-1.5" />
                                 {t('bookings.confirmedPage.inviteGuests')}
                             </Button>
                         </div>
                     )}
 
-
-
-                    <div className="flex items-center gap-2 pt-4 border-t">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-5 border-t border-gray-100">
                         {!isPast && isUpcoming && booking.status !== 'cancelled' && (
                             <>
                                 <Button
                                     variant="outline"
-                                    size="sm"
-                                    className="flex-1"
+                                    className="flex-1 rounded-full font-bold border-gray-200 hover:border-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
                                     onClick={() => setShowCancelDialog(true)}
                                 >
-                                    <X className="h-4 w-4 mr-2" />
+                                    <X className="h-4 w-4 mr-1.5" />
                                     {t('bookings.cancel')}
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    size="sm"
-                                    className="flex-1"
+                                    className="flex-1 rounded-full font-bold border-gray-200 hover:border-primary hover:text-primary transition-colors hover:bg-primary/5"
                                     onClick={() => setShowModifyDialog(true)}
                                 >
-                                    <Edit className="h-4 w-4 mr-2" />
+                                    <Edit className="h-4 w-4 mr-1.5" />
                                     {t('bookings.modify')}
                                 </Button>
                             </>
                         )}
                         <Button
-                            size="sm"
-                            className="flex-1 bg-primary hover:bg-tablo-red-600"
+                            className="flex-1 rounded-full font-bold bg-gray-900 hover:bg-black text-white shadow-lg shadow-gray-900/20 transition-all border-0 uppercase tracking-wider text-xs"
                             asChild
                         >
                             <Link href={`/restaurants/${booking.restaurants.slug}`}>

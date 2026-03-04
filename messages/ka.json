@@ -323,6 +323,12 @@
         "nearYou": "შენთან ახლოს"
     },
     "restaurant": {
+        "aboutUs": "ჩვენს შესახებ",
+        "menus": "მენიუ",
+        "experiences": "განსაკუთრებული გამოცდილებები",
+        "needToKnow": "მნიშვნელოვანი ინფორმაცია",
+        "dressCode": "ჩაცმულობის სტილი",
+        "cancellationPolicy": "გაუქმების პოლიტიკა",
         "back": "დაბრუნება რესტორნებში",
         "reviews": "მიმოხილვა",
         "makeReservation": "დაჯავშნა",

@@ -323,6 +323,12 @@
         "nearYou": "Near you"
     },
     "restaurant": {
+        "aboutUs": "About Us",
+        "menus": "Menus",
+        "experiences": "Signature Experiences",
+        "needToKnow": "Need to Know",
+        "dressCode": "Dress Code",
+        "cancellationPolicy": "Cancellation Policy",
         "back": "Back to Restaurants",
         "reviews": "reviews",
         "makeReservation": "Make a Reservation",

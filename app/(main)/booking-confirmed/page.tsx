@@ -261,12 +261,12 @@ function ConfirmedContent() {
                             <div className="flex items-center justify-between gap-4">
                                 <div className="flex-1">
                                     <p className="text-[10px] text-gray-400 uppercase tracking-widest font-semibold mb-1 flex items-center gap-1">
-                                        <QrCode className="w-3 h-3" /> Scan at host stand
+                                        <QrCode className="w-3 h-3" /> {t('bookings.confirmedPage.scanAtHostStand')}
                                     </p>
                                     <p className="text-xs font-mono text-gray-500 mt-1">#{bookingId.slice(0, 8).toUpperCase()}</p>
                                     <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-full">
                                         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-[11px] font-semibold text-green-700">Confirmed</span>
+                                        <span className="text-[11px] font-semibold text-green-700">{t('bookings.status.confirmed')}</span>
                                     </div>
                                 </div>
                                 {qrUrl ? (
@@ -283,7 +283,7 @@ function ConfirmedContent() {
                                     <Check className="w-5 h-5 text-green-600" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-gray-900">Reservation confirmed</p>
+                                    <p className="text-sm font-semibold text-gray-900">{t('bookings.status.confirmed')}</p>
                                     <p className="text-xs text-gray-400">{t('bookings.confirmedPage.confirmationSent')}</p>
                                 </div>
                             </div>
@@ -295,7 +295,7 @@ function ConfirmedContent() {
                 <div className="grid grid-cols-2 gap-3 mb-3">
                     <Button variant="outline" className="gap-2 rounded-2xl h-12 text-sm font-semibold border-gray-200" onClick={generateICS}>
                         <CalendarPlus className="h-4 w-4 text-primary" />
-                        Add to Calendar
+                        {t('bookings.confirmedPage.addToCalendar')}
                     </Button>
                     <Button
                         variant="outline"
@@ -303,7 +303,7 @@ function ConfirmedContent() {
                         onClick={() => setShareOpen(true)}
                     >
                         <Share2 className="h-4 w-4 text-primary" />
-                        Invite Friends
+                        {t('bookings.confirmedPage.inviteGuests')}
                     </Button>
                 </div>
 
@@ -323,17 +323,22 @@ function ConfirmedContent() {
 
 export default function BookingConfirmedPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-red-50/30">
-                <div className="text-center">
-                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <PartyPopper className="h-10 w-10 text-green-400" />
-                    </div>
-                    <p className="text-gray-400 font-medium">Loading your confirmation…</p>
-                </div>
-            </div>
-        }>
+        <Suspense fallback={<LoadingFallback />}>
             <ConfirmedContent />
         </Suspense>
+    );
+}
+
+function LoadingFallback() {
+    const { t } = useLocale();
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-red-50/30">
+            <div className="text-center">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                    <PartyPopper className="h-10 w-10 text-green-400" />
+                </div>
+                <p className="text-gray-400 font-medium">{t('bookings.status.loading') || 'Loading...'}</p>
+            </div>
+        </div>
     );
 }

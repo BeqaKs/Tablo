@@ -269,9 +269,9 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
             {/* Hero Gallery */}
             <div className="relative max-w-7xl mx-auto px-4 sm:px-8 mt-4 mb-10">
-                <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[400px] sm:h-[500px] rounded-2xl overflow-hidden shadow-lg">
+                <div className="grid grid-cols-4 grid-rows-2 gap-3 h-[450px] sm:h-[550px] rounded-[2rem] overflow-hidden shadow-2xl bg-white p-2">
                     {/* Main large image or video */}
-                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden" onClick={() => !restaurant.video_url && openLightbox(0)}>
+                    <div className="col-span-4 sm:col-span-2 row-span-2 relative group cursor-pointer overflow-hidden rounded-[1.5rem]" onClick={() => !restaurant.video_url && openLightbox(0)}>
                         {restaurant.video_url ? (
                             <video
                                 src={restaurant.video_url}
@@ -279,46 +279,58 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                 loop
                                 muted
                                 playsInline
-                                className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105 pointer-events-none"
+                                className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105 pointer-events-none"
                             />
                         ) : (
                             <img
                                 src={images[0]}
                                 alt={`${restaurant.name} interior`}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-in-out"
+                                className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
                             />
                         )}
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                        <div className="absolute bottom-6 left-6 text-white">
-                            <h1 className="text-4xl font-bold mb-2 tracking-tight">{restaurant.name}</h1>
-                            <div className="flex items-center gap-3 text-sm font-medium">
-                                <span className="flex items-center gap-1"><Star className="h-4 w-4 fill-white" /> {restaurant.rating || 4.8} ({restaurant.reviewCount || 120} {resT('reviews')})</span>
-                                <span>•</span>
-                                <span>{t(`home.cuisineFilters.${(restaurant.cuisine_type || restaurant.cuisine || '').toLowerCase().replace(' ', '')}`) || restaurant.cuisine_type || restaurant.cuisine}</span>
-                                <span>•</span>
-                                <span>{restaurant.city}</span>
+                        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+
+                        {/* Glassmorphic Title Card */}
+                        <div className="absolute bottom-6 left-6 right-6">
+                            <div className="p-5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl transform transition-transform duration-500 group-hover:translate-y-[-4px]">
+                                <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight text-white drop-shadow-lg">{restaurant.name}</h1>
+                                <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-white/90">
+                                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-white/10">
+                                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                        {restaurant.rating || 4.8} ({restaurant.reviewCount || 120})
+                                    </span>
+                                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-white/10">
+                                        <UtensilsCrossed className="h-3.5 w-3.5" />
+                                        {t(`home.cuisineFilters.${(restaurant.cuisine_type || restaurant.cuisine || '').toLowerCase().replace(' ', '')}`) || restaurant.cuisine_type || restaurant.cuisine}
+                                    </span>
+                                    <span className="flex items-center gap-1.5 bg-black/40 px-2.5 py-1 rounded-full border border-white/10">
+                                        <MapPin className="h-3.5 w-3.5" />
+                                        {restaurant.city}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
                     {/* Secondary images */}
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer" onClick={() => openLightbox(1)}>
-                        <img src={images[1]} alt="Gallery 2" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer rounded-[1.5rem]" onClick={() => openLightbox(1)}>
+                        <img src={images[1]} alt="Gallery 2" className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110" />
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative" onClick={() => openLightbox(2)}>
-                        <img src={images[2]} alt="Gallery 3" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative rounded-[1.5rem]" onClick={() => openLightbox(2)}>
+                        <img src={images[2]} alt="Gallery 3" className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110" />
                         {/* Favorite button overlay */}
-                        <button className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full transition-colors text-white" onClick={e => e.stopPropagation()}>
+                        <button className="absolute top-4 right-4 p-2.5 bg-white/20 hover:bg-white/40 backdrop-blur-md rounded-full transition-all duration-300 text-white hover:scale-110 hover:text-red-500 shadow-lg" onClick={e => e.stopPropagation()}>
                             <Heart className="h-5 w-5" />
                         </button>
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer" onClick={() => openLightbox(3)}>
-                        <img src={images[3]} alt="Gallery 4" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer rounded-[1.5rem]" onClick={() => openLightbox(3)}>
+                        <img src={images[3]} alt="Gallery 4" className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110" />
                     </div>
-                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative" onClick={() => openLightbox(4)}>
-                        <img src={images[4]} alt="Gallery 5" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    <div className="hidden sm:block col-span-1 row-span-1 overflow-hidden group cursor-pointer relative rounded-[1.5rem]" onClick={() => openLightbox(4)}>
+                        <img src={images[4]} alt="Gallery 5" className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110" />
                         {/* View all photos button */}
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                            <button className="bg-white/90 hover:bg-white text-black font-semibold px-4 py-2 rounded-lg backdrop-blur-sm transition-colors text-sm flex items-center gap-2 shadow-lg">
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center backdrop-blur-[2px]">
+                            <button className="bg-white/95 hover:bg-white text-black font-bold px-5 py-2.5 rounded-xl transition-all duration-300 transform group-hover:scale-105 group-hover:shadow-xl text-sm flex items-center gap-2">
                                 <Globe className="h-4 w-4" /> {t('common.viewAll')} ({images.length})
                             </button>
                         </div>
@@ -331,86 +343,91 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                 <div className="grid lg:grid-cols-[1fr_400px] gap-12 relative">
 
                     {/* Left Column: Rich Content */}
-                    <div className="space-y-10">
+                    <div className="space-y-12">
                         {/* Section: Badges and Quick details */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            <Badge variant="outline" className="text-sm px-3 py-1 font-semibold flex items-center gap-1 border-primary/20 text-primary bg-primary/5">
+                        <div className="flex flex-wrap gap-2.5 mb-6">
+                            <Badge variant="outline" className="text-sm px-4 py-1.5 font-bold flex items-center gap-1 border-primary/30 text-primary bg-primary/5 rounded-full shadow-sm">
                                 {'$'.repeat(restaurant.price_range || 3)}
                             </Badge>
 
                             {restaurant.vibe_tags?.map((vibe: string) => (
-                                <Badge key={vibe} variant="secondary" className="text-sm px-3 py-1 font-medium bg-gray-100">
+                                <Badge key={vibe} variant="secondary" className="text-sm px-4 py-1.5 font-semibold bg-gray-100/80 hover:bg-gray-200 text-gray-800 rounded-full transition-colors border border-gray-200/50">
                                     {vibe}
                                 </Badge>
                             ))}
                             {(restaurant.features || []).map((feature: string) => (
-                                <Badge key={feature} variant="secondary" className="text-sm px-3 py-1 font-medium bg-gray-100">
+                                <Badge key={feature} variant="secondary" className="text-sm px-4 py-1.5 font-semibold bg-gray-100/80 hover:bg-gray-200 text-gray-800 rounded-full transition-colors border border-gray-200/50">
                                     {feature}
                                 </Badge>
                             ))}
                         </div>
 
                         {/* Section: About */}
-                        <section>
-                            <h2 className="text-2xl font-bold mb-4 font-serif">About {restaurant.name}</h2>
-                            <p className="text-gray-700 leading-relaxed text-lg whitespace-pre-line">
+                        <section className="prose prose-lg max-w-none">
+                            <h2 className="text-3xl font-bold mb-5 font-[family-name:var(--font-geist-sans)] tracking-tight text-gray-900 border-b pb-4">
+                                {resT('aboutUs') || `About ${restaurant.name}`}
+                            </h2>
+                            <p className="text-gray-600 leading-loose text-lg whitespace-pre-line font-medium text-balance">
                                 {restaurant.description}
                             </p>
                         </section>
 
-                        {/* Features */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {(restaurant.features || []).map((feature: string) => (
-                                <Badge key={feature} variant="secondary">
-                                    {feature}
-                                </Badge>
-                            ))}
-                        </div>
-
                         {/* Section: Menus */}
-                        <section className="pt-6 border-t border-gray-100">
-                            <h2 className="text-2xl font-bold mb-4 font-serif">Menus</h2>
-                            <div className="bg-white rounded-xl p-6 border shadow-sm">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <UtensilsCrossed className="h-5 w-5 text-primary" />
-                                    <h3 className="font-semibold text-lg">A la Carte Menu</h3>
+                        <section className="pt-8">
+                            <h2 className="text-2xl font-bold mb-6 font-[family-name:var(--font-geist-sans)] tracking-tight">{resT('menus')}</h2>
+                            <div className="bg-white rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-shadow duration-500 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8 transition-transform duration-500 group-hover:scale-110" />
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
+                                            <UtensilsCrossed className="h-6 w-6" />
+                                        </div>
+                                        <h3 className="font-bold text-xl">A la Carte Menu</h3>
+                                    </div>
+                                    <p className="text-gray-500 text-base mb-6 max-w-md leading-relaxed">
+                                        Explore our seasonal offerings featuring local ingredients and modern techniques curated by our head chef.
+                                    </p>
+                                    <Button variant="outline" className="rounded-full px-6 font-semibold border-gray-200 hover:border-primary hover:text-primary transition-all">
+                                        View Full Menu
+                                    </Button>
                                 </div>
-                                <p className="text-gray-700 text-sm mb-4">
-                                    Explore our seasonal offerings featuring local ingredients and modern techniques.
-                                </p>
-                                <Button variant="outline" size="sm">View Full Menu</Button>
                             </div>
                         </section>
 
                         {/* Section: Experiences */}
-                        <section className="pt-6 border-t border-gray-100">
-                            <h2 className="text-2xl font-bold mb-4 font-serif">Experiences</h2>
-                            <div className="bg-amber-50 rounded-xl p-6 border border-amber-100">
-                                <h3 className="font-semibold text-lg mb-2">Chef's Tasting Menu</h3>
-                                <p className="text-gray-700 text-sm mb-4">
-                                    Join us for an exclusive 7-course seasonal tasting journey curated by our executive chef.
-                                </p>
-                                <Button variant="outline" size="sm" className="bg-white border-amber-200 hover:bg-amber-100">Learn More</Button>
+                        <section className="pt-4">
+                            <h2 className="text-2xl font-bold mb-6 font-[family-name:var(--font-geist-sans)] tracking-tight">{resT('experiences')}</h2>
+                            <div className="bg-gradient-to-br from-amber-50 to-orange-50/30 rounded-[1.5rem] p-8 border border-amber-100/50 shadow-[0_8px_30px_rgb(251,191,36,0.1)] relative overflow-hidden group">
+                                <div className="absolute right-0 bottom-0 w-48 h-48 bg-amber-200/20 blur-3xl rounded-full" />
+                                <div className="relative z-10">
+                                    <h3 className="font-bold text-xl mb-3 text-amber-900 tracking-tight">Chef's Tasting Menu</h3>
+                                    <p className="text-amber-800/80 text-base mb-6 max-w-md leading-relaxed">
+                                        Join us for an exclusive 7-course seasonal tasting journey, perfectly paired with our sommelier's wine selection.
+                                    </p>
+                                    <Button className="rounded-full px-6 font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 transition-all border-0">
+                                        Learn More
+                                    </Button>
+                                </div>
                             </div>
                         </section>
 
                         {/* Section: Need to Know */}
-                        <section className="pt-6 border-t border-gray-100">
-                            <h2 className="text-2xl font-bold mb-4 font-serif">Need to Know</h2>
-                            <div className="grid sm:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-xl border border-gray-100">
-                                <div>
-                                    <h3 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Briefcase className="h-4 w-4 text-primary" />
-                                        Dress Code
+                        <section className="pt-8 mb-8 border-t border-gray-100">
+                            <h2 className="text-2xl font-bold mb-6 font-[family-name:var(--font-geist-sans)] tracking-tight">{resT('needToKnow')}</h2>
+                            <div className="grid sm:grid-cols-2 gap-4">
+                                <div className="bg-gray-50/80 p-6 rounded-[1.25rem] border border-gray-100 hover:bg-white hover:shadow-lg transition-all duration-300">
+                                    <h3 className="font-bold flex items-center gap-3 mb-3 text-gray-900">
+                                        <div className="p-2 rounded-lg bg-white shadow-sm border border-gray-100"><Briefcase className="h-4 w-4 text-primary" /></div>
+                                        {resT('dressCode')}
                                     </h3>
-                                    <p className="text-gray-700 text-sm">{restaurant.dress_code || "Smart Casual. Please no athletic wear."}</p>
+                                    <p className="text-gray-600 text-sm leading-relaxed font-medium">{restaurant.dress_code || t('bookings.modifyDialog.optional')}</p>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold flex items-center gap-2 mb-2">
-                                        <Info className="h-4 w-4 text-primary" />
-                                        Cancellation Policy
+                                <div className="bg-gray-50/80 p-6 rounded-[1.25rem] border border-gray-100 hover:bg-white hover:shadow-lg transition-all duration-300">
+                                    <h3 className="font-bold flex items-center gap-3 mb-3 text-gray-900">
+                                        <div className="p-2 rounded-lg bg-white shadow-sm border border-gray-100"><Info className="h-4 w-4 text-primary" /></div>
+                                        {resT('cancellationPolicy')}
                                     </h3>
-                                    <p className="text-gray-700 text-sm">
+                                    <p className="text-gray-600 text-sm leading-relaxed font-medium">
                                         {restaurant.cancellation_policy || "Cancellations made within 24 hours of the reservation may be subject to a fee."}
                                     </p>
                                 </div>
@@ -419,21 +436,24 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
                         {/* Section: Location Map */}
                         {restaurant.address && (
-                            <section className="pt-6 border-t border-gray-100">
-                                <h2 className="text-2xl font-bold mb-4 font-serif">{resT('findUs')}</h2>
-                                <div className="rounded-xl overflow-hidden border shadow-sm">
+                            <section className="pt-8 border-t border-gray-100">
+                                <h2 className="text-2xl font-bold mb-6 font-[family-name:var(--font-geist-sans)] tracking-tight">{resT('findUs')}</h2>
+                                <div className="rounded-[1.5rem] overflow-hidden border border-gray-200 shadow-xl shadow-gray-200/20">
                                     <iframe
                                         title="Restaurant Location"
                                         width="100%"
-                                        height="260"
+                                        height="300"
                                         style={{ border: 0 }}
                                         loading="lazy"
                                         referrerPolicy="no-referrer-when-downgrade"
                                         src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(restaurant.address)}&marker=0,0&layer=mapnik`}
+                                        className="grayscale-[30%] contrast-[110%]"
                                     />
-                                    <div className="p-4 bg-white flex items-center justify-between">
-                                        <p className="text-sm text-gray-600 flex items-center gap-2">
-                                            <MapPin className="h-4 w-4 text-primary" />
+                                    <div className="p-5 bg-white flex items-center justify-between">
+                                        <p className="text-sm font-semibold text-gray-700 flex items-center gap-3">
+                                            <div className="p-2 rounded-full bg-primary/10 text-primary">
+                                                <MapPin className="h-4 w-4" />
+                                            </div>
                                             {restaurant.address}
                                         </p>
                                         <a
@@ -451,37 +471,40 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
                         {/* Section: Reviews */}
                         <section className="pt-6 border-t border-gray-100">
-                            <div className="flex items-center justify-between mb-5">
+                            <div className="flex items-center justify-between mb-8">
                                 <div>
-                                    <h2 className="text-2xl font-bold font-serif">{resT('reviewsTitle')}</h2>
+                                    <h2 className="text-3xl font-bold font-[family-name:var(--font-geist-sans)] tracking-tight text-gray-900">{resT('reviewsTitle') || 'Guest Reviews'}</h2>
                                     {reviewSummary && reviewSummary.total > 0 && (
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <div className="flex">
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <div className="flex gap-0.5">
                                                 {[1, 2, 3, 4, 5].map(i => (
-                                                    <Star key={i} className={`h-4 w-4 ${i <= Math.round(reviewSummary.average) ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                                                    <Star key={i} className={`h-5 w-5 ${i <= Math.round(reviewSummary.average) ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
                                                 ))}
                                             </div>
-                                            <span className="text-sm font-semibold">{reviewSummary.average}</span>
-                                            <span className="text-sm text-gray-500">({reviewSummary.total} reviews)</span>
+                                            <span className="text-lg font-bold ml-1 text-gray-900">{reviewSummary.average}</span>
+                                            <span className="text-sm font-medium text-gray-500">({reviewSummary.total} {t('common.reviews')})</span>
                                         </div>
                                     )}
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => setReviewModalOpen(true)}>Write a Review</Button>
+                                <Button variant="outline" className="rounded-full px-6 font-semibold border-gray-200 hover:border-amber-500 hover:text-amber-600 transition-all font-[family-name:var(--font-geist-sans)]" onClick={() => setReviewModalOpen(true)}>{t('bookings.reviews.writeReview')}</Button>
                             </div>
 
                             {/* Rating breakdown bars */}
                             {reviewSummary && reviewSummary.total > 0 && (
-                                <div className="bg-gray-50 rounded-2xl p-4 mb-5 space-y-2">
+                                <div className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] mb-8 space-y-3">
                                     {reviewSummary.breakdown.map(({ stars, count, pct }) => (
-                                        <div key={stars} className="flex items-center gap-3">
-                                            <div className="flex items-center gap-1 w-12 shrink-0">
-                                                <span className="text-xs font-medium text-gray-600">{stars}</span>
-                                                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                        <div key={stars} className="flex items-center gap-4 group cursor-default">
+                                            <div className="flex items-center gap-1.5 w-12 shrink-0 justify-end">
+                                                <span className="text-sm font-bold text-gray-700">{stars}</span>
+                                                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                                             </div>
-                                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                                <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                                            <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden relative">
+                                                <div
+                                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-300 to-amber-500 rounded-full transition-all duration-1000 ease-out shadow-[inset_0_2px_4px_rgba(255,255,255,0.3)]"
+                                                    style={{ width: `${pct}%` }}
+                                                />
                                             </div>
-                                            <span className="text-xs text-gray-400 w-5 text-right">{count}</span>
+                                            <span className="text-sm font-medium text-gray-400 w-8">{count}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -489,35 +512,35 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
 
                             {/* Write a Review Modal */}
                             {reviewModalOpen && (
-                                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setReviewModalOpen(false)}>
-                                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-                                        <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-lg font-bold">Write a Review</h3>
-                                            <button onClick={() => setReviewModalOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-                                                <X className="w-4 h-4" />
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4" onClick={() => setReviewModalOpen(false)}>
+                                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-8 transform transition-all duration-300 scale-100 opacity-100" onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center justify-between mb-6">
+                                            <h3 className="text-2xl font-bold font-[family-name:var(--font-geist-sans)] tracking-tight">{t('bookings.reviews.writeReview')}</h3>
+                                            <button onClick={() => setReviewModalOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-900 border border-transparent hover:border-gray-200">
+                                                <X className="w-5 h-5" />
                                             </button>
                                         </div>
-                                        <div className="space-y-4">
+                                        <div className="space-y-5">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-1 block">Your Name</label>
-                                                <input type="text" value={reviewName} onChange={e => setReviewName(e.target.value)} placeholder="Your name" className="w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                                                <label className="text-sm font-bold text-gray-700 mb-2 block">{t('bookings.guestDetails.name')}</label>
+                                                <input type="text" value={reviewName} onChange={e => setReviewName(e.target.value)} placeholder={t('bookings.guestDetails.namePlaceholder') || "How should we display your name?"} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-[1rem] text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium" />
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-1 block">Rating</label>
-                                                <div className="flex gap-1">
+                                                <label className="text-sm font-bold text-gray-700 mb-2 block">Rating</label>
+                                                <div className="flex gap-2 p-2 bg-gray-50 rounded-[1rem] border border-gray-100 w-fit">
                                                     {[1, 2, 3, 4, 5].map(s => (
-                                                        <button key={s} onClick={() => setReviewRating(s)}>
-                                                            <Star className={`w-7 h-7 transition-colors ${s <= reviewRating ? 'fill-amber-400 text-amber-400' : 'text-gray-200 hover:text-amber-200'}`} />
+                                                        <button key={s} onClick={() => setReviewRating(s)} className="hover:scale-110 transition-transform">
+                                                            <Star className={`w-8 h-8 transition-colors ${s <= reviewRating ? 'fill-amber-400 text-amber-400 drop-shadow-sm' : 'text-gray-300 hover:text-amber-200'}`} />
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="text-sm font-medium text-gray-700 mb-1 block">Your Review</label>
-                                                <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Tell others about your experience..." rows={4} className="w-full px-4 py-2.5 border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary" />
+                                                <label className="text-sm font-bold text-gray-700 mb-2 block">Review</label>
+                                                <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Wait, that's optional!" rows={4} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-[1.25rem] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium" />
                                             </div>
                                             <Button
-                                                className="w-full"
+                                                className="w-full rounded-full py-6 text-base font-bold bg-gray-900 hover:bg-black text-white shadow-xl shadow-gray-900/20 transition-all border-0 mt-2"
                                                 disabled={reviewSubmitting || !reviewName.trim()}
                                                 onClick={async () => {
                                                     if (!restaurant) return;
@@ -542,10 +565,10 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                 </div>
                             )}
 
-                            <div className="space-y-4">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 {reviews.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm border border-dashed rounded-xl">
-                                        No reviews yet — be the first!
+                                    <div className="sm:col-span-2 text-center py-12 text-gray-400 text-base font-medium border-2 border-dashed border-gray-200 rounded-[2rem] bg-gray-50/50">
+                                        No reviews yet. Be the first to share your experience!
                                     </div>
                                 )}
                                 {reviews.map((review) => {
@@ -554,25 +577,27 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                         ? new Date(review.visited_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                                         : new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                                     return (
-                                        <div key={review.id} className="bg-white rounded-xl p-5 border shadow-sm">
-                                            <div className="flex items-start justify-between mb-3">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-red-100 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                                        <div key={review.id} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 group">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center gap-3.5">
+                                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 text-gray-600 flex items-center justify-center font-bold text-sm shrink-0 shadow-inner">
                                                         {initials}
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-sm">{review.guest_name}</p>
-                                                        <p className="text-xs text-gray-500">{displayDate}</p>
+                                                        <p className="font-bold text-gray-900 text-base">{review.guest_name}</p>
+                                                        <p className="text-xs font-medium text-gray-500 mt-0.5">{displayDate}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-0.5 shrink-0">
+                                                <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 px-2.5 py-1 rounded-full border border-gray-100 group-hover:bg-amber-50 group-hover:border-amber-100 transition-colors">
                                                     {[1, 2, 3, 4, 5].map(i => (
-                                                        <Star key={i} className={`h-3.5 w-3.5 ${i <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
+                                                        <Star key={i} className={`h-3 w-3 ${i <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`} />
                                                     ))}
                                                 </div>
                                             </div>
                                             {review.review_text && (
-                                                <p className="text-gray-700 text-sm leading-relaxed">{review.review_text}</p>
+                                                <p className="text-gray-600 text-sm leading-relaxed font-medium line-clamp-4 group-hover:line-clamp-none transition-all duration-500">
+                                                    "{review.review_text}"
+                                                </p>
                                             )}
                                         </div>
                                     );
