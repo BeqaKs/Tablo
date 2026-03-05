@@ -80,7 +80,6 @@ export default function AboutPage() {
                             <div className="space-y-4 text-muted-foreground leading-relaxed">
                                 <p>{t('about.storyP1')}</p>
                                 <p>{t('about.storyP2')}</p>
-                                <p>{t('about.storyP3')}</p>
                             </div>
                         </div>
                         <div className="relative">
@@ -112,7 +111,6 @@ export default function AboutPage() {
             <section className="py-24 bg-gray-50">
                 <div className="max-w-5xl mx-auto px-8">
                     <div className="text-center mb-16">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-primary/70 mb-3">{t('about.valuesLabel')}</p>
                         <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">{t('about.valuesTitle')}</h2>
                     </div>
                     <div className="grid md:grid-cols-2 gap-6">
