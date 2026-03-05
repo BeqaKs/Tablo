@@ -122,8 +122,15 @@ export async function promoteFromWaitlist(restaurantId: string, requestedTime: s
 
     if (updateError) return { error: updateError.message }
 
-    // Notify the promoted person via SMS if they have a phone
-    if (next.guest_phone) {
+    // Fetch restaurant setting for SMS
+    const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('sms_enabled')
+        .eq('id', restaurantId)
+        .single();
+
+    // Notify the promoted person via SMS if they have a phone and SMS is enabled
+    if (next.guest_phone && restaurant?.sms_enabled) {
         sendSMS(next.guest_phone, 'waitlist_offer', {
             to: next.guest_phone,
             guestName: next.guest_name || 'Guest',

@@ -17,20 +17,33 @@ export default function AuthCallback() {
             let accessToken = null;
             let refreshToken = null;
 
-            // Handle both hash (#) for Implicit flow and code (?) for PKCE flow
-            if (url.includes('#')) {
-                const hash = url.split('#')[1];
-                const params = new URLSearchParams(hash);
+            // Robust URL parsing - handles hashes, query params, and deep link formats
+            const normalizedUrl = url.replace('#', '?');
+            let urlObj;
+            try {
+                urlObj = new URL(normalizedUrl);
+            } catch (e) {
+                // If it's a deep link like tablo://auth/callback?code=...
+                // we might need to handle it differently if URL constructor fails
+                console.log('URL parsing failed, trying manual parse for deep link');
+                const queryString = normalizedUrl.split('?')[1] || '';
+                const params = new URLSearchParams(queryString);
                 accessToken = params.get('access_token');
                 refreshToken = params.get('refresh_token');
-            } else if (url.includes('?')) {
-                const search = url.split('?')[1];
-                const params = new URLSearchParams(search);
-                accessToken = params.get('access_token');
-                refreshToken = params.get('refresh_token');
-
-                // If we have a code instead of tokens (PKCE flow)
                 const code = params.get('code');
+
+                if (code) {
+                    console.log('Found PKCE code in manual parse, exchanging...');
+                    const { error } = await supabase.auth.exchangeCodeForSession(code);
+                    if (!error) { router.replace('/'); return; }
+                }
+            }
+
+            if (urlObj) {
+                accessToken = urlObj.searchParams.get('access_token');
+                refreshToken = urlObj.searchParams.get('refresh_token');
+                const code = urlObj.searchParams.get('code');
+
                 if (code) {
                     console.log('Found PKCE code in callback, exchanging for session...');
                     const { error } = await supabase.auth.exchangeCodeForSession(code);

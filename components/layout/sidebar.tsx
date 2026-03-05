@@ -39,6 +39,7 @@ const sidebarItems = [
   { icon: CalendarClock, label: 'Schedule', href: '/dashboard/schedule' },
   { icon: Printer, label: 'Print Manifest', href: '/dashboard/print' },
   { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
+  { icon: ShieldCheck, label: 'Staff', href: '/dashboard/staff' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
@@ -67,7 +68,18 @@ export function Sidebar() {
           .select('role, full_name')
           .eq('id', user.id)
           .maybeSingle();
-        setUserRole(profile?.role || null);
+
+        let role = profile?.role || null;
+        if (role !== 'restaurant_owner' && role !== 'admin') {
+          const { data: staff } = await supabase
+            .from('staff_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (staff) role = staff.role;
+        }
+
+        setUserRole(role);
         setUserName(profile?.full_name || user.email?.split('@')[0] || 'Owner');
       }
     }
@@ -76,7 +88,16 @@ export function Sidebar() {
 
   if (!userRole) return null;
 
-  const navItems = userRole === 'admin' ? adminItems : sidebarItems;
+  let navItems;
+  if (userRole === 'admin') {
+    navItems = adminItems;
+  } else if (userRole === 'manager') {
+    navItems = sidebarItems.filter(item => !['Settings', 'Staff'].includes(item.label));
+  } else if (userRole === 'host') {
+    navItems = sidebarItems.filter(item => !['Settings', 'Staff', 'Marketing', 'Menu', 'Overview'].includes(item.label));
+  } else {
+    navItems = sidebarItems;
+  }
 
   return (
     <aside

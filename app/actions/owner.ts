@@ -7,10 +7,10 @@ import { revalidatePath } from 'next/cache'
 // Auth helper
 // ========================
 
-async function requireOwner() {
+export async function requireOwner() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { supabase: null as any, user: null, restaurantId: null, error: 'Not authenticated' as string | null }
+    if (!user) return { supabase: null as any, user: null, restaurantId: null, role: null as string | null, error: 'Not authenticated' as string | null }
 
     const { data: profile } = await supabase
         .from('users')
@@ -18,17 +18,30 @@ async function requireOwner() {
         .eq('id', user.id)
         .single()
 
-    if (profile?.role !== 'restaurant_owner') return { supabase: null as any, user: null, restaurantId: null, error: 'Not authorized: owner only' as string | null }
+    if (profile?.role === 'restaurant_owner') {
+        const { data: restaurant } = await supabase
+            .from('restaurants')
+            .select('id')
+            .eq('owner_id', user.id)
+            .single()
 
-    const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq('owner_id', user.id)
+        if (restaurant) {
+            return { supabase, user, restaurantId: restaurant.id, role: 'owner', error: null as string | null }
+        }
+    }
+
+    // Try finding staff role
+    const { data: staffRole } = await supabase
+        .from('staff_roles')
+        .select('restaurant_id, role')
+        .eq('user_id', user.id)
         .single()
 
-    if (!restaurant) return { supabase: null as any, user: null, restaurantId: null, error: 'No restaurant assigned to owner' as string | null }
+    if (staffRole) {
+        return { supabase, user, restaurantId: staffRole.restaurant_id, role: staffRole.role, error: null as string | null }
+    }
 
-    return { supabase, user, restaurantId: restaurant.id, error: null as string | null }
+    return { supabase: null as any, user: null, restaurantId: null, role: null as string | null, error: 'Not authorized: no owner or staff access assigned' as string | null }
 }
 
 // ========================

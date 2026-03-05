@@ -38,12 +38,17 @@ export function Canvas({ showGrid, zoom }: CanvasProps) {
         if (!draggedTableId || !canvasRef.current) return;
 
         const canvasRect = canvasRef.current.getBoundingClientRect();
-        const newX = (e.clientX - canvasRect.left - dragOffset.x) / zoom;
-        const newY = (e.clientY - canvasRect.top - dragOffset.y) / zoom;
+        const rawX = (e.clientX - canvasRect.left - dragOffset.x) / zoom;
+        const rawY = (e.clientY - canvasRect.top - dragOffset.y) / zoom;
+
+        // Snap to 20px grid (since our grid visual is 20px 20px)
+        const SNAP_SIZE = 20;
+        const snappedX = Math.round(rawX / SNAP_SIZE) * SNAP_SIZE;
+        const snappedY = Math.round(rawY / SNAP_SIZE) * SNAP_SIZE;
 
         updateTable(draggedTableId, {
-            x_coord: Math.max(0, Math.min(1200 - 100, newX)),
-            y_coord: Math.max(0, Math.min(800 - 100, newY)),
+            x_coord: Math.max(0, Math.min(1200 - 100, snappedX)),
+            y_coord: Math.max(0, Math.min(800 - 100, snappedY)),
         });
     };
 

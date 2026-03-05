@@ -3,6 +3,7 @@ import { formatGEL } from "@/lib/utils/currency";
 import { createClient } from "@/lib/supabase/server";
 import { getDictionary } from "@/lib/get-dictionary";
 import Link from "next/link";
+import { RevenueChart } from '@/components/dashboard/revenue-chart';
 
 // Dark metric card
 function MetricCard({
@@ -446,6 +447,36 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Analytics Chart */}
+      <div className="dash-card p-5 mt-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <div className="flex bg-[hsl(347_78%_58%_/_0.12)] p-2 rounded-lg">
+              <TrendingUp className="h-4 w-4" style={{ color: 'hsl(347 78% 65%)' }} />
+            </div>
+            <div>
+              <h3 className="text-[15px] font-semibold text-white">Revenue & Bookings Trend</h3>
+              <p className="text-xs" style={{ color: 'hsl(220 15% 45%)' }}>Past 7 Days</p>
+            </div>
+          </div>
+          <div className="flex gap-2 bg-[hsl(231_24%_16%)] p-1 rounded-md">
+            <button className="px-3 py-1 text-xs font-semibold rounded bg-white text-black shadow-sm">7D</button>
+            <button className="px-3 py-1 text-xs font-medium rounded text-gray-400 hover:text-white transition-colors">30D</button>
+          </div>
+        </div>
+
+        {/* Generate some dummy data representing an uptrend in revenue */}
+        <RevenueChart data={[
+          { name: 'Mon', revenue: 1200 },
+          { name: 'Tue', revenue: 950 },
+          { name: 'Wed', revenue: 1400 },
+          { name: 'Thu', revenue: 1800 },
+          { name: 'Fri', revenue: 2600 },
+          { name: 'Sat', revenue: 3200 },
+          { name: 'Sun', revenue: 2800 },
+        ]} />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Platform, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Search, Heart, Calendar, User, LayoutDashboard, Map, Menu } from 'lucide-react-native';
+import { Home, Calendar, User, LayoutDashboard, Map } from 'lucide-react-native';
 import { Colors } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
 import { useAuth } from '../../src/context/AuthContext';
@@ -15,34 +15,33 @@ export default function TabLayout() {
         <Tabs
             screenOptions={{
                 tabBarActiveTintColor: Colors.primary,
-                tabBarInactiveTintColor: Colors.textMuted,
-                tabBarShowLabel: false, // Hide labels for a cleaner, modern look
+                tabBarInactiveTintColor: '#9CA3AF',
+                tabBarShowLabel: false,
                 tabBarStyle: {
                     position: 'absolute',
-                    bottom: Platform.OS === 'ios' ? 32 : 16,
-                    left: 20,
-                    right: 20,
-                    height: 64,
-                    borderRadius: 32,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: Platform.OS === 'ios' ? 88 : 64,
+                    paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+                    paddingTop: 8,
                     borderTopWidth: 0,
-                    elevation: 10,
+                    elevation: 20,
                     shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 10 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 20,
-                    backgroundColor: Platform.OS === 'ios' ? 'transparent' : 'rgba(255,255,255,0.95)',
+                    shadowOffset: { width: 0, height: -4 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 12,
+                    backgroundColor: Platform.OS === 'ios' ? 'transparent' : '#FFFFFF',
                 },
                 tabBarBackground: () =>
                     Platform.OS === 'ios' ? (
                         <BlurView
-                            tint="light"
-                            intensity={80}
-                            style={StyleSheet.absoluteFillObject}
+                            tint="systemChromeMaterial"
+                            intensity={100}
+                            style={[StyleSheet.absoluteFillObject, { borderTopWidth: 0.5, borderTopColor: 'rgba(0,0,0,0.05)' }]}
                         />
                     ) : undefined,
                 tabBarItemStyle: {
-                    paddingTop: 0,
-                    paddingBottom: 0,
                     justifyContent: 'center',
                     alignItems: 'center',
                 },
@@ -66,8 +65,9 @@ export default function TabLayout() {
                 options={{
                     title: t('navigation.home') || 'Home',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                            <Home size={22} color={focused ? '#FFF' : color} />
+                        <View style={styles.iconContainer}>
+                            <Home size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
+                            {focused && <View style={styles.activeDot} />}
                         </View>
                     ),
                 }}
@@ -77,8 +77,9 @@ export default function TabLayout() {
                 options={{
                     title: t('navigation.myBookings') || 'Bookings',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                            <Calendar size={22} color={focused ? '#FFF' : color} />
+                        <View style={styles.iconContainer}>
+                            <Calendar size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
+                            {focused && <View style={styles.activeDot} />}
                         </View>
                     ),
                 }}
@@ -88,8 +89,9 @@ export default function TabLayout() {
                 options={{
                     title: t('navigation.explore') || 'Map',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                            <Map size={22} color={focused ? '#FFF' : color} />
+                        <View style={styles.iconContainer}>
+                            <Map size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
+                            {focused && <View style={styles.activeDot} />}
                         </View>
                     ),
                 }}
@@ -99,7 +101,15 @@ export default function TabLayout() {
                 options={{
                     href: null,
                     title: t('navigation.dashboard') || 'Dashboard',
-                    tabBarIcon: ({ color }) => <LayoutDashboard size={22} color={color} />,
+                    tabBarIcon: ({ color }) => <LayoutDashboard size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="waitlist"
+                options={{
+                    href: null,
+                    title: 'Waitlist',
+                    tabBarIcon: ({ color }) => <Home size={24} color={color} />,
                 }}
             />
             <Tabs.Screen
@@ -107,8 +117,9 @@ export default function TabLayout() {
                 options={{
                     title: t('navigation.profile') || 'Profile',
                     tabBarIcon: ({ color, focused }) => (
-                        <View style={[styles.iconContainer, focused && styles.iconContainerActive]}>
-                            <User size={22} color={focused ? '#FFF' : color} />
+                        <View style={styles.iconContainer}>
+                            <User size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
+                            {focused && <View style={styles.activeDot} />}
                         </View>
                     ),
                 }}
@@ -119,18 +130,15 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
     iconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
+        height: 44,
     },
-    iconContainerActive: {
+    activeDot: {
+        width: 5,
+        height: 5,
+        borderRadius: 2.5,
         backgroundColor: Colors.primary,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 5,
-    }
+        marginTop: 4,
+    },
 });

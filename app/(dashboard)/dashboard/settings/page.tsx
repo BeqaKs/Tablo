@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { getOwnerRestaurant } from '@/app/actions/owner';
 import { toast } from 'sonner';
-import { Loader2, Save, Store, Phone, Globe, Map } from 'lucide-react';
+import { Loader2, Save, Store, Phone, Globe, Map, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { Switch } from '@/components/ui/switch';
 
 const PRICE_RANGES = ['₾', '₾₾', '₾₾₾', '₾₾₾₾'];
 
@@ -87,7 +88,7 @@ export default function OwnerSettingsPage() {
         setLoading(false);
     }
 
-    function set(field: string, value: string) {
+    function set(field: string, value: any) {
         setRestaurant((prev: any) => ({ ...prev, [field]: value }));
     }
 
@@ -105,6 +106,7 @@ export default function OwnerSettingsPage() {
             phone: restaurant.phone,
             email: restaurant.email,
             website: restaurant.website,
+            sms_enabled: restaurant.sms_enabled,
         }).eq('id', restaurant.id);
         if (error) toast.error(error.message);
         else toast.success('Settings saved!');
@@ -193,6 +195,23 @@ export default function OwnerSettingsPage() {
                     <div className="grid sm:grid-cols-2 gap-4">
                         <FormField label="City" value={restaurant.city || ''} onChange={v => set('city', v)} placeholder="Tbilisi" />
                         <FormField label="Address" value={restaurant.address || ''} onChange={v => set('address', v)} placeholder="14 Rustaveli Ave" />
+                    </div>
+                </div>
+
+                {/* Notifications & Integrations */}
+                <div className="dash-card p-6">
+                    <SectionHeader icon={MessageSquare} title="Notifications & Integrations" subtitle="Manage external communications" />
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 className="text-sm font-medium text-white">SMS Notifications</h4>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                Send automated booking confirmations and waitlist alerts via SMS.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={restaurant.sms_enabled || false}
+                            onCheckedChange={(checked) => set('sms_enabled', checked)}
+                        />
                     </div>
                 </div>
             </div>

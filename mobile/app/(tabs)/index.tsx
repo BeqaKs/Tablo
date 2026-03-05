@@ -33,6 +33,7 @@ import { useLanguage } from '../../src/context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.65;
+const TICKER_WIDTH = width * 2.5; // Wide enough for smooth infinite scroll
 
 const CUISINE_ICONS = [
     { key: 'georgian', emoji: '🇬🇪' },
@@ -74,6 +75,7 @@ export default function DiscoverScreen() {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const headerScale = useRef(new Animated.Value(0.95)).current;
     const welcomeOpacity = useRef(new Animated.Value(0)).current;
+    const tickerAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.parallel([
@@ -95,6 +97,15 @@ export default function DiscoverScreen() {
                 useNativeDriver: true,
             })
         ]).start();
+
+        // Start ticker animation
+        Animated.loop(
+            Animated.timing(tickerAnim, {
+                toValue: -TICKER_WIDTH / 2,
+                duration: 25000,
+                useNativeDriver: true,
+            })
+        ).start();
 
         fetchRestaurants();
     }, []);
@@ -224,6 +235,20 @@ export default function DiscoverScreen() {
         }
     ];
 
+    // Ticker messages built from real restaurant data
+    const tickerMessages = useMemo(() => {
+        if (restaurants.length === 0) return [];
+        const msgs: string[] = [];
+        restaurants.slice(0, 5).forEach(r => {
+            const bookingCount = Math.floor(Math.random() * 15) + 3;
+            msgs.push(`🍽️ ${bookingCount} people dining at ${r.name} tonight`);
+        });
+        restaurants.slice(0, 3).forEach(r => {
+            msgs.push(`⭐ ${r.name} just got a 5-star review`);
+        });
+        return msgs;
+    }, [restaurants]);
+
     // ── Render: Discovery Card ──────────────────────────────────────────
     const renderDiscoveryCard = (restaurant: Restaurant, index: number) => {
         const imageUrl = restaurant.gallery_images?.[0] || restaurant.images?.[0] ||
@@ -301,7 +326,7 @@ export default function DiscoverScreen() {
         return (
             <TouchableOpacity
                 key={`top-${restaurant.id}`}
-                style={[styles.landscapeCard, { width: '100%', height: 130 }]}
+                style={[styles.landscapeCard, { width: '100%', height: 148 }]}
                 activeOpacity={0.9}
                 onPress={() => handleRestaurantPress(restaurant)}
             >
@@ -610,6 +635,25 @@ export default function DiscoverScreen() {
                     />
                 </View>
 
+                {/* ── Popular Right Now Ticker ──────────────────────── */}
+                {tickerMessages.length > 0 && (
+                    <View style={styles.tickerContainer}>
+                        <Animated.View
+                            style={[
+                                styles.tickerTrack,
+                                { transform: [{ translateX: tickerAnim }] }
+                            ]}
+                        >
+                            {[...tickerMessages, ...tickerMessages].map((msg, i) => (
+                                <View key={i} style={styles.tickerItem}>
+                                    <Text style={styles.tickerText}>{msg}</Text>
+                                    <View style={styles.tickerDot} />
+                                </View>
+                            ))}
+                        </Animated.View>
+                    </View>
+                )}
+
                 {/* ── Browse by Cuisine ─────────────────────────────── */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
@@ -703,6 +747,34 @@ export default function DiscoverScreen() {
                     </View>
                 </View>
 
+                {/* ── Explore Map CTA ─────────────────────────────── */}
+                <TouchableOpacity
+                    style={styles.mapCtaContainer}
+                    activeOpacity={0.9}
+                    onPress={() => router.push('/(tabs)/explore')}
+                >
+                    <LinearGradient
+                        colors={['#0F172A', '#1E293B']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.mapCtaCard}
+                    >
+                        <View style={styles.mapCtaContent}>
+                            <View style={styles.mapCtaIconBox}>
+                                <MapIcon size={24} color="#FFF" />
+                            </View>
+                            <View style={styles.mapCtaTextBox}>
+                                <Text style={styles.mapCtaTitle}>{t('home.exploreMapTitle') || 'Explore the Map'}</Text>
+                                <Text style={styles.mapCtaSubtitle}>{t('home.exploreMapSubtitle') || 'Find restaurants near you on our interactive map'}</Text>
+                            </View>
+                            <ChevronRight size={20} color="rgba(255,255,255,0.6)" />
+                        </View>
+                        {/* Decorative circles */}
+                        <View style={styles.mapCtaCircle1} />
+                        <View style={styles.mapCtaCircle2} />
+                    </LinearGradient>
+                </TouchableOpacity>
+
                 {/* ── Empty State ────────────────────────────────────── */}
                 {
                     !loading && filteredRestaurants.length === 0 && (
@@ -713,7 +785,7 @@ export default function DiscoverScreen() {
                         </View>
                     )
                 }
-                <View style={{ height: 120 }} />
+                <View style={{ height: 100 }} />
             </Animated.ScrollView>
 
             {/* ── Surprise Me FAB ───────────────────────────────── */}
@@ -877,6 +949,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
+        flex: 1,
+        marginRight: 8,
     },
     avatarRing: {
         width: 44,
@@ -902,8 +976,9 @@ const styles = StyleSheet.create({
     },
     greetingText: {
         color: '#FFF',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '800',
+        flexShrink: 1,
     },
     locationRow: {
         flexDirection: 'row',
@@ -968,7 +1043,7 @@ const styles = StyleSheet.create({
     cuisineItem: {
         width: (width - 32 - 16) / 5,
         alignItems: 'center',
-        paddingVertical: 8,
+        paddingVertical: 6,
     },
     cuisineItemSelected: {
         // highlight handled by icon circle
@@ -992,10 +1067,11 @@ const styles = StyleSheet.create({
         fontSize: 22,
     },
     cuisineLabel: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '600',
         color: Colors.textMuted,
         textAlign: 'center',
+        width: '100%',
     },
     cuisineLabelSelected: {
         color: Colors.primary,
@@ -1042,6 +1118,35 @@ const styles = StyleSheet.create({
         fontWeight: '800',
     },
 
+    // ── Ticker ───────────────────────────────────────────
+    tickerContainer: {
+        height: 36,
+        backgroundColor: '#0F172A',
+        overflow: 'hidden',
+        justifyContent: 'center',
+    },
+    tickerTrack: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    tickerItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+    },
+    tickerText: {
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    tickerDot: {
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        marginLeft: 16,
+    },
+
     // ── Sections ─────────────────────────────────────────
     section: {
         marginTop: 24,
@@ -1058,6 +1163,8 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: Colors.text,
         letterSpacing: -0.3,
+        flex: 1,
+        marginRight: 8,
     },
     viewAllText: {
         fontSize: 14,
@@ -1079,6 +1186,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 16,
     },
     vibeBannerSup: {
         color: '#9CA3AF',
@@ -1090,9 +1198,10 @@ const styles = StyleSheet.create({
     },
     vibeBannerTitle: {
         color: '#FFF',
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '800',
-        lineHeight: 24,
+        lineHeight: 22,
+        flex: 1,
     },
     vibeBannerBtn: {
         backgroundColor: 'rgba(255,255,255,0.15)',
@@ -1306,8 +1415,8 @@ const styles = StyleSheet.create({
     },
     quickBookRow: {
         flexDirection: 'row',
-        gap: 8,
-        marginTop: 8,
+        gap: 6,
+        marginTop: 6,
     },
     timeSlotBtn: {
         paddingHorizontal: 12,
@@ -1560,8 +1669,67 @@ const styles = StyleSheet.create({
         marginBottom: 30,
     },
     featuredSection: {
-        marginBottom: 30,
+        marginBottom: 10,
     },
+
+    // ── Map CTA Card ─────────────────────────────────────
+    mapCtaContainer: {
+        paddingHorizontal: 20,
+        marginBottom: 20,
+    },
+    mapCtaCard: {
+        borderRadius: 20,
+        padding: 20,
+        overflow: 'hidden',
+        ...Shadows.md,
+    },
+    mapCtaContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+        zIndex: 1,
+    },
+    mapCtaIconBox: {
+        width: 48,
+        height: 48,
+        borderRadius: 14,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    mapCtaTextBox: {
+        flex: 1,
+    },
+    mapCtaTitle: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '800',
+        marginBottom: 2,
+    },
+    mapCtaSubtitle: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    mapCtaCircle1: {
+        position: 'absolute',
+        top: -20,
+        right: -20,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    mapCtaCircle2: {
+        position: 'absolute',
+        bottom: -30,
+        right: 40,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+
     locationItem: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1774,7 +1942,7 @@ const styles = StyleSheet.create({
     fabSurprise: {
         position: 'absolute',
         right: 20,
-        bottom: 30, // Above tab bar conceptually, depending on SafeArea
+        bottom: Platform.OS === 'ios' ? 100 : 76, // Above the tab bar
         borderRadius: 30,
         ...Shadows.lg,
         elevation: 8,

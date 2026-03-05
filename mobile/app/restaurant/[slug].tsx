@@ -74,6 +74,10 @@ export default function RestaurantDetailScreen() {
     const [selectedMenuCat, setSelectedMenuCat] = useState('Brunch');
     const [showHours, setShowHours] = useState(false);
 
+    // DB state for Menus
+    const [menuCategories, setMenuCategories] = useState<any[]>([]);
+    const [menuItems, setMenuItems] = useState<any[]>([]);
+
     const scrollY = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -89,14 +93,45 @@ export default function RestaurantDetailScreen() {
     async function fetchRestaurant() {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+            const { data: resData, error: resError } = await supabase
                 .from('restaurants')
                 .select('*')
                 .eq('slug', slug)
                 .single();
 
-            if (error) throw error;
-            setRestaurant(data);
+            if (resError) throw resError;
+            setRestaurant(resData);
+
+            // Fetch associated menu safely without crashing the main page load
+            if (resData) {
+                try {
+                    const { data: catData, error: catError } = await supabase
+                        .from('menu_categories')
+                        .select('*')
+                        .eq('restaurant_id', resData.id)
+                        .order('sort_order');
+
+                    if (catError) console.warn('Could not fetch categories:', catError);
+
+                    const { data: itemData, error: itemError } = await supabase
+                        .from('menu_items')
+                        .select('*')
+                        .eq('restaurant_id', resData.id)
+                        .eq('is_available', true);
+
+                    if (itemError) console.warn('Could not fetch items:', itemError);
+
+                    setMenuCategories(catData || []);
+                    setMenuItems(itemData || []);
+
+                    // If we found categories in DB, set the first one as active
+                    if (catData && catData.length > 0) {
+                        setSelectedMenuCat(catData[0].name);
+                    }
+                } catch (menuErr) {
+                    console.warn('Menu fetch failed safely:', menuErr);
+                }
+            }
         } catch (error) {
             console.error('Error fetching restaurant:', error);
         } finally {
@@ -162,7 +197,22 @@ export default function RestaurantDetailScreen() {
         extrapolate: 'clamp',
     });
 
-    const menuItemsForCat = SAMPLE_MENU.items.filter(i => i.cat === selectedMenuCat);
+    // Menus to Render
+    const menuCategoriesToRender = menuCategories.length > 0
+        ? menuCategories
+        : SAMPLE_MENU.categories.map((c, i) => ({ id: String(i), name: c }));
+
+    const activeCategoryId = menuCategoriesToRender.find(c => c.name === selectedMenuCat)?.id;
+
+    const menuItemsToRender = menuCategories.length > 0
+        ? menuItems.filter(i => i.category_id === activeCategoryId)
+        : SAMPLE_MENU.items.filter(i => i.cat === selectedMenuCat).map(i => ({
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            image_url: i.img,
+            description: null
+        }));
 
     const timeSlots = ['10:00 AM', '12:00 PM', '2:00 PM', '4:00 PM', '6:00 PM', '8:00 PM'];
 
@@ -274,22 +324,22 @@ export default function RestaurantDetailScreen() {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.menuCatRow}
             >
-                {SAMPLE_MENU.categories.map(cat => (
+                {menuCategoriesToRender.map(cat => (
                     <TouchableOpacity
-                        key={cat}
-                        style={[styles.menuCatPill, selectedMenuCat === cat && styles.menuCatPillActive]}
-                        onPress={() => setSelectedMenuCat(cat)}
+                        key={cat.id || cat.name}
+                        style={[styles.menuCatPill, selectedMenuCat === cat.name && styles.menuCatPillActive]}
+                        onPress={() => setSelectedMenuCat(cat.name)}
                     >
-                        <Text style={[styles.menuCatText, selectedMenuCat === cat && styles.menuCatTextActive]}>{cat}</Text>
+                        <Text style={[styles.menuCatText, selectedMenuCat === cat.name && styles.menuCatTextActive]}>{cat.name}</Text>
                     </TouchableOpacity>
                 ))}
             </ScrollView>
 
             {/* Menu Items Grid - 2 columns like the video */}
             <View style={styles.menuGrid}>
-                {menuItemsForCat.map(item => (
+                {menuItemsToRender.map(item => (
                     <TouchableOpacity key={item.id} style={styles.menuItem}>
-                        <Image source={{ uri: item.img }} style={styles.menuItemImage} />
+                        <Image source={{ uri: item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop' }} style={styles.menuItemImage} />
                         <View style={styles.menuItemInfo}>
                             <Text style={styles.menuItemName} numberOfLines={1}>{item.name}</Text>
                             <Text style={styles.menuItemPrice}>${item.price.toFixed(2)}</Text>
@@ -298,7 +348,7 @@ export default function RestaurantDetailScreen() {
                 ))}
             </View>
 
-            {menuItemsForCat.length === 0 && (
+            {menuItemsToRender.length === 0 && (
                 <View style={styles.emptyMenu}>
                     <UtensilsCrossed size={32} color={Colors.border} />
                     <Text style={styles.emptyMenuText}>{t('restaurant.noItemsInCategory') || 'No items in this category'}</Text>

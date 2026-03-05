@@ -101,7 +101,7 @@ export async function createBooking(data: {
     // Get restaurant details for validation and email
     const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, address, turn_duration_minutes, turn_times_config, is_open')
+        .select('name, address, turn_duration_minutes, turn_times_config, is_open, sms_enabled')
         .eq('id', data.restaurant_id)
         .single()
 
@@ -188,7 +188,7 @@ export async function createBooking(data: {
         }).catch(err => console.error('Non-critical error sending email:', err));
     }
 
-    if (guestPhone && restaurant) {
+    if (guestPhone && restaurant && restaurant.sms_enabled) {
         sendSMS(guestPhone, 'confirmation', {
             to: guestPhone,
             guestName: finalGuestName,
@@ -245,7 +245,7 @@ export async function cancelBooking(bookingId: string) {
         .select(`
             id, restaurant_id, reservation_time, guest_count, guest_name, guest_phone,
             user_id,
-            restaurants:restaurant_id (name, address),
+            restaurants:restaurant_id (name, address, sms_enabled),
             users:user_id (email, full_name)
         `)
         .eq('id', bookingId)
@@ -288,7 +288,7 @@ export async function cancelBooking(bookingId: string) {
             }).catch(console.error)
         }
 
-        if (guestPhone && restaurant) {
+        if (guestPhone && restaurant && restaurant.sms_enabled) {
             sendSMS(guestPhone, 'cancelled', {
                 to: guestPhone,
                 guestName,

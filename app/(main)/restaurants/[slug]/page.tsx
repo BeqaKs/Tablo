@@ -572,9 +572,9 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                     </div>
                                 )}
                                 {reviews.map((review) => {
-                                    const initials = review.guest_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
-                                    const displayDate = review.visited_date
-                                        ? new Date(review.visited_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                                    const initials = review.guestName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+                                    const displayDate = review.visitedDate
+                                        ? new Date(review.visitedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                                         : new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                                     return (
                                         <div key={review.id} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 group">
@@ -584,7 +584,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                                         {initials}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 text-base">{review.guest_name}</p>
+                                                        <p className="font-bold text-gray-900 text-base">{review.guestName}</p>
                                                         <p className="text-xs font-medium text-gray-500 mt-0.5">{displayDate}</p>
                                                     </div>
                                                 </div>
@@ -594,9 +594,9 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                                     ))}
                                                 </div>
                                             </div>
-                                            {review.review_text && (
+                                            {review.comment && (
                                                 <p className="text-gray-600 text-sm leading-relaxed font-medium line-clamp-4 group-hover:line-clamp-none transition-all duration-500">
-                                                    "{review.review_text}"
+                                                    "{review.comment}"
                                                 </p>
                                             )}
                                         </div>

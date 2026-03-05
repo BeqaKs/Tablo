@@ -91,3 +91,46 @@ export async function sendReminderEmail({
         return { success: false, error };
     }
 }
+
+export async function sendReviewRequestEmail({
+    to, guestName, restaurantName, reviewUrl, locale = 'en'
+}: {
+    to: string; guestName: string; restaurantName: string;
+    reviewUrl: string; locale?: string;
+}) {
+    const resend = getResend();
+    if (!resend) return { success: false, message: 'Skipped' };
+    try {
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                <h2 style="color: #333;">How was your experience at ${restaurantName}?</h2>
+                <p style="color: #555;">Hi ${guestName},</p>
+                <p style="color: #555;">We hope you enjoyed your recent visit to <strong>${restaurantName}</strong>.</p>
+                <p style="color: #555;">We'd love to hear about your experience! Your feedback helps the restaurant improve and helps other guests discover great food.</p>
+                <div style="margin: 30px 0;">
+                    <a href="${reviewUrl}" style="background-color: #E11D48; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                        Leave a Review
+                    </a>
+                </div>
+                <p style="color: #999; font-size: 12px; margin-top: 40px;">
+                    Powered by Tablo
+                </p>
+            </div>
+        `;
+        const subject = locale === 'ka'
+            ? `როგორ შეაფასებდით ${restaurantName}-ს?`
+            : `How was your visit to ${restaurantName}?`;
+
+        const data = await resend.emails.send({
+            from: FROM,
+            to: [to],
+            subject,
+            html,
+        });
+        if (data.error) return { success: false, error: data.error };
+        return { success: true, data };
+    } catch (error) {
+        console.error('Failed to send review email:', error);
+        return { success: false, error };
+    }
+}
