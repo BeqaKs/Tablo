@@ -21,8 +21,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, MapPin, Bell, Heart, Star, ChevronRight, ChevronDown, Filter, Map as MapIcon, X, Flame, Sparkles, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../src/services/supabase';
+import { cacheService } from '../../src/services/cache';
 import { Restaurant } from '../../src/types/database';
-import { Colors, Shadows } from '../../src/constants/Colors';
+import { Tables } from '../../src/types/database';
+import { Colors as AppColors, Shadows } from '../../src/constants/Colors';
+const Colors = AppColors.light;
 import { t } from '../../src/localization/i18n';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -30,6 +33,7 @@ import { Skeleton } from '../../src/components/Skeleton';
 import { BlurView } from 'expo-blur';
 import { MapWrapper } from '../../src/components/MapWrapper';
 import { useLanguage } from '../../src/context/LanguageContext';
+import { AIConcierge } from '../../src/components/AIConcierge';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.65;
@@ -48,7 +52,10 @@ const CUISINE_ICONS = [
     { key: 'mediterranean', emoji: '🫒' },
 ];
 
+import { useTheme } from '../../src/context/ThemeContext';
+
 export default function DiscoverScreen() {
+    const { colors } = useTheme();
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -64,6 +71,8 @@ export default function DiscoverScreen() {
     const [priceRange, setPriceRange] = useState<number[]>([]);
     const [sortBy, setSortBy] = useState('rating');
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showOpenNow, setShowOpenNow] = useState(false);
+    const [quickFilter, setQuickFilter] = useState<'all' | 'top' | 'open'>('all');
 
     const router = useRouter();
     const { user, profile } = useAuth();
@@ -107,12 +116,23 @@ export default function DiscoverScreen() {
             })
         ).start();
 
+        // Load wishlist from cache
+        cacheService.get<string[]>('wishlist').then(saved => {
+            if (saved) setWishlist(new Set(saved));
+        });
+
         fetchRestaurants();
     }, []);
 
     async function fetchRestaurants() {
         try {
             setLoading(true);
+            const cached = await cacheService.get<Restaurant[]>('restaurants_index');
+            if (cached && cached.length > 0) {
+                setRestaurants(cached);
+                setLoading(false); // Stop loading early if we have cache
+            }
+
             const { data, error } = await supabase
                 .from('restaurants')
                 .select('*')
@@ -120,7 +140,10 @@ export default function DiscoverScreen() {
                 .order('name');
 
             if (error) throw error;
-            setRestaurants(data || []);
+            if (data) {
+                setRestaurants(data);
+                await cacheService.set('restaurants_index', data);
+            }
         } catch (error) {
             console.error('Error fetching restaurants:', error);
         } finally {
@@ -128,16 +151,27 @@ export default function DiscoverScreen() {
         }
     }
 
+    const resetFilters = () => {
+        setSelectedCuisine(null);
+        setPriceRange([]);
+        setSortBy('rating');
+        setShowOpenNow(false);
+        setQuickFilter('all');
+    };
+
     const filteredRestaurants = useMemo(() => {
         return restaurants.filter(r => {
             const matchesSearch = !searchQuery ||
                 r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                r.cuisine_type.toLowerCase().includes(searchQuery.toLowerCase());
+                (r.cuisine_type || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesCuisine = !selectedCuisine ||
-                r.cuisine_type.toLowerCase().includes(selectedCuisine.toLowerCase());
-            return matchesSearch && matchesCuisine;
+                (r.cuisine_type || '').toLowerCase().includes(selectedCuisine.toLowerCase());
+            const matchesTop = quickFilter !== 'top' || (Number((r as any).rating) >= 4.5);
+            const matchesOpen = (quickFilter !== 'open' && !showOpenNow) || r.is_open === true;
+
+            return matchesSearch && matchesCuisine && matchesTop && matchesOpen;
         });
-    }, [restaurants, searchQuery, selectedCuisine]);
+    }, [restaurants, searchQuery, selectedCuisine, quickFilter, showOpenNow]);
 
     const dineDiscoveries = useMemo(() => filteredRestaurants.slice(0, 8), [filteredRestaurants]);
     const topRated = useMemo(() =>
@@ -161,6 +195,7 @@ export default function DiscoverScreen() {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
+            cacheService.set('wishlist', Array.from(next));
             return next;
         });
     }, []);
@@ -200,17 +235,6 @@ export default function DiscoverScreen() {
         if (hour < 12) return t('home.greetingMorning') || 'Good Morning';
         if (hour < 18) return t('home.greetingAfternoon') || 'Good Afternoon';
         return t('home.greetingEvening') || 'Good Evening';
-    };
-
-    const handleSurpriseMe = () => {
-        if (filteredRestaurants.length === 0) return;
-        // Fancy random pick
-        const randomIndex = Math.floor(Math.random() * Math.min(filteredRestaurants.length, 20));
-        const picked = filteredRestaurants[randomIndex];
-        // Short delay for effect
-        setTimeout(() => {
-            handleRestaurantPress(picked);
-        }, 300);
     };
 
     // ── Predefined Collections (Mock Data for UI) ─────────────────────
@@ -255,12 +279,12 @@ export default function DiscoverScreen() {
             'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop';
         const matchPct = getMatchPercentage(restaurant);
         const isWishlisted = wishlist.has(restaurant.id);
-        const isTopRated = Number(restaurant.rating) >= 4.5;
+        const isTopRated = Number((restaurant as any).rating) >= 4.5;
 
         return (
             <TouchableOpacity
                 key={restaurant.id}
-                style={[styles.discoveryCard, { width: 220, height: 280 }]}
+                style={[styles.discoveryCard, { width: 220, height: 280, backgroundColor: colors.surface }]}
                 activeOpacity={0.9}
                 onPress={() => handleRestaurantPress(restaurant)}
             >
@@ -299,13 +323,13 @@ export default function DiscoverScreen() {
                         )}
                     </View>
 
-                    <Text style={styles.portraitName} numberOfLines={1}>{restaurant.name}</Text>
+                    <Text style={[styles.portraitName, { color: colors.text }]} numberOfLines={1}>{restaurant.name}</Text>
 
                     <View style={styles.portraitMeta}>
                         <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                        <Text style={styles.portraitRating}>{(restaurant as any).rating || '4.5'}</Text>
+                        <Text style={[styles.portraitRating, { color: colors.textSecondary }]}>{(restaurant as any).rating || '4.5'}</Text>
                         <View style={styles.portraitMetaDot} />
-                        <Text style={styles.portraitAddress} numberOfLines={1}>
+                        <Text style={[styles.portraitAddress, { color: colors.textMuted }]} numberOfLines={1}>
                             {restaurant.address || restaurant.city || 'Tbilisi'}
                         </Text>
                     </View>
@@ -326,7 +350,7 @@ export default function DiscoverScreen() {
         return (
             <TouchableOpacity
                 key={`top-${restaurant.id}`}
-                style={[styles.landscapeCard, { width: '100%', height: 148 }]}
+                style={[styles.landscapeCard, { width: '100%', height: 148, backgroundColor: colors.surface }]}
                 activeOpacity={0.9}
                 onPress={() => handleRestaurantPress(restaurant)}
             >
@@ -347,18 +371,18 @@ export default function DiscoverScreen() {
 
                 <View style={styles.landscapeInfo}>
                     <View style={styles.landscapeHeaderRow}>
-                        <Text style={styles.landscapeName} numberOfLines={1}>{restaurant.name}</Text>
+                        <Text style={[styles.landscapeName, { color: colors.text }]} numberOfLines={1}>{restaurant.name}</Text>
                         <View style={styles.landscapeRatingBadge}>
                             <Star size={10} color="#FFF" fill="#FFF" />
                             <Text style={styles.landscapeRatingBadgeText}>{(restaurant as any).rating || '4.5'}</Text>
                         </View>
                     </View>
 
-                    <Text style={styles.landscapeCuisine} numberOfLines={1}>{restaurant.cuisine_type}</Text>
+                    <Text style={[styles.landscapeCuisine, { color: colors.textSecondary }]} numberOfLines={1}>{restaurant.cuisine_type}</Text>
 
                     <View style={styles.landscapeMeta}>
-                        <MapPin size={12} color={Colors.textMuted} />
-                        <Text style={styles.landscapeAddress} numberOfLines={1}>
+                        <MapPin size={12} color={colors.textMuted} />
+                        <Text style={[styles.landscapeAddress, { color: colors.textMuted }]} numberOfLines={1}>
                             {restaurant.address || restaurant.city || 'Tbilisi'}
                         </Text>
                     </View>
@@ -368,10 +392,10 @@ export default function DiscoverScreen() {
                         {mockTimes.map(time => (
                             <TouchableOpacity
                                 key={time}
-                                style={styles.timeSlotBtn}
+                                style={[styles.timeSlotBtn, { borderColor: colors.border }]}
                                 onPress={() => handleRestaurantPress(restaurant)}
                             >
-                                <Text style={styles.timeSlotText}>{time}</Text>
+                                <Text style={[styles.timeSlotText, { color: colors.primary }]}>{time}</Text>
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -385,32 +409,62 @@ export default function DiscoverScreen() {
         const imageUrl = restaurant.gallery_images?.[0] || restaurant.images?.[0] ||
             'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop';
         const distance = (1 + Math.random() * 5).toFixed(1);
+        const matchPct = getMatchPercentage(restaurant);
+        const isWishlisted = wishlist.has(restaurant.id);
 
         return (
             <TouchableOpacity
                 key={`search-${restaurant.id}`}
-                style={styles.searchCard}
+                style={[styles.searchCard, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
                 activeOpacity={0.9}
                 onPress={() => handleRestaurantPress(restaurant)}
             >
                 <View style={styles.searchCardImageWrap}>
                     <Image source={{ uri: imageUrl }} style={styles.searchCardImage} />
+                    <View style={styles.searchCardMatchBadge}>
+                        <Text style={styles.searchCardMatchText}>{matchPct}%</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.searchCardHeart}
+                        onPress={() => toggleWishlist(restaurant.id)}
+                    >
+                        <Heart
+                            size={14}
+                            color={isWishlisted ? '#E11D48' : '#FFF'}
+                            fill={isWishlisted ? '#E11D48' : 'rgba(0,0,0,0.3)'}
+                        />
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.searchCardInfo}>
-                    <Text style={styles.searchCardName} numberOfLines={1}>{restaurant.name}</Text>
-                    <Text style={styles.searchCardCuisine} numberOfLines={1}>
-                        {restaurant.cuisine_type}
-                    </Text>
-                    <View style={styles.searchCardMetaRow}>
-                        <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                        <Text style={styles.searchCardRating}>{(restaurant as any).rating || '4.5'}</Text>
-                        <View style={styles.metaDot} />
-                        <MapPin size={11} color={Colors.textMuted} />
-                        <Text style={styles.searchCardDistance}>{distance} km</Text>
+                    <View style={styles.searchCardHeader}>
+                        <Text style={[styles.searchCardName, { color: colors.text }]} numberOfLines={1}>{restaurant.name}</Text>
+                        <View style={styles.searchCardRatingWrap}>
+                            <Star size={12} color="#FBBF24" fill="#FBBF24" />
+                            <Text style={[styles.searchCardRating, { color: colors.text }]}>{(restaurant as any).rating || '4.5'}</Text>
+                        </View>
                     </View>
-                    <Text style={styles.searchCardAddress} numberOfLines={1}>
-                        {restaurant.address || restaurant.city || 'Tbilisi'}
+
+                    <Text style={[styles.searchCardCuisine, { color: colors.textSecondary }]} numberOfLines={1}>
+                        {restaurant.cuisine_type} • {distance} km
                     </Text>
+
+                    <View style={styles.searchCardMetaRow}>
+                        <MapPin size={11} color={colors.textMuted} />
+                        <Text style={[styles.searchCardAddress, { color: colors.textMuted }]} numberOfLines={1}>
+                            {restaurant.address || restaurant.city || 'Tbilisi'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.searchCardTags}>
+                        {restaurant.is_open && (
+                            <View style={styles.openBadge}>
+                                <Text style={styles.openBadgeText}>{t('restaurants.available') || 'Available'}</Text>
+                            </View>
+                        )}
+                        <View style={styles.priceTag}>
+                            <Text style={styles.priceTagText}>{'$'.repeat(Math.floor(Math.random() * 3) + 1)}</Text>
+                        </View>
+                    </View>
                 </View>
             </TouchableOpacity>
         );
@@ -419,94 +473,140 @@ export default function DiscoverScreen() {
     // ── Main Render ─────────────────────────────────────────────────────
     if (showSearch) {
         return (
-            <>
-                <SafeAreaView style={styles.searchSafeArea}>
-                    <StatusBar barStyle="light-content" />
+            <View style={[styles.searchSafeArea, { backgroundColor: colors.background }]}>
+                <StatusBar barStyle="light-content" />
 
-                    {/* Search Header */}
-                    <View style={styles.searchHeader}>
+                <LinearGradient
+                    colors={['#8B1A10', '#B83024']}
+                    style={styles.searchHeader}
+                >
+                    <SafeAreaView edges={['top']}>
                         <View style={styles.searchInputRow}>
                             <Search size={18} color="rgba(255,255,255,0.7)" />
                             <TextInput
-                                placeholder={t('home.searchPlaceholderFull') || 'Search restaurants, cuisines...'}
+                                placeholder={t('home.searchPlaceholderFull') || 'Search restaurants...'}
                                 placeholderTextColor="rgba(255,255,255,0.5)"
                                 style={styles.searchHeaderInput}
                                 value={searchQuery}
                                 onChangeText={setSearchQuery}
                                 autoFocus
                             />
-                            <TouchableOpacity onPress={() => { setShowSearch(false); setSearchQuery(''); }}>
-                                <X size={20} color="#FFF" />
+                            {searchQuery.length > 0 && (
+                                <TouchableOpacity onPress={() => setSearchQuery('')} style={{ marginRight: 8 }}>
+                                    <X size={18} color="rgba(255,255,255,0.5)" />
+                                </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                                style={styles.closeSearchBtn}
+                                onPress={() => { setShowSearch(false); setSearchQuery(''); }}
+                            >
+                                <Text style={styles.closeSearchText}>{t('common.close') || 'Close'}</Text>
                             </TouchableOpacity>
                         </View>
-                        <View style={styles.searchActions}>
+
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={styles.searchQuickFilters}
+                        >
                             <TouchableOpacity
-                                style={styles.searchFilterBtn}
+                                style={[styles.quickFilterChip, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
                                 onPress={() => setShowFilters(true)}
                             >
-                                <Filter size={16} color="#FFF" />
-                                <Text style={styles.searchFilterText}>{t('home.filters.title') || 'Filters'}</Text>
+                                <Filter size={14} color="#FFF" />
+                                <Text style={styles.quickFilterText}>{t('home.filters.title') || 'Filters'}</Text>
                             </TouchableOpacity>
+
+                            <View style={styles.filterDivider} />
+
                             <TouchableOpacity
-                                style={styles.searchMapBtn}
-                                onPress={() => {
-                                    setShowSearch(false);
-                                    router.push('/(tabs)/explore');
-                                }}
+                                style={[styles.quickFilterChip, quickFilter === 'all' && styles.quickFilterChipActive]}
+                                onPress={() => setQuickFilter('all')}
                             >
-                                <MapIcon size={16} color="#FFF" />
-                                <Text style={styles.searchFilterText}>{t('restaurants.viewMap') || 'Map'}</Text>
+                                <Text style={[styles.quickFilterText, quickFilter === 'all' && styles.quickFilterTextActive]}>
+                                    {t('restaurants.all') || 'All'}
+                                </Text>
                             </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.quickFilterChip, quickFilter === 'top' && styles.quickFilterChipActive]}
+                                onPress={() => setQuickFilter('top')}
+                            >
+                                <Flame size={14} color={quickFilter === 'top' ? '#FFF' : 'rgba(255,255,255,0.7)'} />
+                                <Text style={[styles.quickFilterText, quickFilter === 'top' && styles.quickFilterTextActive]}>
+                                    {t('home.filters.topRated') || 'Top Rated'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.quickFilterChip, quickFilter === 'open' && styles.quickFilterChipActive]}
+                                onPress={() => setQuickFilter('open')}
+                            >
+                                <Clock size={14} color={quickFilter === 'open' ? '#FFF' : 'rgba(255,255,255,0.7)'} />
+                                <Text style={[styles.quickFilterText, quickFilter === 'open' && styles.quickFilterTextActive]}>
+                                    {t('home.filters.openNow') || 'Open Now'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {CUISINE_ICONS.slice(0, 5).map(({ key, emoji }) => (
+                                <TouchableOpacity
+                                    key={key}
+                                    style={[styles.quickFilterChip, selectedCuisine === key && styles.quickFilterChipActive]}
+                                    onPress={() => setSelectedCuisine(prev => prev === key ? null : key)}
+                                >
+                                    <Text style={styles.quickFilterEmoji}>{emoji}</Text>
+                                    <Text style={[styles.quickFilterText, selectedCuisine === key && styles.quickFilterTextActive]}>
+                                        {t(`home.cuisineFilters.${key}`) || key}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </SafeAreaView>
+                </LinearGradient>
+
+                <FlatList
+                    data={filteredRestaurants}
+                    keyExtractor={item => item.id}
+                    renderItem={({ item }) => renderSearchCard(item)}
+                    contentContainerStyle={{ paddingBottom: 100 }}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Search size={48} color={colors.border} />
+                            <Text style={[styles.emptyText, { color: colors.text }]}>{t('home.noResults') || 'No restaurants found'}</Text>
+                            <Text style={[styles.emptySubtext, { color: colors.textMuted }]}>{t('home.tryDifferent') || 'Try a different search term'}</Text>
                         </View>
-                    </View>
+                    }
+                />
 
-                    <ScrollView
-                        style={styles.searchResults}
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 120 }}
-                    >
-                        {filteredRestaurants.length > 0 ? (
-                            filteredRestaurants.map(r => renderSearchCard(r))
-                        ) : (
-                            <View style={styles.emptyContainer}>
-                                <Search size={48} color={Colors.border} />
-                                <Text style={styles.emptyText}>{t('home.noResults') || 'No restaurants found'}</Text>
-                                <Text style={styles.emptySubtext}>{t('home.tryDifferent') || 'Try a different search term'}</Text>
-                            </View>
-                        )}
-
-                        {/* Book Button at bottom */}
-                        {filteredRestaurants.length > 0 && (
-                            <TouchableOpacity
-                                style={styles.bookSeatBtn}
-                                onPress={() => {
-                                    if (filteredRestaurants.length > 0) {
-                                        handleRestaurantPress(filteredRestaurants[0]);
-                                    }
-                                }}
-                            >
-                                <Text style={styles.bookSeatBtnText}>{t('home.bookYourSeat') || 'BOOK YOUR SEAT'}</Text>
-                            </TouchableOpacity>
-                        )}
-                    </ScrollView>
-                </SafeAreaView>
-            </>
+                {/* Search Mode Map Button */}
+                <TouchableOpacity
+                    style={[styles.searchMapFab, { backgroundColor: colors.primary }]}
+                    onPress={() => {
+                        setShowSearch(false);
+                        router.push('/(tabs)/explore');
+                    }}
+                >
+                    <MapIcon size={20} color="#FFF" />
+                    <Text style={styles.searchMapFabText}>{t('restaurants.viewMap') || 'Map'}</Text>
+                </TouchableOpacity>
+            </View>
         );
     }
 
     const renderPriceFilters = () => (
         <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>{t('home.filters.priceRange') || 'Price Range'}</Text>
+            <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>{t('home.filters.priceRange') || 'Price Range'}</Text>
             <View style={styles.priceRow}>
                 {[1, 2, 3, 4].map(p => (
                     <TouchableOpacity
                         key={p}
-                        style={[styles.priceItem, priceRange.includes(p) && styles.priceItemSelected]}
+                        style={[styles.priceItem, { borderColor: colors.border }, priceRange.includes(p) && [styles.priceItemSelected, { backgroundColor: colors.primarySoft, borderColor: colors.primary }]]}
                         onPress={() => {
                             setPriceRange(prev => prev.includes(p) ? prev.filter(v => v !== p) : [...prev, p]);
                         }}
                     >
-                        <Text style={[styles.priceText, priceRange.includes(p) && styles.priceTextSelected]}>{'$'.repeat(p)}</Text>
+                        <Text style={[styles.priceText, { color: colors.text }, priceRange.includes(p) && [styles.priceTextSelected, { color: colors.primary }]]}>{'$'.repeat(p)}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -515,15 +615,15 @@ export default function DiscoverScreen() {
 
     const renderSortFilters = () => (
         <View style={styles.filterSection}>
-            <Text style={styles.filterLabel}>{t('home.filters.sortBy') || 'Sort By'}</Text>
+            <Text style={[styles.filterLabel, { color: colors.textSecondary }]}>{t('home.filters.sortBy') || 'Sort By'}</Text>
             <View style={styles.sortOptions}>
                 {['rating', 'popularity', 'distance'].map(s => (
                     <TouchableOpacity
                         key={s}
-                        style={[styles.sortOption, sortBy === s && styles.sortOptionSelected]}
+                        style={[styles.sortOption, { borderColor: colors.border }, sortBy === s && [styles.sortOptionSelected, { backgroundColor: colors.primary, borderColor: colors.primary }]]}
                         onPress={() => setSortBy(s)}
                     >
-                        <Text style={[styles.sortText, sortBy === s && styles.sortTextSelected]}>
+                        <Text style={[styles.sortText, { color: colors.text }, sortBy === s && styles.sortTextSelected]}>
                             {t(`home.filters.${s}`) || s}
                         </Text>
                     </TouchableOpacity>
@@ -533,7 +633,7 @@ export default function DiscoverScreen() {
     );
 
     return (
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
             <StatusBar barStyle="light-content" />
 
             <Animated.ScrollView
@@ -788,31 +888,20 @@ export default function DiscoverScreen() {
                 <View style={{ height: 100 }} />
             </Animated.ScrollView>
 
-            {/* ── Surprise Me FAB ───────────────────────────────── */}
-            <TouchableOpacity
-                style={styles.fabSurprise}
-                activeOpacity={0.85}
-                onPress={handleSurpriseMe}
-            >
-                <LinearGradient
-                    colors={['#8B1A10', '#D4483E']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.fabGradient}
-                >
-                    <Sparkles size={22} color="#FFF" />
-                    <Text style={styles.fabText}>{t('home.surpriseMe') || 'Surprise Me'}</Text>
-                </LinearGradient>
-            </TouchableOpacity>
+            {/* AI Concierge rendering the Surprise Me FAB */}
+            <AIConcierge />
 
             {/* Filter Modal */}
             <Modal visible={showFilters} animationType="slide" transparent>
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{t('home.filters.title') || 'Filters'}</Text>
+                            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('home.filters.title') || 'Filters'}</Text>
+                            <TouchableOpacity onPress={resetFilters} style={styles.resetBtn}>
+                                <Text style={styles.resetBtnText}>{t('home.filters.reset') || 'Reset'}</Text>
+                            </TouchableOpacity>
                             <TouchableOpacity onPress={() => setShowFilters(false)}>
-                                <X size={24} color={Colors.text} />
+                                <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.modalBody}>
@@ -1581,9 +1670,138 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     searchCardAddress: {
-        fontSize: 11,
+        fontSize: 12,
         color: Colors.textMuted,
         fontWeight: '500',
+    },
+    searchCardMatchBadge: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        backgroundColor: '#10B981',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    searchCardMatchText: {
+        color: '#FFF',
+        fontSize: 10,
+        fontWeight: '800',
+    },
+    searchCardHeart: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    searchCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 2,
+    },
+    searchCardRatingWrap: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    searchCardTags: {
+        flexDirection: 'row',
+        gap: 6,
+        marginTop: 8,
+    },
+    openBadge: {
+        backgroundColor: '#DCFCE7',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    openBadgeText: {
+        color: '#166534',
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    priceTag: {
+        backgroundColor: '#F1F5F9',
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 6,
+    },
+    priceTagText: {
+        color: Colors.textSecondary,
+        fontSize: 10,
+        fontWeight: '700',
+    },
+
+    // ── Search Mode Layout ─────────────────────────────
+    closeSearchBtn: {
+        paddingLeft: 12,
+        paddingVertical: 4,
+    },
+    closeSearchText: {
+        color: '#FFF',
+        fontWeight: '700',
+        fontSize: 14,
+    },
+    searchQuickFilters: {
+        paddingHorizontal: 20,
+        paddingBottom: 16,
+        gap: 8,
+    },
+    quickFilterChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.1)',
+    },
+    quickFilterChipActive: {
+        backgroundColor: '#FFF',
+        borderColor: '#FFF',
+    },
+    quickFilterText: {
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: 13,
+        fontWeight: '600',
+    },
+    quickFilterTextActive: {
+        color: '#8B1A10',
+    },
+    quickFilterEmoji: {
+        fontSize: 14,
+    },
+    filterDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        marginHorizontal: 4,
+        alignSelf: 'center',
+    },
+    searchMapFab: {
+        position: 'absolute',
+        bottom: 30,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 30,
+        ...Shadows.md,
+    },
+    searchMapFabText: {
+        color: '#FFF',
+        fontWeight: '800',
+        fontSize: 15,
     },
 
     // ── Book Seat Button ─────────────────────────────────
@@ -1856,8 +2074,17 @@ const styles = StyleSheet.create({
     },
     applyBtnText: {
         color: '#FFF',
-        fontSize: 18,
-        fontWeight: 'bold',
+        fontSize: 16,
+        fontWeight: '800',
+    },
+    resetBtn: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    resetBtnText: {
+        color: '#8B1A10',
+        fontSize: 14,
+        fontWeight: '600',
     },
     notificationFeed: {
         padding: 16,
@@ -1936,30 +2163,5 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         color: '#0369A1',
-    },
-
-    // ── Surprise Me FAB ──────────────────────────────────
-    fabSurprise: {
-        position: 'absolute',
-        right: 20,
-        bottom: Platform.OS === 'ios' ? 100 : 76, // Above the tab bar
-        borderRadius: 30,
-        ...Shadows.lg,
-        elevation: 8,
-        shadowColor: '#8B1A10',
-    },
-    fabGradient: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderRadius: 30,
-        gap: 8,
-    },
-    fabText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '800',
-        letterSpacing: 0.5,
     },
 });

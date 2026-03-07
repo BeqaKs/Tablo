@@ -13,7 +13,8 @@
         "adminPanel": "Admin Panel",
         "home": "Home",
         "waitlist": "Waitlist",
-        "explore": "Explore"
+        "explore": "Explore",
+        "friends": "Friends"
     },
     "home": {
         "hero": {
@@ -133,6 +134,8 @@
         "tryAdjust": "Try adjusting your search",
         "discoverNearby": "Discover Nearby",
         "exploreMap": "Explore Map",
+        "exploreMapTitle": "Explore the Map",
+        "exploreMapSubtitle": "Find restaurants near you on our interactive map",
         "dineDiscoveries": "Dine Discoveries for You",
         "greetingMorning": "Good Morning",
         "greetingAfternoon": "Good Afternoon",
@@ -149,7 +152,9 @@
             "rating": "Rating",
             "popularity": "Popularity",
             "apply": "Apply Filters",
-            "reset": "Reset"
+            "reset": "Reset",
+            "openNow": "Open Now",
+            "topRated": "Top Rated"
         },
         "locationModal": {
             "title": "Select Location",
@@ -359,6 +364,13 @@
         "emailSms": "Email & SMS",
         "signInToManage": "Sign in to manage your bookings and profile settings.",
         "language": "Language / ენა",
+        "theme": "App Theme",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System",
+        "selectTheme": "Select your preferred theme.",
+        "selectLanguage": "Select Language / აირჩიეთ ენა",
+        "selectLanguageDesc": "Choose your preferred language for Tablo.",
         "editProfileModal": {
             "title": "Edit Profile",
             "nameLabel": "Full Name",
@@ -533,6 +545,8 @@
         "storyTitle": "From a simple idea to Georgia's dining platform",
         "storyP1": "Tablo was born from a familiar frustration: trying to book a table at a popular Tbilisi restaurant. Phone calls went unanswered, social media DMs got lost, and walk-ins were always a gamble.",
         "storyP2": "We built Tablo to solve this — a seamless platform where diners can discover, select their exact table, and get instant confirmation. For restaurant owners, we provide powerful tools to manage reservations, optimize seating, and grow their business.",
+        "storyP3": "Today, Tablo is the leading restaurant reservation platform in Georgia, trusted by dozens of premium restaurants and thousands of happy diners.",
+        "valuesLabel": "Our Values",
         "valuesTitle": "What drives everything we do",
         "value1Title": "Seamless Experience",
         "value1Desc": "Every interaction should feel effortless — from browsing to booking to dining.",

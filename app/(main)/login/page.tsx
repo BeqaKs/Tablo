@@ -179,6 +179,7 @@ function LoginContent() {
             </Button>
           </form>
 
+
           <div className="mt-4 text-center text-sm">
             <span className="text-muted-foreground">
               {isSignUp ? authT('haveAccount') : authT('noAccount')}

@@ -86,7 +86,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, onPr
                     </View>
                     <View style={styles.ratingOverlay}>
                         <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                        <Text style={styles.ratingText}>{restaurant.rating || '4.8'}</Text>
+                        <Text style={styles.ratingText}>{(restaurant as any).rating || '4.8'}</Text>
                     </View>
                 </View>
 

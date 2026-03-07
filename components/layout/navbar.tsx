@@ -10,6 +10,8 @@ import { useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { cn } from '@/lib/utils';
 
+import { signout } from '@/app/auth/actions';
+
 export function Navbar() {
   const { t } = useLocale();
   const [user, setUser] = useState<User | null>(null);
@@ -101,7 +103,7 @@ export function Navbar() {
           </div>
 
           {/* Right actions — hidden on mobile */}
-          <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0">
+          <div className="hidden md:flex items-center gap-1.5 ml-auto shrink-0 pointer-events-auto">
             <LanguageSwitcher />
 
             {user ? (
@@ -130,11 +132,21 @@ export function Navbar() {
 
                   </>
                 )}
+                <Link href="/profile/friends">
+                  <Button variant="ghost" size="sm" className="rounded-full h-8 px-4 text-xs font-semibold">
+                    {t('navigation.friends')}
+                  </Button>
+                </Link>
                 <Link href="/profile">
                   <Button size="sm" className="rounded-full h-8 px-4 text-xs">
                     {t('navigation.profile')}
                   </Button>
                 </Link>
+                <form action={signout}>
+                  <Button variant="ghost" size="sm" type="submit" className="rounded-full text-destructive/80 hover:text-destructive hover:bg-destructive/10 h-8 px-3 text-xs pointer-events-auto">
+                    {t('navigation.signOut') || 'Sign Out'}
+                  </Button>
+                </form>
               </>
             ) : (
               <>
@@ -153,7 +165,7 @@ export function Navbar() {
           </div>
 
           {/* Mobile: language switcher + hamburger */}
-          <div className="flex md:hidden items-center gap-2 ml-auto">
+          <div className="flex md:hidden items-center gap-2 ml-auto pointer-events-auto">
             <LanguageSwitcher />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
@@ -230,11 +242,21 @@ export function Navbar() {
 
                     </>
                   )}
+                  <Link href="/profile/friends" onClick={() => setMobileOpen(false)}>
+                    <Button variant="outline" className="w-full rounded-xl h-11 mb-2">
+                      {t('navigation.friends')}
+                    </Button>
+                  </Link>
                   <Link href="/profile" onClick={() => setMobileOpen(false)}>
                     <Button className="w-full rounded-xl h-11">
                       {t('navigation.profile')}
                     </Button>
                   </Link>
+                  <form action={signout} className="w-full">
+                    <Button variant="outline" type="submit" className="w-full rounded-xl h-11 text-destructive hover:text-destructive mt-4 pointer-events-auto">
+                      {t('navigation.signOut') || 'Sign Out'}
+                    </Button>
+                  </form>
                 </>
               ) : (
                 <>

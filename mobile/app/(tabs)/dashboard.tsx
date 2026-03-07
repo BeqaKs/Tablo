@@ -12,8 +12,9 @@ import {
     StatusBar
 } from 'react-native';
 import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame, Sparkles } from 'lucide-react-native';
-import { supabase } from '../../src/services/supabase';
 import { useAuth } from '../../src/context/AuthContext';
+import { supabase } from '../../src/services/supabase';
+import { cacheService } from '../../src/services/cache';
 import { Colors } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
 import { Reservation, Restaurant, Table } from '../../src/types/database';
@@ -39,6 +40,17 @@ export default function DashboardScreen() {
 
         try {
             setLoading(true);
+
+            // Attempt to load from cache first
+            const cachedData = await cacheService.get<any>(`dashboard_${user.id}`);
+            if (cachedData) {
+                setRestaurant(cachedData.restaurant);
+                setReservations(cachedData.reservations);
+                setWaitlist(cachedData.waitlist);
+                setStats(cachedData.stats);
+                setLoading(false);
+            }
+
             // 1. Fetch Restaurant
             const { data: restData, error: restError } = await supabase
                 .from('restaurants')
@@ -96,6 +108,20 @@ export default function DashboardScreen() {
                     todayCovers: covers,
                     recentCount: (resData || []).length,
                     waitlistCount: waitListData?.length || 0
+                });
+
+                // Cache all the valid data for the dashboard
+                await cacheService.set(`dashboard_${user.id}`, {
+                    restaurant: restData,
+                    reservations: resData || [],
+                    waitlist: waitListData || [],
+                    stats: {
+                        occupancy: seated,
+                        totalCapacity: totalCap,
+                        todayCovers: covers,
+                        recentCount: (resData || []).length,
+                        waitlistCount: waitListData?.length || 0
+                    }
                 });
             }
         } catch (error) {
@@ -288,8 +314,8 @@ export default function DashboardScreen() {
                                         <View style={styles.resInfo}>
                                             <View style={styles.resRow}>
                                                 <Text style={styles.guestName} numberOfLines={1}>{res.guest_name || 'Guest'}</Text>
-                                                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(res.status) + '22' }]}>
-                                                    <Text style={[styles.statusText, { color: getStatusColor(res.status) }]}>{res.status.toUpperCase()}</Text>
+                                                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(res.status || '') + '22' }]}>
+                                                    <Text style={[styles.statusText, { color: getStatusColor(res.status || '') }]}>{(res.status || 'unknown').toUpperCase()}</Text>
                                                 </View>
                                             </View>
                                             <View style={styles.resDetailRow}>

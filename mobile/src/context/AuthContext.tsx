@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../services/supabase';
+import { notificationService } from '../services/notifications';
 import { Profile } from '../types/database';
 
 interface AuthContextType {
@@ -24,7 +25,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session);
             setUser(session?.user ?? null);
-            if (session?.user) await fetchProfile(session.user.id);
+            if (session?.user) {
+                await fetchProfile(session.user.id);
+                // Register for push notifications
+                notificationService.registerForPushNotificationsAsync().then((token) => {
+                    if (token) notificationService.updatePushToken(session.user.id, token);
+                });
+            }
             setLoading(false);
         });
 
@@ -35,6 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (session?.user) {
                 await fetchProfile(session.user.id);
+                // Register for push notifications
+                notificationService.registerForPushNotificationsAsync().then((token) => {
+                    if (token) notificationService.updatePushToken(session.user.id, token);
+                });
             } else {
                 setProfile(null);
             }
@@ -58,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error) throw error;
             setProfile(data);
         } catch (error) {
-            console.error('Error fetching profile:', error);
+            console.error('Error fetching profile for user:', userId, error);
             setProfile(null);
         }
     };

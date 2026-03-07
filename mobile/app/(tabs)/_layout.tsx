@@ -1,12 +1,26 @@
 import React from 'react';
 import { Platform, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Tabs } from 'expo-router';
-import { Home, Calendar, User, LayoutDashboard, Map } from 'lucide-react-native';
+import { Home, Calendar, User, LayoutDashboard, Map, Users } from 'lucide-react-native';
 import { Colors } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
 import { useAuth } from '../../src/context/AuthContext';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+
+const CustomTabBarButton = (props: any) => {
+    return (
+        <TouchableOpacity
+            {...props}
+            activeOpacity={0.8}
+            style={styles.customButtonContainer}
+        >
+            <View style={styles.customButton}>
+                {props.children}
+            </View>
+        </TouchableOpacity>
+    );
+};
 
 export default function TabLayout() {
     const { profile } = useAuth();
@@ -88,9 +102,19 @@ export default function TabLayout() {
                 name="explore"
                 options={{
                     title: t('navigation.explore') || 'Map',
+                    tabBarButton: (props) => <CustomTabBarButton {...props} />,
+                    tabBarIcon: ({ color, focused }) => (
+                        <Map size={30} color="#FFFFFF" strokeWidth={2.5} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="friends"
+                options={{
+                    title: t('navigation.friends') || 'Friends',
                     tabBarIcon: ({ color, focused }) => (
                         <View style={styles.iconContainer}>
-                            <Map size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
+                            <Users size={24} color={focused ? Colors.primary : color} strokeWidth={focused ? 2.5 : 1.8} />
                             {focused && <View style={styles.activeDot} />}
                         </View>
                     ),
@@ -140,5 +164,25 @@ const styles = StyleSheet.create({
         borderRadius: 2.5,
         backgroundColor: Colors.primary,
         marginTop: 4,
+    },
+    customButtonContainer: {
+        top: -30,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    customButton: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        borderWidth: 4,
+        borderColor: '#FFFFFF',
     },
 });

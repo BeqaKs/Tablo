@@ -15,18 +15,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
     User, Mail, Shield, LogOut, ChevronRight, Settings,
-    Bell, CreditCard, HelpCircle, Star, Calendar, Heart, X, Check
+    Bell, CreditCard, HelpCircle, Star, Calendar, Heart, X, Check, Users,
+    Sun, Moon, Monitor, Globe
 } from 'lucide-react-native';
 import { Colors } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
 import { useAuth } from '../../src/context/AuthContext';
 import { useLanguage } from '../../src/context/LanguageContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { supabase } from '../../src/services/supabase';
 
 export default function ProfileScreen() {
     const router = useRouter();
     const { user, profile, signOut } = useAuth();
     const { language, setLanguage } = useLanguage();
+    const { theme, setTheme, colors } = useTheme();
 
     // Edit Profile modal state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -44,14 +47,36 @@ export default function ProfileScreen() {
 
     const handleChangeLanguage = () => {
         Alert.alert(
-            'Select Language / აირჩიეთ ენა',
-            'Choose your preferred language for Tablo.',
+            t('profile.selectLanguage') || 'Select Language / აირჩიეთ ენა',
+            t('profile.selectLanguageDesc') || 'Choose your preferred language for Tablo.',
             [
                 { text: 'English', onPress: () => setLanguage('en') },
                 { text: 'ქართული (Georgian)', onPress: () => setLanguage('ka') },
                 { text: t('common.cancel') || 'Cancel', style: 'cancel' }
             ]
         );
+    };
+
+    const handleChangeTheme = () => {
+        Alert.alert(
+            t('profile.theme') || 'App Theme',
+            t('profile.selectTheme') || 'Select your preferred theme.',
+            [
+                { text: t('profile.themeLight') || 'Light', onPress: () => setTheme('light') },
+                { text: t('profile.themeDark') || 'Dark', onPress: () => setTheme('dark') },
+                { text: t('profile.themeSystem') || 'System', onPress: () => setTheme('system') },
+                { text: t('common.cancel') || 'Cancel', style: 'cancel' }
+            ]
+        );
+    };
+
+    const getThemeLabel = (themeMode: string) => {
+        switch (themeMode) {
+            case 'light': return t('profile.themeLight') || 'Light';
+            case 'dark': return t('profile.themeDark') || 'Dark';
+            case 'system': return t('profile.themeSystem') || 'System';
+            default: return themeMode.charAt(0).toUpperCase() + themeMode.slice(1);
+        }
     };
 
     const handleSaveProfile = async () => {
@@ -123,15 +148,39 @@ export default function ProfileScreen() {
 
     if (!user) {
         return (
-            <SafeAreaView style={[styles.container, styles.centered]}>
-                <View style={styles.emptyAvatarCircle}>
-                    <User size={48} color={Colors.border} strokeWidth={1.5} />
-                </View>
-                <Text style={styles.emptyTitle}>{t('navigation.signIn')}</Text>
-                <Text style={styles.emptySubtitle}>{t('profile.signInToManage') || 'Sign in to manage your bookings and profile settings.'}</Text>
-                <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
-                    <Text style={styles.primaryButtonText}>{t('auth.signInButton')}</Text>
-                </TouchableOpacity>
+            <SafeAreaView style={styles.container}>
+                <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+                    <View style={[styles.centered, { paddingTop: 60, paddingBottom: 40 }]}>
+                        <View style={styles.emptyAvatarCircle}>
+                            <User size={48} color={Colors.border} strokeWidth={1.5} />
+                        </View>
+                        <Text style={styles.emptyTitle}>{t('navigation.signIn')}</Text>
+                        <Text style={styles.emptySubtitle}>{t('profile.signInToManage') || 'Sign in to manage your bookings and profile settings.'}</Text>
+                        <TouchableOpacity style={styles.primaryButton} onPress={() => router.push('/(auth)/login')}>
+                            <Text style={styles.primaryButtonText}>{t('auth.signInButton')}</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>{t('profile.appSettings') || 'App Settings'}</Text>
+                        <View style={styles.menuContainer}>
+                            {renderMenuItem(
+                                Globe,
+                                t('profile.language') || 'Language',
+                                language === 'ka' ? 'ქართული' : 'English',
+                                handleChangeLanguage
+                            )}
+                            {renderMenuItem(
+                                theme === 'dark' ? Moon : Sun,
+                                t('profile.theme') || 'App Theme',
+                                getThemeLabel(theme),
+                                handleChangeTheme,
+                                false,
+                                true
+                            )}
+                        </View>
+                    </View>
+                </ScrollView>
             </SafeAreaView>
         );
     }
@@ -193,6 +242,12 @@ export default function ProfileScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>{t('profile.personalInfo')}</Text>
                     <View style={styles.menuContainer}>
+                        {renderMenuItem(
+                            Users,
+                            'Friends & Network',
+                            'View your dining friends',
+                            () => router.push('/friends' as any)
+                        )}
                         {renderMenuItem(Mail, t('profile.email'), user.email)}
                         {renderMenuItem(
                             Bell,
@@ -233,6 +288,12 @@ export default function ProfileScreen() {
                             t('profile.language') || 'Language / ენა',
                             language === 'en' ? 'English' : 'ქართული',
                             handleChangeLanguage
+                        )}
+                        {renderMenuItem(
+                            theme === 'dark' ? Moon : Sun,
+                            t('profile.theme') || 'App Theme',
+                            getThemeLabel(theme),
+                            handleChangeTheme
                         )}
                         {renderMenuItem(
                             HelpCircle,

@@ -15,6 +15,60 @@ WebBrowser.maybeCompleteAuthSession();
 import { AuthProvider } from '../src/context/AuthContext';
 import { LanguageProvider, useLanguage } from '../src/context/LanguageContext';
 
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
+
+function RootLayoutNav() {
+    const { colors, theme } = useTheme();
+    return (
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+            <Stack
+                screenOptions={{
+                    headerStyle: {
+                        backgroundColor: colors.background,
+                    } as any,
+                    headerTitleStyle: {
+                        fontWeight: '600',
+                        fontSize: 18,
+                        color: colors.text,
+                    },
+                    headerTintColor: colors.text,
+                    headerShadowVisible: false,
+                    contentStyle: {
+                        backgroundColor: colors.surface,
+                    },
+                }}
+            >
+                <Stack.Screen
+                    name="index"
+                    options={{
+                        headerShown: false,
+                    }}
+                />
+                <Stack.Screen
+                    name="(auth)"
+                    options={{
+                        headerShown: false,
+                        presentation: 'modal'
+                    }}
+                />
+                <Stack.Screen
+                    name="restaurant/[slug]"
+                    options={{
+                        headerShown: false,
+                    }}
+                />
+                <Stack.Screen
+                    name="(tabs)"
+                    options={{
+                        headerShown: false
+                    }}
+                />
+            </Stack>
+            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+        </View>
+    );
+}
+
 export default function RootLayout() {
     const [loaded, error] = useFonts({
         // We can add custom fonts later if needed
@@ -33,52 +87,9 @@ export default function RootLayout() {
     return (
         <LanguageProvider>
             <AuthProvider>
-                <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-                    <Stack
-                        screenOptions={{
-                            headerStyle: {
-                                backgroundColor: '#FFFFFF',
-                            } as any,
-                            headerTitleStyle: {
-                                fontWeight: '600',
-                                fontSize: 18,
-                                color: '#1A1A1A',
-                            },
-                            headerTintColor: '#1A1A1A',
-                            headerShadowVisible: false,
-                            contentStyle: {
-                                backgroundColor: '#F8FAFC',
-                            },
-                        }}
-                    >
-                        <Stack.Screen
-                            name="index"
-                            options={{
-                                headerShown: false,
-                            }}
-                        />
-                        <Stack.Screen
-                            name="(auth)"
-                            options={{
-                                headerShown: false,
-                                presentation: 'modal'
-                            }}
-                        />
-                        <Stack.Screen
-                            name="restaurant/[slug]"
-                            options={{
-                                headerShown: false,
-                            }}
-                        />
-                        <Stack.Screen
-                            name="(tabs)"
-                            options={{
-                                headerShown: false
-                            }}
-                        />
-                    </Stack>
-                    <StatusBar style="dark" />
-                </View>
+                <ThemeProvider>
+                    <RootLayoutNav />
+                </ThemeProvider>
             </AuthProvider>
         </LanguageProvider>
     );

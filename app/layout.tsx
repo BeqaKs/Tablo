@@ -2,6 +2,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import { LocaleProvider } from '@/lib/locale-context';
+import { ThemeProvider } from "@/components/theme-provider";
 
 const fontSans = Plus_Jakarta_Sans({
     variable: "--font-sans",
@@ -47,11 +48,13 @@ export default function RootLayout({
 }) {
     return (
         <html lang="ka">
-            <body className={`${fontSans.variable} font-sans antialiased`}>
-                <LocaleProvider>
-                    {children}
-                    <Toaster />
-                </LocaleProvider>
+            <body className={`${fontSans.variable} font-sans antialiased`} suppressHydrationWarning>
+                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                    <LocaleProvider>
+                        {children}
+                        <Toaster />
+                    </LocaleProvider>
+                </ThemeProvider>
             </body>
         </html>
     );

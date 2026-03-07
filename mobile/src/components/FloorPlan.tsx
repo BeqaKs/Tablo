@@ -38,8 +38,8 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({
         const isSelected = selectedTableId === table.id;
 
         // Convert coords (which are likely 0-1000) to actual pixels
-        const left = table.x_coord * scale;
-        const top = table.y_coord * scale;
+        const left = (table.x_coord || 0) * scale;
+        const top = (table.y_coord || 0) * scale;
 
         // Default sizes if not specified
         const tableWidth = (table.width || 60) * scale;
@@ -83,7 +83,7 @@ export const FloorPlan: React.FC<FloorPlanProps> = ({
         <View style={styles.outerContainer}>
             <View style={[styles.canvas, { width: containerWidth, height: containerHeight }]}>
                 {/* Zones could be rendered here if floorPlanJson exists */}
-                {floorPlanJson?.zones?.map(zone => (
+                {floorPlanJson?.zones?.map((zone: any) => (
                     <View key={zone.id} style={styles.zoneOverlay}>
                         {/* Zone rendering logic if needed */}
                     </View>

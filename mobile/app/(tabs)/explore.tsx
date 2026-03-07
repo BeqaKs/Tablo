@@ -16,6 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Search, MapPin, Star, Filter, Heart, ChevronRight, X } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../src/services/supabase';
+import { cacheService } from '../../src/services/cache';
 import { Restaurant } from '../../src/types/database';
 import { Colors, Shadows } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
@@ -74,19 +75,33 @@ export default function ExploreScreen() {
             })
         ]).start();
 
+        // Load wishlist
+        cacheService.get<string[]>('wishlist').then(saved => {
+            if (saved) setWishlist(new Set(saved));
+        });
+
         fetchRestaurants();
     }, []);
 
     const fetchRestaurants = async () => {
         try {
             setLoading(true);
+            const cached = await cacheService.get<Restaurant[]>('restaurants_explore');
+            if (cached && cached.length > 0) {
+                setRestaurants(cached);
+                setLoading(false);
+            }
+
             const { data, error } = await supabase
                 .from('restaurants')
                 .select('*')
                 .order('name');
 
             if (error) throw error;
-            if (data) setRestaurants(data);
+            if (data) {
+                setRestaurants(data);
+                await cacheService.set('restaurants_explore', data);
+            }
         } catch (error) {
             console.error('Error fetching restaurants:', error);
         } finally {
@@ -139,6 +154,7 @@ export default function ExploreScreen() {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
+            cacheService.set('wishlist', Array.from(next));
             return next;
         });
     };

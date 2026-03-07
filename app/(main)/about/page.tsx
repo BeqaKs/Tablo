@@ -57,12 +57,12 @@ export default function AboutPage() {
             </section>
 
             {/* Stats Bar */}
-            <section className="bg-white border-b py-12 relative z-20 -mt-8 mx-auto max-w-5xl rounded-3xl shadow-xl border-gray-100 px-8">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-gray-100">
+            <section className="bg-card border-b py-12 relative z-20 -mt-8 mx-auto max-w-5xl rounded-3xl shadow-xl border-border px-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x divide-border">
                     {stats.map((stat, i) => (
                         <div key={i} className="text-center px-4">
-                            <p className="text-4xl md:text-5xl font-black text-gray-900 tracking-tighter mb-1">{stat.value}</p>
-                            <p className="text-sm text-gray-500 font-semibold uppercase tracking-widest">{stat.label}</p>
+                            <p className="text-4xl md:text-5xl font-black text-foreground tracking-tighter mb-1">{stat.value}</p>
+                            <p className="text-sm text-muted-foreground font-semibold uppercase tracking-widest">{stat.label}</p>
                         </div>
                     ))}
                 </div>
@@ -91,14 +91,14 @@ export default function AboutPage() {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                             </div>
-                            <div className="absolute -bottom-8 -left-8 bg-white/90 backdrop-blur-xl p-5 rounded-2xl shadow-xl border border-gray-100 transform transition-transform hover:-translate-y-2">
+                            <div className="absolute -bottom-8 -left-8 bg-card/90 backdrop-blur-xl p-5 rounded-2xl shadow-xl border border-border transform transition-transform hover:-translate-y-2">
                                 <div className="flex items-center gap-4">
                                     <div className="bg-primary/10 p-3 rounded-xl">
                                         <UtensilsCrossed className="h-6 w-6 text-primary" />
                                     </div>
                                     <div>
-                                        <p className="font-bold text-gray-900">Est. 2024</p>
-                                        <p className="text-xs font-medium text-gray-500 uppercase tracking-widest mt-0.5">{t('home.cta.tbilisiGeorgia')}</p>
+                                        <p className="font-bold text-foreground">Est. 2024</p>
+                                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-0.5">{t('home.cta.tbilisiGeorgia')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -108,19 +108,19 @@ export default function AboutPage() {
             </section>
 
             {/* Values */}
-            <section className="py-24 bg-gray-50">
+            <section className="py-24 bg-muted">
                 <div className="max-w-5xl mx-auto px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">{t('about.valuesTitle')}</h2>
+                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">{t('about.valuesTitle')}</h2>
                     </div>
                     <div className="grid md:grid-cols-2 gap-6">
                         {values.map((value, i) => (
-                            <div key={i} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-200 group">
+                            <div key={i} className="bg-card p-8 rounded-3xl border border-border shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/50 group">
                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform duration-300 group-hover:scale-110 ${value.color}`}>
                                     <value.icon className="h-7 w-7" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-900 mb-3">{value.title}</h3>
-                                <p className="text-gray-500 leading-relaxed">{value.description}</p>
+                                <h3 className="text-xl font-bold text-foreground mb-3">{value.title}</h3>
+                                <p className="text-muted-foreground leading-relaxed">{value.description}</p>
                             </div>
                         ))}
                     </div>
@@ -128,19 +128,19 @@ export default function AboutPage() {
             </section>
 
             {/* Platform Features */}
-            <section className="py-24 bg-white">
+            <section className="py-24 bg-background">
                 <div className="max-w-5xl mx-auto px-8">
                     <div className="text-center mb-16">
                         <p className="text-xs font-semibold uppercase tracking-widest text-primary/70 mb-3">{t('about.featuresLabel')}</p>
-                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">{t('about.featuresTitle')}</h2>
+                        <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">{t('about.featuresTitle')}</h2>
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {featureList.map((feature, i) => (
-                            <div key={i} className="flex gap-4 items-center p-6 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-primary/20 hover:shadow-lg transition-all duration-300 group">
+                            <div key={i} className="flex gap-4 items-center p-6 rounded-2xl border border-border bg-muted/50 hover:bg-card hover:border-primary/20 hover:shadow-lg transition-all duration-300 group">
                                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
                                     <Star className="w-5 h-5" />
                                 </div>
-                                <p className="font-semibold text-gray-800">{feature}</p>
+                                <p className="font-semibold text-foreground">{feature}</p>
                             </div>
                         ))}
                     </div>

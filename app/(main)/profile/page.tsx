@@ -6,9 +6,10 @@ import { getProfile } from '@/app/actions/profile';
 import { ProfileForm } from '@/components/customer/profile-form';
 import { useLocale } from '@/lib/locale-context';
 import { User } from '@supabase/supabase-js';
-import { Loader2, LogOut, Star, Utensils, Calendar, Heart, Trophy, Clock, Globe2, Sparkles } from 'lucide-react';
+import { Loader2, LogOut, Star, Utensils, Calendar, Heart, Trophy, Clock, Globe2, Sparkles, Users } from 'lucide-react';
 import { signout } from '@/app/auth/actions';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Dining DNA Logic
@@ -153,12 +154,20 @@ export default function ProfilePage() {
                         <h1 className="text-3xl sm:text-4xl font-bold mb-1">{t('profile.title')}</h1>
                         <p className="text-muted-foreground">{t('profile.subtitle')}</p>
                     </div>
-                    <form action={signout}>
-                        <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 gap-2">
-                            <LogOut className="h-4 w-4" />
-                            <span className="hidden sm:inline">{t('navigation.signOut')}</span>
+                    <div className="flex gap-3">
+                        <Button variant="outline" className="gap-2" asChild>
+                            <Link href="/profile/friends">
+                                <Users className="h-4 w-4" />
+                                <span className="hidden sm:inline">Friends</span>
+                            </Link>
                         </Button>
-                    </form>
+                        <form action={signout}>
+                            <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 gap-2">
+                                <LogOut className="h-4 w-4" />
+                                <span className="hidden sm:inline">{t('navigation.signOut')}</span>
+                            </Button>
+                        </form>
+                    </div>
                 </div>
             </div>
 

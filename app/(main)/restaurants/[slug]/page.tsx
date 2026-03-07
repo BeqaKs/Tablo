@@ -9,7 +9,7 @@ import Link from 'next/link';
 import {
     MapPin, Star, Clock, Users, Phone, Mail, Globe,
     ChevronLeft, ChevronRight, Calendar, Check, X, ShieldCheck, Heart,
-    Briefcase, Info, UtensilsCrossed
+    Briefcase, Info, UtensilsCrossed, ImagePlus, Trash2
 } from 'lucide-react';
 import { useLocale } from '@/lib/locale-context';
 import { getRestaurantBySlug, createBooking, getUnavailableTables } from '@/app/actions/bookings';
@@ -19,7 +19,9 @@ import { joinWaitlist, calculateWaitTime } from '@/app/actions/waitlist';
 import { createOrder, CartItem } from '@/app/actions/orders';
 import { getMenuByRestaurant } from '@/app/actions/menu';
 import { getReviewsByRestaurant, createReview, ReviewSummary } from '@/app/actions/reviews';
-import { Restaurant, Table } from '@/types/database';
+import { Tables } from '@/types/database';
+type Restaurant = Tables<'restaurants'>;
+type Table = Tables<'tables'>;
 import { toast } from 'sonner';
 import { FloorPlanViewer } from '@/components/floor-plan/floor-plan-viewer';
 import { TablePosition } from '@/lib/stores/floor-plan-store';
@@ -67,6 +69,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
     const [reviewName, setReviewName] = useState('');
     const [reviewRating, setReviewRating] = useState(5);
     const [reviewText, setReviewText] = useState('');
+    const [reviewImages, setReviewImages] = useState<File[]>([]);
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     // Past visit memory
     const [pastVisit, setPastVisit] = useState<{ date: string; time: string; guests: number } | null>(null);
@@ -539,20 +542,66 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                                 <label className="text-sm font-bold text-gray-700 mb-2 block">Review</label>
                                                 <textarea value={reviewText} onChange={e => setReviewText(e.target.value)} placeholder="Wait, that's optional!" rows={4} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-[1.25rem] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all font-medium" />
                                             </div>
+                                            <div>
+                                                <label className="text-sm font-bold text-gray-700 mb-2 block">Photos</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {reviewImages.map((file, idx) => (
+                                                        <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden group">
+                                                            <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" alt="upload preview" />
+                                                            <button
+                                                                onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))}
+                                                                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <Trash2 className="w-5 h-5 text-white" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                    <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors shrink-0">
+                                                        <ImagePlus className="w-6 h-6 text-gray-400 mb-1" />
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            multiple
+                                                            className="hidden"
+                                                            onChange={(e) => {
+                                                                if (e.target.files) {
+                                                                    setReviewImages(prev => [...prev, ...Array.from(e.target.files!)].slice(0, 4));
+                                                                }
+                                                            }}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <Button
                                                 className="w-full rounded-full py-6 text-base font-bold bg-gray-900 hover:bg-black text-white shadow-xl shadow-gray-900/20 transition-all border-0 mt-2"
                                                 disabled={reviewSubmitting || !reviewName.trim()}
                                                 onClick={async () => {
                                                     if (!restaurant) return;
                                                     setReviewSubmitting(true);
-                                                    const result = await createReview(restaurant.id, reviewRating, reviewText, reviewName);
+
+                                                    // Upload images first
+                                                    const uploadedUrls: string[] = [];
+                                                    const supabase = createClient();
+                                                    for (const file of reviewImages) {
+                                                        const fileExt = file.name.split('.').pop();
+                                                        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+                                                        const filePath = `${restaurant.id}/${fileName}`;
+
+                                                        const { data, error } = await supabase.storage.from('reviews_images').upload(filePath, file);
+                                                        if (data) {
+                                                            const { data: { publicUrl } } = supabase.storage.from('reviews_images').getPublicUrl(filePath);
+                                                            uploadedUrls.push(publicUrl);
+                                                        }
+                                                    }
+
+                                                    const result = await createReview(restaurant.id, reviewRating, reviewText, reviewName, uploadedUrls);
                                                     setReviewSubmitting(false);
                                                     if (result.error) {
                                                         toast.error(result.error);
                                                     } else {
                                                         toast.success('Review submitted! Thank you.');
                                                         setReviewModalOpen(false);
-                                                        setReviewText(''); setReviewName(''); setReviewRating(5);
+                                                        setReviewText(''); setReviewName(''); setReviewRating(5); setReviewImages([]);
                                                         const summary = await getReviewsByRestaurant(restaurant.id);
                                                         setReviewSummary(summary);
                                                     }
@@ -572,9 +621,9 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                     </div>
                                 )}
                                 {reviews.map((review) => {
-                                    const initials = review.guestName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
-                                    const displayDate = review.visitedDate
-                                        ? new Date(review.visitedDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                                    const initials = review.guest_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+                                    const displayDate = review.visited_date
+                                        ? new Date(review.visited_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
                                         : new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
                                     return (
                                         <div key={review.id} className="bg-white rounded-[1.5rem] p-6 border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] transition-all duration-300 group">
@@ -584,7 +633,7 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                                         {initials}
                                                     </div>
                                                     <div>
-                                                        <p className="font-bold text-gray-900 text-base">{review.guestName}</p>
+                                                        <p className="font-bold text-gray-900 text-base">{review.guest_name}</p>
                                                         <p className="text-xs font-medium text-gray-500 mt-0.5">{displayDate}</p>
                                                     </div>
                                                 </div>
@@ -594,10 +643,17 @@ export default function RestaurantProfilePage({ params }: { params: Promise<{ sl
                                                     ))}
                                                 </div>
                                             </div>
-                                            {review.comment && (
+                                            {review.review_text && (
                                                 <p className="text-gray-600 text-sm leading-relaxed font-medium line-clamp-4 group-hover:line-clamp-none transition-all duration-500">
-                                                    "{review.comment}"
+                                                    "{review.review_text}"
                                                 </p>
+                                            )}
+                                            {review.images && review.images.length > 0 && (
+                                                <div className="mt-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                                    {review.images.map((img, idx) => (
+                                                        <img key={idx} src={img} alt="Review attachment" className="h-24 w-24 object-cover rounded-xl shadow-sm cursor-pointer hover:opacity-90 transition-opacity shrink-0" onClick={() => window.open(img, '_blank')} />
+                                                    ))}
+                                                </div>
                                             )}
                                         </div>
                                     );

@@ -79,7 +79,7 @@ export const TonightsHitlist: React.FC<TonightsHitlistProps> = ({ restaurants })
 
                                 <View style={styles.ratingBadge}>
                                     <Star size={12} color="#F59E0B" fill="#F59E0B" />
-                                    <Text style={styles.ratingText}>{restaurant.rating?.toFixed(1) || '4.9'}</Text>
+                                    <Text style={styles.ratingText}>{(restaurant as any).rating?.toFixed(1) || '4.9'}</Text>
                                 </View>
                             </View>
 

@@ -100,7 +100,7 @@ export default function BookingsScreen() {
     };
 
     const renderBookingCard = ({ item }: { item: ExtendedReservation }) => {
-        const statusInfo = getStatusStyle(item.status);
+        const statusInfo = getStatusStyle(item.status || '');
         const isActive = activeTab === 'active';
         const isCancelling = cancellingId === item.id;
 

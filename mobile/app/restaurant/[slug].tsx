@@ -20,12 +20,16 @@ import {
     Heart, Share2, Wifi, UtensilsCrossed, ShoppingBag, ChevronDown, ChevronRight,
 } from 'lucide-react-native';
 import { supabase } from '../../src/services/supabase';
-import { Restaurant } from '../../src/types/database';
-import { Colors, Shadows } from '../../src/constants/Colors';
+import { Tables } from '../../src/types/database';
+type Restaurant = Tables<'restaurants'>;
+import { Colors as ThemeColors, Shadows as ThemeShadows } from '../../src/constants/Colors';
+const Colors = ThemeColors.light;
+const Shadows = ThemeShadows;
 import { t } from '../../src/localization/i18n';
 import { BookingModal } from '../../src/components/BookingModal';
 import { Skeleton } from '../../src/components/Skeleton';
 import { WaitlistModal } from '../../src/components/WaitlistModal';
+import { ReviewModal } from '../../src/components/ReviewModal';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -78,6 +82,10 @@ export default function RestaurantDetailScreen() {
     const [menuCategories, setMenuCategories] = useState<any[]>([]);
     const [menuItems, setMenuItems] = useState<any[]>([]);
 
+    // DB state for Reviews
+    const [reviews, setReviews] = useState<any[]>([]);
+    const [isReviewModalVisible, setIsReviewModalVisible] = useState(false);
+
     const scrollY = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -124,12 +132,25 @@ export default function RestaurantDetailScreen() {
                     setMenuCategories(catData || []);
                     setMenuItems(itemData || []);
 
-                    // If we found categories in DB, set the first one as active
                     if (catData && catData.length > 0) {
                         setSelectedMenuCat(catData[0].name);
                     }
                 } catch (menuErr) {
                     console.warn('Menu fetch failed safely:', menuErr);
+                }
+
+                // Fetch reviews safely
+                try {
+                    const { data: revData, error: revError } = await supabase
+                        .from('reviews')
+                        .select('*')
+                        .eq('restaurant_id', resData.id)
+                        .order('created_at', { ascending: false });
+
+                    if (revError) console.warn('Could not fetch reviews:', revError);
+                    else setReviews(revData || []);
+                } catch (revErr) {
+                    console.warn('Reviews fetch failed safely:', revErr);
                 }
             }
         } catch (error) {
@@ -138,6 +159,12 @@ export default function RestaurantDetailScreen() {
             setLoading(false);
         }
     }
+
+    const refreshReviews = async () => {
+        if (!restaurant) return;
+        const { data } = await supabase.from('reviews').select('*').eq('restaurant_id', restaurant.id).order('created_at', { ascending: false });
+        if (data) setReviews(data);
+    };
 
     if (loading) {
         return (
@@ -177,7 +204,7 @@ export default function RestaurantDetailScreen() {
     ];
     const totalImages = galleryImages.length;
 
-    const matchPct = Math.min(99, Math.max(80, Math.floor((Number(restaurant.rating) || 4) * 20)));
+    const matchPct = Math.min(99, Math.max(80, Math.floor((Number((restaurant as any).rating) || 4) * 20)));
 
     // Parallax  
     const imageTranslateY = scrollY.interpolate({
@@ -359,38 +386,66 @@ export default function RestaurantDetailScreen() {
 
     const renderReviewTab = () => (
         <>
-            {/* Overall Rating */}
+            {/* Overall Rating & Write Review */}
             <View style={styles.overallRatingContainer}>
-                <Text style={styles.overallRatingScore}>{restaurant.rating || '4.8'}</Text>
-                <View style={styles.overallRatingStars}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                        <Star key={i} size={18} color="#FBBF24" fill="#FBBF24" />
-                    ))}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <View style={{ alignItems: 'flex-start' }}>
+                        <Text style={styles.overallRatingScore}>{(restaurant as any).rating || '4.8'}</Text>
+                        <View style={styles.overallRatingStars}>
+                            {[1, 2, 3, 4, 5].map(i => (
+                                <Star key={i} size={16} color="#FBBF24" fill="#FBBF24" />
+                            ))}
+                        </View>
+                        <Text style={styles.overallRatingCount}>{(t('restaurant.basedOnReviews') || 'Based on {{count}} reviews').replace('{{count}}', String(reviews.length || (restaurant as any).review_count || 0))}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={{ backgroundColor: Colors.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 20, ...Shadows.sm }}
+                        onPress={() => setIsReviewModalVisible(true)}
+                    >
+                        <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 13 }}>{t('restaurant.writeReview') || 'Write a Review'}</Text>
+                    </TouchableOpacity>
                 </View>
-                <Text style={styles.overallRatingCount}>{(t('restaurant.basedOnReviews') || 'Based on {{count}} reviews').replace('{{count}}', String(restaurant.review_count || 124))}</Text>
             </View>
 
             {/* Reviews List */}
-            {SAMPLE_REVIEWS.map(review => (
-                <View key={review.id} style={styles.reviewCard}>
-                    <View style={styles.reviewHeader}>
-                        <View style={styles.reviewerInfo}>
-                            <View style={styles.reviewerAvatar}>
-                                <Text style={styles.reviewerInitial}>{review.initial}</Text>
-                            </View>
-                            <View>
-                                <Text style={styles.reviewerName}>{review.name}</Text>
-                                <Text style={styles.reviewDate}>{review.date}</Text>
-                            </View>
-                        </View>
-                        <View style={styles.reviewRatingBadge}>
-                            <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                            <Text style={styles.reviewRatingText}>{review.rating.toFixed(1)}</Text>
-                        </View>
-                    </View>
-                    <Text style={styles.reviewBody}>{review.body}</Text>
+            {reviews.length === 0 ? (
+                <View style={{ padding: 40, alignItems: 'center' }}>
+                    <Text style={{ color: Colors.textMuted, fontSize: 15, fontWeight: '500' }}>No reviews yet. Be the first!</Text>
                 </View>
-            ))}
+            ) : reviews.map(review => {
+                const initials = review.guest_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?';
+                const d = new Date(review.visited_date || review.created_at);
+                const displayDate = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                    <View key={review.id} style={styles.reviewCard}>
+                        <View style={styles.reviewHeader}>
+                            <View style={styles.reviewerInfo}>
+                                <View style={styles.reviewerAvatar}>
+                                    <Text style={styles.reviewerInitial}>{initials}</Text>
+                                </View>
+                                <View>
+                                    <Text style={styles.reviewerName}>{review.guest_name || 'Guest'}</Text>
+                                    <Text style={styles.reviewDate}>{displayDate}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.reviewRatingBadge}>
+                                <Star size={12} color="#FBBF24" fill="#FBBF24" />
+                                <Text style={styles.reviewRatingText}>{review.rating.toFixed(1)}</Text>
+                            </View>
+                        </View>
+                        {review.review_text && (
+                            <Text style={styles.reviewBody}>{review.review_text}</Text>
+                        )}
+                        {review.images && review.images.length > 0 && (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }}>
+                                {review.images.map((img: string, idx: number) => (
+                                    <Image key={idx} source={{ uri: img }} style={{ width: 80, height: 80, borderRadius: 12, marginRight: 8, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border }} />
+                                ))}
+                            </ScrollView>
+                        )}
+                    </View>
+                );
+            })}
         </>
     );
 
@@ -481,8 +536,8 @@ export default function RestaurantDetailScreen() {
                         <Text style={styles.name}>{restaurant.name}</Text>
                         <View style={styles.metaRow}>
                             <Star size={16} color="#FBBF24" fill="#FBBF24" />
-                            <Text style={styles.ratingValue}>{restaurant.rating || '4.8'}</Text>
-                            <Text style={styles.reviewCountText}>({restaurant.review_count || 125} {t('restaurant.reviewsLabel') || 'Reviews'})</Text>
+                            <Text style={styles.ratingValue}>{(restaurant as any).rating || '4.8'}</Text>
+                            <Text style={styles.reviewCountText}>({(restaurant as any).review_count || 125} {t('restaurant.reviewsLabel') || 'Reviews'})</Text>
                             <View style={styles.matchingBadge}>
                                 <Text style={styles.matchingText}>{matchPct}% Matching</Text>
                             </View>
@@ -554,6 +609,15 @@ export default function RestaurantDetailScreen() {
                 restaurant={restaurant}
                 onJoined={(id) => console.log('Joined waitlist:', id)}
             />
+
+            {restaurant && (
+                <ReviewModal
+                    visible={isReviewModalVisible}
+                    onClose={() => setIsReviewModalVisible(false)}
+                    restaurantId={restaurant.id}
+                    onSuccess={refreshReviews}
+                />
+            )}
         </View>
     );
 }

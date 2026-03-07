@@ -15,6 +15,7 @@ import {
     Dimensions
 } from 'react-native';
 import { MessageCircle, X, Send, Sparkles, ChefHat, MapPin, Star, ChevronRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../services/supabase';
 import { Restaurant } from '../types/database';
 import i18n, { t } from '../localization/i18n';
@@ -185,7 +186,7 @@ export const AIConcierge = () => {
                                 <Text style={styles.cardTitleSmall} numberOfLines={1}>{r.name}</Text>
                                 <View style={styles.cardMetaSmall}>
                                     <Star size={10} color="#F59E0B" fill="#F59E0B" />
-                                    <Text style={styles.cardRatingSmall}>{r.rating || '4.9'}</Text>
+                                    <Text style={styles.cardRatingSmall}>{(r as any).rating || '4.9'}</Text>
                                     <Text style={styles.cardCitySmall}>· {r.city}</Text>
                                 </View>
                             </View>
@@ -199,13 +200,19 @@ export const AIConcierge = () => {
     return (
         <>
             <TouchableOpacity
-                style={styles.fab}
+                style={styles.fabSurprise}
+                activeOpacity={0.85}
                 onPress={() => setIsOpen(true)}
-                activeOpacity={0.8}
             >
-                <View style={styles.fabInner}>
-                    <Sparkles size={24} color="#FFF" />
-                </View>
+                <LinearGradient
+                    colors={['#8B1A10', '#D4483E']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.fabGradient}
+                >
+                    <Sparkles size={22} color="#FFF" />
+                    <Text style={styles.fabText}>{t('home.surpriseMe') || 'Surprise Me'}</Text>
+                </LinearGradient>
             </TouchableOpacity>
 
             <Modal
@@ -278,29 +285,31 @@ export const AIConcierge = () => {
 };
 
 const styles = StyleSheet.create({
-    fab: {
+    fabSurprise: {
         position: 'absolute',
-        bottom: 24,
-        right: 24,
-        width: 60,
-        height: 60,
+        right: 20,
+        bottom: Platform.OS === 'ios' ? 100 : 76,
         borderRadius: 30,
-        backgroundColor: '#000',
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 10,
-        shadowColor: '#000',
+        elevation: 8,
+        shadowColor: '#8B1A10',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
-        zIndex: 1000,
+        zIndex: 999
     },
-    fabInner: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 30,
-        justifyContent: 'center',
+    fabGradient: {
+        flexDirection: 'row',
         alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 14,
+        borderRadius: 30,
+        gap: 8,
+    },
+    fabText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     modalContainer: {
         flex: 1,
