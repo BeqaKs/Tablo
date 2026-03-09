@@ -41,10 +41,9 @@ export function Canvas({ showGrid, zoom }: CanvasProps) {
         const rawX = (e.clientX - canvasRect.left - dragOffset.x) / zoom;
         const rawY = (e.clientY - canvasRect.top - dragOffset.y) / zoom;
 
-        // Snap to 20px grid (since our grid visual is 20px 20px)
-        const SNAP_SIZE = 20;
-        const snappedX = Math.round(rawX / SNAP_SIZE) * SNAP_SIZE;
-        const snappedY = Math.round(rawY / SNAP_SIZE) * SNAP_SIZE;
+        // Snap to grid is disabled, we just round to nearest integer to avoid float coords
+        const snappedX = Math.round(rawX);
+        const snappedY = Math.round(rawY);
 
         updateTable(draggedTableId, {
             x_coord: Math.max(0, Math.min(1200 - 100, snappedX)),

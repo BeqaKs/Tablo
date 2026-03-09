@@ -124,8 +124,7 @@ export const useFloorPlanStore = create<FloorPlanState>((set, get) => ({
     },
 
     snapToGrid: (value) => {
-        const gridSize = get().gridSize;
-        return Math.round(value / gridSize) * gridSize;
+        return Math.round(value);
     },
 
     loadTables: (tables) => {

@@ -677,7 +677,7 @@
     },
     "calendar": {
         "title": "კალენდარი",
-        "quickWalkIn": "სწრაფი რეგისტრაცია",
+        "quickWalkIn": "დაუჯავშნავი სტუმარი",
         "guestName": "სტუმრის სახელი",
         "guestNameRequired": "სტუმრის სახლის მითითება სავალდებულოა",
         "selectATable": "აირჩიეთ მაგიდა",
