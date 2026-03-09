@@ -53,7 +53,7 @@ const now = () => new Date();
 // ─── StatusBadge ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const cfg = getStatusCfg(t)[status] || getStatusCfg(t).pending;
     return (
         <span
@@ -74,7 +74,7 @@ function WalkInModal({
     tables: any[]; selectedDate: Date; defaultTime: string;
     onClose: () => void; onSave: () => void;
 }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const [form, setForm] = useState({
         table_id: tables[0]?.id || '',
         guest_name: '',
@@ -187,7 +187,7 @@ function BookingSlideOver({
     onStatusChange: (id: string, status: string) => Promise<void>;
     onRefresh: () => void;
 }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const [notes, setNotes] = useState(booking.guest_notes || '');
     const [editingNotes, setEditingNotes] = useState(false);
     const [savingNotes, setSavingNotes] = useState(false);
@@ -391,7 +391,7 @@ function TimelineView({
     bookings: any[]; tables: any[]; selectedDate: Date;
     onSelectBooking: (b: any) => void;
 }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const scrollRef = useRef<HTMLDivElement>(null);
     const nowRef = useRef<HTMLDivElement>(null);
     const currentMinute = (getHours(new Date()) - START_HOUR) * 60 + getMinutes(new Date());
@@ -660,7 +660,7 @@ function ListView({
 }: {
     bookings: any[]; tables: any[]; onSelectBooking: (b: any) => void;
 }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const [statusFilter, setStatusFilter] = useState('all');
     const [search, setSearch] = useState('');
 
@@ -757,7 +757,7 @@ function ListView({
 // ─── StatsBar ────────────────────────────────────────────────────────────────
 
 function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: Date }) {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const day = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
     const active = day.filter(b => ['pending', 'confirmed', 'seated'].includes(b.status));
     const covers = active.reduce((s, b) => s + b.guest_count, 0);
@@ -794,7 +794,7 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
 type ViewMode = 'timeline' | 'list';
 
 export default function OwnerCalendarPage() {
-    const t = useTranslations();
+    const { t } = useTranslations();
     const [bookings, setBookings] = useState<any[]>([]);
     const [restaurant, setRestaurant] = useState<any>(null);
     const [tables, setTables] = useState<any[]>([]);
