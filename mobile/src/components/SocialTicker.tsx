@@ -17,7 +17,7 @@ interface SocialTickerProps {
 }
 
 export const SocialTicker: React.FC<SocialTickerProps> = ({ restaurants }) => {
-    const scrollX = useRef(new Animated.Value(0)).current;
+    const scrollX = useRef(new Animated.Value(0));
 
     const NAMES = ['Nino', 'Giorgi', 'Ana', 'Luka', 'Mari', 'David', 'Tamar', 'Sandro', 'Keti', 'Nika', 'Salome', 'Beka', 'Elene', 'Levan'];
     const ACTIONS = ['just booked', 'reserved a table at', 'made a reservation at'];
@@ -35,8 +35,8 @@ export const SocialTicker: React.FC<SocialTickerProps> = ({ restaurants }) => {
         if (restaurants.length === 0 || items.length === 0) return;
 
         const startAnimation = () => {
-            scrollX.setValue(0);
-            Animated.timing(scrollX, {
+            scrollX.current.setValue(0);
+            Animated.timing(scrollX.current, {
                 toValue: -totalWidth,
                 duration: items.length * 3000,
                 easing: Easing.linear,
@@ -45,7 +45,7 @@ export const SocialTicker: React.FC<SocialTickerProps> = ({ restaurants }) => {
         };
 
         startAnimation();
-    }, [totalWidth, restaurants.length]);
+    }, [totalWidth, restaurants.length, items.length]);
 
     if (restaurants.length === 0 || items.length === 0) {
         return <View style={{ height: 40, backgroundColor: '#F9FAFB' }} />;
@@ -53,7 +53,7 @@ export const SocialTicker: React.FC<SocialTickerProps> = ({ restaurants }) => {
 
     return (
         <View style={styles.container}>
-            <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX }] }]}>
+            <Animated.View style={[styles.tickerWrapper, { transform: [{ translateX: scrollX.current }] }]}>
                 {/* Duplicate items for seamless loop */}
                 {[...items, ...items].map((item, i) => (
                     <View key={i} style={[styles.tickerItem, { width: ITEM_WIDTH }]}>

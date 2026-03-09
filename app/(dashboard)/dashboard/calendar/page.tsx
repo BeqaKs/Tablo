@@ -416,7 +416,7 @@ function TimelineView({
     const dayBookings = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
 
     // Group by table (visible on timeline), unassigned separately
-    const tableIds = tables.map(t => t.id);
+    const tableIds = tables.map(tbl => tbl.id);
     const assignedBookings = dayBookings.filter(b => tableIds.includes(b.table_id));
     const unassignedBookings = dayBookings.filter(b => !tableIds.includes(b.table_id));
 
@@ -426,11 +426,11 @@ function TimelineView({
         <div className="flex flex-col h-full">
             {/* Column headers */}
             <div className="flex shrink-0 overflow-hidden" style={{ marginLeft: TIMELINE_LABEL_W }}>
-                {tables.map(t => (
-                    <div key={t.id} className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
+                {tables.map(tbl => (
+                    <div key={tbl.id} className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
                         style={{ color: 'hsl(220 20% 65%)', borderRight: '1px solid hsl(231 24% 15%)' }}>
-                        {t('dashboard.tableShort') || 'T'}{t.table_number}
-                        <span className="block text-[9px] font-normal" style={{ color: 'hsl(220 15% 38%)' }}>cap {t.capacity}</span>
+                        {t('dashboard.tableShort') || 'T'}{tbl.table_number}
+                        <span className="block text-[9px] font-normal" style={{ color: 'hsl(220 15% 38%)' }}>cap {tbl.capacity}</span>
                     </div>
                 ))}
                 {unassignedBookings.length > 0 && (

@@ -124,7 +124,7 @@ export default function SchedulePage() {
                             <select value={form.table_id} onChange={e => setForm({ ...form, table_id: e.target.value })}
                                 className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                                 <option value="">— All Tables —</option>
-                                {tables.map(t => <option key={t.id} value={t.id}>Table {t.table_number} ({t.zone_name})</option>)}
+                                {tables.map(tbl => <option key={tbl.id} value={tbl.id}>Table {tbl.table_number} ({tbl.zone_name})</option>)}
                             </select>
                         </div>
                         <div>
