@@ -17,7 +17,7 @@ import {
     Modal,
     Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Search, MapPin, Bell, Heart, Star, ChevronRight, ChevronDown, Filter, Map as MapIcon, X, Flame, Sparkles, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../src/services/supabase';
@@ -25,7 +25,7 @@ import { cacheService } from '../../src/services/cache';
 import { Restaurant } from '../../src/types/database';
 import { Tables } from '../../src/types/database';
 import { Colors as AppColors, Shadows } from '../../src/constants/Colors';
-const Colors = AppColors.light;
+// const Colors = AppColors.light; // Removing hardcoded colors
 import { t } from '../../src/localization/i18n';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
@@ -56,6 +56,8 @@ import { useTheme } from '../../src/context/ThemeContext';
 
 export default function DiscoverScreen() {
     const { colors } = useTheme();
+    const insets = useSafeAreaInsets();
+    const styles = getStyles(colors, insets);
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -222,11 +224,17 @@ export default function DiscoverScreen() {
 
     const handleLanguageChange = () => {
         setLanguage(language === 'en' ? 'ka' : 'en');
+        // Trigger login if not authenticated as per user request
+        if (!user) {
+            router.push('/(auth)/login');
+        }
     };
 
     const getMatchPercentage = (restaurant: Restaurant) => {
         const rating = (restaurant as any).rating || 4.5;
-        const base = Math.min(99, Math.max(75, Math.floor(Number(rating) * 20 + Math.random() * 10)));
+        // More stable logic: (Rating * 18) + a small deterministic offset based on ID
+        const offset = (restaurant.id.charCodeAt(0) % 10);
+        const base = Math.min(99, Math.max(80, Math.floor(Number(rating) * 18 + offset)));
         return base;
     };
 
@@ -323,13 +331,13 @@ export default function DiscoverScreen() {
                         )}
                     </View>
 
-                    <Text style={[styles.portraitName, { color: colors.text }]} numberOfLines={1}>{restaurant.name}</Text>
+                    <Text style={[styles.portraitName, { color: '#FFF' }]} numberOfLines={1}>{restaurant.name}</Text>
 
                     <View style={styles.portraitMeta}>
                         <Star size={12} color="#FBBF24" fill="#FBBF24" />
-                        <Text style={[styles.portraitRating, { color: colors.textSecondary }]}>{(restaurant as any).rating || '4.5'}</Text>
+                        <Text style={[styles.portraitRating, { color: 'rgba(255,255,255,0.9)' }]}>{(restaurant as any).rating || '4.5'}</Text>
                         <View style={styles.portraitMetaDot} />
-                        <Text style={[styles.portraitAddress, { color: colors.textMuted }]} numberOfLines={1}>
+                        <Text style={[styles.portraitAddress, { color: 'rgba(255,255,255,0.7)' }]} numberOfLines={1}>
                             {restaurant.address || restaurant.city || 'Tbilisi'}
                         </Text>
                     </View>
@@ -344,8 +352,8 @@ export default function DiscoverScreen() {
             'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop';
         const isWishlisted = wishlist.has(restaurant.id);
 
-        // Mock times for quick book
-        const mockTimes = ['19:00', '19:30', '20:00'];
+        // Mock times for quick book - in a real app these would come from availability API
+        const mockTimes = ['19:00', '20:00', '21:00'];
 
         return (
             <TouchableOpacity
@@ -462,7 +470,7 @@ export default function DiscoverScreen() {
                             </View>
                         )}
                         <View style={styles.priceTag}>
-                            <Text style={styles.priceTagText}>{'$'.repeat(Math.floor(Math.random() * 3) + 1)}</Text>
+                            <Text style={styles.priceTagText}>{restaurant.price_range || '₾₾'}</Text>
                         </View>
                     </View>
                 </View>
@@ -478,9 +486,9 @@ export default function DiscoverScreen() {
 
                 <LinearGradient
                     colors={['#8B1A10', '#B83024']}
-                    style={styles.searchHeader}
+                    style={[styles.searchHeader, { paddingTop: insets.top + 10 }]}
                 >
-                    <SafeAreaView edges={['top']}>
+                    <View>
                         <View style={styles.searchInputRow}>
                             <Search size={18} color="rgba(255,255,255,0.7)" />
                             <TextInput
@@ -561,7 +569,7 @@ export default function DiscoverScreen() {
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-                    </SafeAreaView>
+                    </View>
                 </LinearGradient>
 
                 <FlatList
@@ -606,7 +614,7 @@ export default function DiscoverScreen() {
                             setPriceRange(prev => prev.includes(p) ? prev.filter(v => v !== p) : [...prev, p]);
                         }}
                     >
-                        <Text style={[styles.priceText, { color: colors.text }, priceRange.includes(p) && [styles.priceTextSelected, { color: colors.primary }]]}>{'$'.repeat(p)}</Text>
+                        <Text style={[styles.priceText, { color: colors.text }, priceRange.includes(p) && [styles.priceTextSelected, { color: colors.primary }]]}>{'₾'.repeat(p)}</Text>
                     </TouchableOpacity>
                 ))}
             </View>
@@ -633,8 +641,8 @@ export default function DiscoverScreen() {
     );
 
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
-            <StatusBar barStyle="light-content" />
+        <View style={[styles.safeArea, { backgroundColor: colors.background }]}>
+            <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
             <Animated.ScrollView
                 showsVerticalScrollIndicator={false}
@@ -879,7 +887,7 @@ export default function DiscoverScreen() {
                 {
                     !loading && filteredRestaurants.length === 0 && (
                         <View style={styles.emptyContainer}>
-                            <Search size={48} color={Colors.border} />
+                            <Search size={48} color={colors.border} />
                             <Text style={styles.emptyText}>{t('home.noResults') || 'No restaurants found'}</Text>
                             <Text style={styles.emptySubtext}>{t('home.tryAdjust') || 'Try adjusting your search'}</Text>
                         </View>
@@ -925,12 +933,12 @@ export default function DiscoverScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('home.locationModal.title') || 'Select Location'}</Text>
                             <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                                <X size={24} color={Colors.text} />
+                                <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
                         <ScrollView style={styles.modalBody}>
                             <TouchableOpacity style={styles.locationItem}>
-                                <MapPin size={20} color={Colors.primary} />
+                                <MapPin size={20} color={colors.primary} />
                                 <Text style={styles.locationItemText}>{t('home.locationModal.current') || 'Current Location'}</Text>
                             </TouchableOpacity>
                             <Text style={styles.locationLabel}>{t('home.locationModal.popularAreas') || 'Popular Areas'}</Text>
@@ -951,7 +959,7 @@ export default function DiscoverScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{t('home.notifications.title') || 'Notifications'}</Text>
                             <TouchableOpacity onPress={() => setShowNotifications(false)}>
-                                <X size={24} color={Colors.text} />
+                                <X size={24} color={colors.text} />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.modalBody}>
@@ -985,7 +993,7 @@ export default function DiscoverScreen() {
                                 </>
                             ) : (
                                 <View style={styles.emptyContainer}>
-                                    <Bell size={36} color={Colors.border} />
+                                    <Bell size={36} color={colors.border} />
                                     <Text style={styles.emptyText}>{t('home.notifications.empty') || 'No new notifications'}</Text>
                                 </View>
                             )}
@@ -993,14 +1001,14 @@ export default function DiscoverScreen() {
                     </View>
                 </View>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any, insets: any) => StyleSheet.create({
     safeArea: {
         flex: 1,
-        backgroundColor: '#8B1A10',
+        backgroundColor: colors.background,
     },
     scrollContent: {
         paddingBottom: 20,
@@ -1010,7 +1018,7 @@ const styles = StyleSheet.create({
     // ── Gradient Header & Search ─────────────────────────
     gradientHeader: {
         paddingHorizontal: 20,
-        paddingTop: 8,
+        paddingTop: insets.top + 8,
         paddingBottom: 24,
     },
     compactSearchBar: {
@@ -1100,13 +1108,13 @@ const styles = StyleSheet.create({
         width: 3,
         height: 3,
         borderRadius: 1.5,
-        backgroundColor: Colors.textMuted,
+        backgroundColor: colors.textMuted,
         marginHorizontal: 4,
     },
     floatingMapBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         borderRadius: 20,
         paddingVertical: 8,
         paddingHorizontal: 16,
@@ -1149,8 +1157,8 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     cuisineIconCircleSelected: {
-        backgroundColor: `${Colors.primary}15`,
-        borderColor: Colors.primary,
+        backgroundColor: `${colors.primary}15`,
+        borderColor: colors.primary,
     },
     cuisineEmoji: {
         fontSize: 22,
@@ -1158,12 +1166,12 @@ const styles = StyleSheet.create({
     cuisineLabel: {
         fontSize: 11,
         fontWeight: '600',
-        color: Colors.textMuted,
+        color: colors.textMuted,
         textAlign: 'center',
         width: '100%',
     },
     cuisineLabelSelected: {
-        color: Colors.primary,
+        color: colors.primary,
         fontWeight: '800',
     },
 
@@ -1250,7 +1258,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: '800',
-        color: Colors.text,
+        color: colors.text,
         letterSpacing: -0.3,
         flex: 1,
         marginRight: 8,
@@ -1258,7 +1266,7 @@ const styles = StyleSheet.create({
     viewAllText: {
         fontSize: 14,
         fontWeight: '700',
-        color: Colors.primary,
+        color: colors.primary,
     },
     // ── Vibe Banner ──────────────────────────────────────
     vibeBannerContainer: {
@@ -1425,12 +1433,12 @@ const styles = StyleSheet.create({
 
     // ── Top Rated Cards (Landscape Feed) ─────────────────
     landscapeCard: {
-        backgroundColor: '#FFF',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         overflow: 'hidden',
         flexDirection: 'row',
         borderWidth: 1,
-        borderColor: '#F1F5F9', // Subtle border keeps it clean in vertical list
+        borderColor: colors.border, // Subtle border keeps it clean in vertical list
         ...Shadows.sm,
     },
     landscapeImageContainer: {
@@ -1467,7 +1475,7 @@ const styles = StyleSheet.create({
     landscapeName: {
         fontSize: 16,
         fontWeight: '800',
-        color: Colors.text,
+        color: colors.text,
         flex: 1,
         paddingRight: 8,
     },
@@ -1487,7 +1495,7 @@ const styles = StyleSheet.create({
     },
     landscapeCuisine: {
         fontSize: 13,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '600',
     },
     landscapeMeta: {
@@ -1498,7 +1506,7 @@ const styles = StyleSheet.create({
     },
     landscapeAddress: {
         fontSize: 12,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
         flex: 1,
     },
@@ -1511,14 +1519,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 8,
-        backgroundColor: '#F1F5F9',
+        backgroundColor: colors.surface,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
+        borderColor: colors.border,
     },
     timeSlotText: {
         fontSize: 12,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
 
     // ── Map Discovery ────────────────────────────────────
@@ -1544,11 +1552,11 @@ const styles = StyleSheet.create({
     mapPreviewTitle: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
     mapPreviewSubtitle: {
         fontSize: 13,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
     },
 
@@ -1607,7 +1615,7 @@ const styles = StyleSheet.create({
     },
     searchResults: {
         flex: 1,
-        backgroundColor: '#FFF',
+        backgroundColor: colors.surface,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
     },
@@ -1623,7 +1631,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        borderBottomColor: colors.border,
     },
     searchCardImageWrap: {
         width: 110,
@@ -1644,12 +1652,12 @@ const styles = StyleSheet.create({
     searchCardName: {
         fontSize: 16,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 4,
     },
     searchCardCuisine: {
         fontSize: 12,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
         marginBottom: 6,
     },
@@ -1662,16 +1670,16 @@ const styles = StyleSheet.create({
     searchCardRating: {
         fontSize: 12,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
     searchCardDistance: {
         fontSize: 12,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
     },
     searchCardAddress: {
         fontSize: 12,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
     },
     searchCardMatchBadge: {
@@ -1733,7 +1741,7 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
     priceTagText: {
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
         fontSize: 10,
         fontWeight: '700',
     },
@@ -1809,11 +1817,11 @@ const styles = StyleSheet.create({
         marginHorizontal: 20,
         marginTop: 20,
         marginBottom: 20,
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         paddingVertical: 18,
         borderRadius: 16,
         alignItems: 'center',
-        ...Shadows.colored(Colors.primary),
+        ...Shadows.colored(colors.primary),
     },
     bookSeatBtnText: {
         color: '#FFF',
@@ -1832,12 +1840,12 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginTop: 16,
     },
     emptySubtext: {
         fontSize: 14,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         marginTop: 4,
     },
     bannerContainer: {
@@ -1958,13 +1966,13 @@ const styles = StyleSheet.create({
     },
     locationItemText: {
         fontSize: 16,
-        color: Colors.text,
+        color: colors.text,
         fontWeight: '500',
     },
     locationLabel: {
         fontSize: 14,
         fontWeight: '700',
-        color: Colors.textMuted,
+        color: colors.textMuted,
         marginTop: 20,
         marginBottom: 12,
         textTransform: 'uppercase',
@@ -1993,12 +2001,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 24,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        borderBottomColor: colors.border,
     },
     modalTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: colors.text,
     },
     modalBody: {
         padding: 24,
@@ -2009,7 +2017,7 @@ const styles = StyleSheet.create({
     filterLabel: {
         fontSize: 16,
         fontWeight: '600',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 12,
     },
     priceRow: {
@@ -2021,18 +2029,18 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: colors.border,
         justifyContent: 'center',
         alignItems: 'center',
     },
     priceItemSelected: {
-        backgroundColor: Colors.primary,
-        borderColor: Colors.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     priceText: {
         fontSize: 16,
         fontWeight: '600',
-        color: Colors.text,
+        color: colors.text,
     },
     priceTextSelected: {
         color: '#FFF',
@@ -2046,25 +2054,25 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: colors.border,
         justifyContent: 'center',
         paddingHorizontal: 12,
         marginBottom: 8,
     },
     sortOptionSelected: {
-        backgroundColor: Colors.primary,
-        borderColor: Colors.primary,
+        backgroundColor: colors.primary,
+        borderColor: colors.primary,
     },
     sortText: {
         fontSize: 16,
-        color: Colors.text,
+        color: colors.text,
     },
     sortTextSelected: {
         color: '#FFF',
         fontWeight: '600',
     },
     applyBtn: {
-        backgroundColor: Colors.primary,
+        backgroundColor: colors.primary,
         margin: 24,
         height: 56,
         borderRadius: 16,
@@ -2102,16 +2110,16 @@ const styles = StyleSheet.create({
     notificationTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 4,
     },
     notificationBody: {
         fontSize: 14,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
     notificationTime: {
         fontSize: 12,
-        color: Colors.textSecondary,
+        color: colors.textSecondary,
     },
     areaItem: {
         flexDirection: 'row',
@@ -2119,11 +2127,11 @@ const styles = StyleSheet.create({
         padding: 16,
         gap: 12,
         borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
+        borderBottomColor: colors.border,
     },
     areaText: {
         fontSize: 16,
-        color: Colors.text,
+        color: colors.text,
     },
     popularAreas: {
         paddingBottom: 20,
@@ -2134,7 +2142,7 @@ const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.textMuted,
+        color: colors.textMuted,
         marginBottom: 8,
     },
     inputWrap: {
@@ -2146,7 +2154,7 @@ const styles = StyleSheet.create({
     },
     inputText: {
         fontSize: 16,
-        color: Colors.text,
+        color: colors.text,
     },
     languageSelectBtn: {
         flexDirection: 'row',

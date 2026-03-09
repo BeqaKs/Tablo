@@ -33,7 +33,6 @@ export const notificationService = {
                 finalStatus = status;
             }
             if (finalStatus !== 'granted') {
-                console.warn('Failed to get push token for push notification!');
                 return;
             }
             const projectId =
@@ -47,10 +46,10 @@ export const notificationService = {
                 ).data;
                 return pushtokenString;
             } catch (e) {
-                console.warn(`Error getting push token:`, e);
+                // Error getting push token
             }
         } else {
-            console.warn('Must use physical device for Push Notifications');
+            // Must use physical device
         }
         return undefined;
     },
@@ -63,9 +62,9 @@ export const notificationService = {
                 .eq('id', userId);
 
             if (error) throw error;
-            console.log('Push token saved to profile');
+            // Push token saved
         } catch (e) {
-            console.error('Failed to update push token in supabase:', e);
+            // Failed to update push token
         }
     }
 };

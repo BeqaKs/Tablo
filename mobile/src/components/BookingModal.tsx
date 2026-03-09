@@ -17,7 +17,8 @@ import { X, Calendar, Clock, Users, ArrowRight, CheckCircle2, Minus, Plus } from
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { format } from 'date-fns';
 import { useRouter } from 'expo-router';
-import { Colors, Shadows } from '../constants/Colors';
+import { Shadows } from '../constants/Colors';
+import { useTheme } from '../context/ThemeContext';
 import { t } from '../localization/i18n';
 import { PartySizeSelector } from './PartySizeSelector';
 import { TableSelector } from './TableSelector';
@@ -68,6 +69,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialTime,
     initialPartySize
 }) => {
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
     const [step, setStep] = useState<BookingStep>('selection');
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [selectedTime, setSelectedTime] = useState(() => {
@@ -181,19 +184,42 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const fetchAvailableTables = async () => {
         try {
             setLoadingTables(true);
-            const { data, error } = await supabase
+
+            // 1. Fetch all tables with enough capacity
+            const { data: allTables, error: tablesError } = await supabase
                 .from('tables')
                 .select('*')
                 .eq('restaurant_id', restaurant.id)
                 .gte('capacity', partySize);
 
-            if (error) throw error;
+            if (tablesError) throw tablesError;
 
-            setTables(data || []);
+            // 2. Fetch overlapping reservations to find occupied tables
+            const startTime = new Date(selectedDate);
+            startTime.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+
+            const endTime = new Date(startTime);
+            endTime.setMinutes(endTime.getMinutes() + (restaurant.turn_duration_minutes || 90));
+
+            const { data: existingReservations, error: reservationsError } = await supabase
+                .from('reservations')
+                .select('table_id')
+                .eq('restaurant_id', restaurant.id)
+                .eq('status', 'confirmed')
+                .lt('reservation_time', endTime.toISOString())
+                .gt('end_time', startTime.toISOString());
+
+            if (reservationsError) throw reservationsError;
+
+            // 3. Filter out occupied tables
+            const occupiedTableIds = new Set(existingReservations?.map(r => r.table_id) || []);
+            const availableTables = (allTables || []).filter(table => !occupiedTableIds.has(table.id));
+
+            setTables(availableTables);
             setStep('table');
         } catch (error) {
-            console.error('Error fetching tables:', error);
-            Alert.alert(t('common.error'), 'Could not fetch tables.');
+            console.error('Error fetching available tables:', error);
+            Alert.alert(t('common.error'), 'Could not fetch available tables.');
         } finally {
             setLoadingTables(false);
         }
@@ -201,7 +227,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const handleBooking = async () => {
         if (!user) {
-            Alert.alert("Sign in required", "Please sign in to make a reservation.");
+            Alert.alert(t('auth.signInRequired') || "Sign in required", t('auth.signInToReserve') || "Please sign in to make a reservation.");
             return;
         }
 
@@ -235,7 +261,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     guest_count: partySize,
                     reservation_time: reservationTime.toISOString(),
                     end_time: endTime.toISOString(),
-                    status: 'confirmed',
+                    status: 'pending',
                     attendance_status: 'pending',
                     guest_name: user.user_metadata?.full_name || user.email || 'Guest',
                     guest_notes: orderNotes.trim() || null,
@@ -258,9 +284,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     slug: restaurant.slug || '',
                 },
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating booking:', error);
-            Alert.alert(t('common.error'), 'Failed to create reservation. Please try again.');
+            if (error.code === '23P01' || error.message?.includes('overlap')) {
+                Alert.alert(t('common.error'), t('restaurant.tableAlreadyTaken') || 'This table was just reserved by someone else. Please try another table or time.');
+                setStep('table'); // Go back to table selection
+            } else {
+                Alert.alert(t('common.error'), t('restaurant.bookingFailed') || 'Failed to create reservation. Please try again.');
+            }
         } finally {
             setBookingLoading(false);
         }
@@ -298,12 +329,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Header */}
                 <View style={styles.header}>
                     <TouchableOpacity onPress={resetAndClose} style={styles.closeButton}>
-                        <X size={24} color={Colors.text} />
+                        <X size={24} color={colors.text} />
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>
                         {step === 'selection' ? t('restaurant.makeReservation') :
-                            step === 'menu' ? 'Menu' :
-                                step === 'floorplan' ? 'Select Table' :
+                            step === 'menu' ? t('common.menu') :
+                                step === 'floorplan' ? t('restaurant.chooseTable') :
                                     step === 'table' ? t('restaurant.chooseTable') :
                                         t('bookings.status.confirmed')}
                     </Text>
@@ -341,7 +372,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     }}
                                 >
                                     <View style={styles.iconCircle}>
-                                        <Calendar size={20} color={Colors.primary} />
+                                        <Calendar size={20} color={colors.primary} />
                                     </View>
                                     <View>
                                         <Text style={styles.cardLabel}>{t('restaurant.date')}</Text>
@@ -360,7 +391,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     }}
                                 >
                                     <View style={styles.iconCircle}>
-                                        <Clock size={20} color={Colors.primary} />
+                                        <Clock size={20} color={colors.primary} />
                                     </View>
                                     <View>
                                         <Text style={styles.cardLabel}>{t('restaurant.time')}</Text>
@@ -392,12 +423,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     <View style={styles.content}>
                         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
                             <View style={styles.menuIntro}>
-                                <Text style={styles.menuIntroTitle}>Pre-order from Menu</Text>
-                                <Text style={styles.menuIntroSubtitle}>Select items you'd like to have ready when you arrive. You can also skip this step.</Text>
+                                <Text style={styles.menuIntroTitle}>{t('restaurant.preOrderFromMenu')}</Text>
+                                <Text style={styles.menuIntroSubtitle}>{t('restaurant.preOrderSubtitle')}</Text>
                             </View>
 
                             {loadingMenu ? (
-                                <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
+                                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 40 }} />
                             ) : categories.length > 0 ? (
                                 categories.map(category => (
                                     <View key={category.id} style={{ marginBottom: 32 }}>
@@ -425,11 +456,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                                 {qty > 0 ? (
                                                                     <View style={styles.qtyActiveContainer}>
                                                                         <TouchableOpacity style={styles.qtyBtnPremium} onPress={() => updatePreOrderItem(item, -1)}>
-                                                                            <Minus size={18} color={Colors.text} />
+                                                                            <Minus size={18} color={colors.text} />
                                                                         </TouchableOpacity>
                                                                         <Text style={styles.qtyTextPremium}>{qty}</Text>
                                                                         <TouchableOpacity style={styles.qtyBtnPremium} onPress={() => updatePreOrderItem(item, 1)}>
-                                                                            <Plus size={18} color={Colors.text} />
+                                                                            <Plus size={18} color={colors.text} />
                                                                         </TouchableOpacity>
                                                                     </View>
                                                                 ) : (
@@ -437,8 +468,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                                                         style={styles.addBtnPremium}
                                                                         onPress={() => updatePreOrderItem(item, 1)}
                                                                     >
-                                                                        <Plus size={18} color={Colors.primary} />
-                                                                        <Text style={styles.addBtnText}>Add</Text>
+                                                                        <Plus size={18} color={colors.primary} />
+                                                                        <Text style={styles.addBtnText}>{t('common.add')}</Text>
                                                                     </TouchableOpacity>
                                                                 )}
                                                             </View>
@@ -450,7 +481,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 ))
                             ) : (
                                 <View style={styles.emptyContainer}>
-                                    <Text style={styles.emptySubtext}>No menu items available for pre-order.</Text>
+                                    <Text style={styles.emptySubtext}>{t('restaurant.noMenuItems')}</Text>
                                 </View>
                             )}
                         </ScrollView>
@@ -459,18 +490,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             {cartTotal > 0 && (
                                 <View style={styles.cartSummaryRow}>
                                     <View>
-                                        <Text style={styles.cartCountText}>{preOrderItems.reduce((a, b) => a + b.quantity, 0)} items selected</Text>
-                                        <Text style={styles.cartTotalText}>Total: ${cartTotal.toFixed(2)}</Text>
+                                        <Text style={styles.cartCountText}>{preOrderItems.reduce((a, b) => a + b.quantity, 0)} {t('restaurant.itemsSelected')}</Text>
+                                        <Text style={styles.cartTotalText}>{t('common.total')}: ${cartTotal.toFixed(2)}</Text>
                                     </View>
                                     <TouchableOpacity
                                         style={styles.confirmPreorderBtn}
-                                        onPress={handleBooking}
-                                        disabled={bookingLoading}
+                                        onPress={() => setStep('table')}
                                     >
                                         {bookingLoading ? (
                                             <ActivityIndicator color="#FFF" />
                                         ) : (
-                                            <Text style={styles.confirmPreorderBtnText}>Confirm Booking</Text>
+                                            <Text style={styles.confirmPreorderBtnText}>{t('restaurant.chooseTable')}</Text>
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -482,17 +512,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         style={styles.backBtnSecondary}
                                         onPress={() => setStep('table')}
                                     >
-                                        <Text style={styles.backBtnSecondaryText}>Back</Text>
+                                        <Text style={styles.backBtnSecondaryText}>{t('common.back')}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         style={styles.skipBtnPrimary}
-                                        onPress={handleBooking}
-                                        disabled={bookingLoading}
+                                        onPress={() => setStep('table')}
                                     >
                                         {bookingLoading ? (
                                             <ActivityIndicator color="#FFF" />
                                         ) : (
-                                            <Text style={styles.skipBtnPrimaryText}>Skip & Confirm</Text>
+                                            <Text style={styles.skipBtnPrimaryText}>{t('restaurant.skipAndConfirm')}</Text>
                                         )}
                                     </TouchableOpacity>
                                 </View>
@@ -509,7 +538,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         style={styles.viewToggleButton}
                                         onPress={() => setStep('floorplan')}
                                     >
-                                        <Text style={styles.viewToggleButtonText}>Switch to Floor Plan</Text>
+                                        <Text style={styles.viewToggleButtonText}>{t('restaurant.switchFloorPlan')}</Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -521,13 +550,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 {tables.length === 0 && !loadingTables && (
                                     <View style={styles.noTablesContainer}>
                                         <Text style={styles.noTablesText}>
-                                            No tables available for {partySize} guests at this time.
+                                            {t('restaurant.noTables', { count: partySize })}
                                         </Text>
                                         <TouchableOpacity
                                             style={styles.secondaryButtonInline}
                                             onPress={() => setStep('selection')}
                                         >
-                                            <Text style={styles.secondaryButtonInlineText}>Change Time or Guests</Text>
+                                            <Text style={styles.secondaryButtonInlineText}>{t('restaurant.changeTimeOrGuests')}</Text>
                                         </TouchableOpacity>
                                     </View>
                                 )}
@@ -543,11 +572,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <Text style={styles.backButtonText}>{t('common.back')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, { flex: 2 }, !selectedTableId && styles.disabledButton]}
-                                    onPress={() => setStep('menu')}
-                                    disabled={!selectedTableId}
+                                    style={[styles.primaryButton, { flex: 2 }, (!selectedTableId || bookingLoading) && styles.disabledButton]}
+                                    onPress={handleBooking}
+                                    disabled={!selectedTableId || bookingLoading}
                                 >
-                                    <Text style={styles.primaryButtonText}>Continue to Menu</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        {bookingLoading ? (
+                                            <ActivityIndicator color="#FFF" />
+                                        ) : (
+                                            <>
+                                                <Text style={styles.primaryButtonText}>{t('restaurant.confirmBooking')}</Text>
+                                                <ArrowRight size={20} color="#FFF" />
+                                            </>
+                                        )}
+                                    </View>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -562,7 +600,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         style={styles.viewToggleButton}
                                         onPress={() => setStep('table')}
                                     >
-                                        <Text style={styles.viewToggleButtonText}>Switch to List View</Text>
+                                        <Text style={styles.viewToggleButtonText}>{t('restaurant.switchList')}</Text>
                                     </TouchableOpacity>
                                 </View>
 
@@ -585,11 +623,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <Text style={styles.backButtonText}>{t('common.back')}</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                    style={[styles.primaryButton, { flex: 2 }, !selectedTableId && styles.disabledButton]}
-                                    onPress={() => setStep('menu')}
-                                    disabled={!selectedTableId}
+                                    style={[styles.primaryButton, { flex: 2 }, (!selectedTableId || bookingLoading) && styles.disabledButton]}
+                                    onPress={handleBooking}
+                                    disabled={!selectedTableId || bookingLoading}
                                 >
-                                    <Text style={styles.primaryButtonText}>Continue to Menu</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                        {bookingLoading ? (
+                                            <ActivityIndicator color="#FFF" />
+                                        ) : (
+                                            <>
+                                                <Text style={styles.primaryButtonText}>{t('restaurant.confirmBooking')}</Text>
+                                                <ArrowRight size={20} color="#FFF" />
+                                            </>
+                                        )}
+                                    </View>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -603,7 +650,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             width: '100%'
                         }}>
                             <View style={styles.successIconOuter}>
-                                <CheckCircle2 size={80} color={Colors.success} />
+                                <CheckCircle2 size={80} color={colors.success} />
                             </View>
                             <Text style={styles.successTitle}>{t('bookings.success') || 'Booking Confirmed!'}</Text>
                             <Text style={styles.successSubtitle}>
@@ -612,15 +659,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                             <View style={styles.successDetailsCard}>
                                 <View style={styles.successDetailRow}>
-                                    <Calendar size={20} color={Colors.primary} />
+                                    <Calendar size={20} color={colors.primary} />
                                     <Text style={styles.successDetailText}>{format(selectedDate, 'EEEE, MMMM do')}</Text>
                                 </View>
                                 <View style={styles.successDetailRow}>
-                                    <Clock size={20} color={Colors.primary} />
+                                    <Clock size={20} color={colors.primary} />
                                     <Text style={styles.successDetailText}>{format(selectedTime, 'HH:mm')}</Text>
                                 </View>
                                 <View style={styles.successDetailRow}>
-                                    <Users size={20} color={Colors.primary} />
+                                    <Users size={20} color={colors.primary} />
                                     <Text style={styles.successDetailText}>{partySize} Guests</Text>
                                 </View>
                             </View>
@@ -643,7 +690,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             onConfirm={handleDateConfirm}
                             onCancel={() => setDatePickerVisibility(false)}
                             minimumDate={new Date()}
-                            textColor={Colors.text}
+                            textColor={colors.text}
                             themeVariant="light"
                         />
                         <DateTimePickerModal
@@ -651,7 +698,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             mode="time"
                             onConfirm={handleTimeConfirm}
                             onCancel={() => setTimePickerVisibility(false)}
-                            textColor={Colors.text}
+                            textColor={colors.text}
                             themeVariant="light"
                         />
                     </>
@@ -661,539 +708,541 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
-    dragHandleContainer: {
-        alignItems: 'center',
-        paddingTop: 12,
-        paddingBottom: 4,
-        backgroundColor: Colors.background,
-    },
-    dragHandle: {
-        width: 40,
-        height: 5,
-        borderRadius: 3,
-        backgroundColor: Colors.border,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 8,
-        paddingBottom: 16,
-        paddingTop: 8,
-    },
-    headerTitle: {
-        fontSize: 18,
-        fontWeight: '800',
-        color: Colors.text,
-        letterSpacing: -0.5,
-    },
-    closeButton: {
-        padding: 12,
-        borderRadius: 22,
-        backgroundColor: Colors.surface,
-        marginLeft: 12,
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 24,
-        paddingTop: 16,
-    },
-    summaryBox: {
-        backgroundColor: Colors.primarySoft,
-        padding: 24,
-        borderRadius: 24,
-        marginBottom: 32,
-    },
-    summaryHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 8,
-    },
-    summaryDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: Colors.primary,
-    },
-    summaryRestaurant: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: Colors.primary,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-    },
-    summaryText: {
-        fontSize: 22,
-        color: Colors.text,
-        fontWeight: '800',
-        letterSpacing: -0.5,
-    },
-    section: {
-        marginBottom: 32,
-    },
-    sectionLabel: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: Colors.text,
-        marginBottom: 16,
-        letterSpacing: -0.5,
-    },
-    selectionGrid: {
-        flexDirection: 'column',
-        gap: 16,
-        marginBottom: 32,
-    },
-    selectionCard: {
-        backgroundColor: Colors.surface,
-        padding: 16,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    iconCircle: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: Colors.primarySoft,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cardLabel: {
-        fontSize: 13,
-        color: Colors.textMuted,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: 2,
-    },
-    cardValue: {
-        fontSize: 17,
-        color: Colors.text,
-        fontWeight: '800',
-    },
-    noTablesContainer: {
-        alignItems: 'center',
-        paddingVertical: 40,
-        paddingHorizontal: 20,
-    },
-    noTablesText: {
-        textAlign: 'center',
-        fontSize: 16,
-        color: Colors.textMuted,
-        marginBottom: 24,
-        lineHeight: 24,
-    },
-    secondaryButtonInline: {
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        borderRadius: 20,
-        backgroundColor: Colors.surface,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    secondaryButtonInlineText: {
-        fontSize: 15,
-        fontWeight: '700',
-        color: Colors.text,
-    },
-    footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        paddingHorizontal: 24,
-        paddingVertical: 24,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
-        backgroundColor: Colors.background,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
-    },
-    primaryButton: {
-        backgroundColor: Colors.primary,
-        height: 64,
-        borderRadius: 32,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-        ...Shadows.md,
-    },
-    primaryButtonText: {
-        color: '#FFF',
-        fontSize: 18,
-        fontWeight: '800',
-        letterSpacing: 0.5,
-    },
-    disabledButton: {
-        opacity: 0.5,
-        shadowOpacity: 0,
-    },
-    footerRow: {
-        flexDirection: 'row',
-        gap: 12,
-        alignItems: 'center',
-    },
-    backButtonInline: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.surface,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    backButtonText: {
-        color: Colors.text,
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    menuItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    menuItemInfo: {
-        flex: 1,
-        paddingRight: 16,
-    },
-    menuItemName: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: Colors.text,
-        marginBottom: 4,
-    },
-    menuItemDesc: {
-        fontSize: 14,
-        color: Colors.textMuted,
-        lineHeight: 20,
-    },
-    menuItemPrice: {
-        fontSize: 16,
-        fontWeight: '800',
-        color: Colors.text,
-    },
-    viewToggleContainer: {
-        alignItems: 'flex-end',
-        marginBottom: 16,
-    },
-    viewToggleButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 20,
-        backgroundColor: Colors.primarySoft,
-    },
-    viewToggleButtonText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.primary,
-    },
-    floorPlanContainer: {
-        height: 300,
-        backgroundColor: Colors.surface,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    floorPlanPlaceholderText: {
-        position: 'absolute',
-        top: '50%',
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        fontSize: 14,
-        color: Colors.textMuted,
-        transform: [{ translateY: -10 }],
-        zIndex: 0,
-    },
-    mockFloorPlan: {
-        flex: 1,
-        position: 'relative',
-        zIndex: 1,
-    },
-    mockTable: {
-        position: 'absolute',
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: '#FFF',
-        borderWidth: 2,
-        borderColor: Colors.border,
-        justifyContent: 'center',
-        alignItems: 'center',
-        ...Shadows.sm,
-    },
-    mockTableActive: {
-        borderColor: Colors.primary,
-        backgroundColor: Colors.primarySoft,
-    },
-    mockTableText: {
-        fontSize: 14,
-        fontWeight: '800',
-        color: Colors.text,
-    },
-    mockTableTextActive: {
-        color: Colors.primary,
-    },
-    quantityControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        marginLeft: 8,
-    },
-    qtyButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: Colors.primarySoft,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    qtyText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.text,
-        minWidth: 20,
-        textAlign: 'center',
-    },
-    cartTotalRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-        paddingHorizontal: 8,
-    },
-    cartTotalLabel: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.textMuted,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    cartTotalValue: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: Colors.primary,
-    },
-    emptyContainer: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 40,
-    },
-    emptySubtext: {
-        fontSize: 14,
-        color: Colors.textMuted,
-        textAlign: 'center',
-    },
-    // Premium Menu Styles
-    menuIntro: {
-        marginBottom: 24,
-    },
-    menuIntroTitle: {
-        fontSize: 24,
-        fontWeight: '800',
-        color: Colors.text,
-        marginBottom: 8,
-    },
-    menuIntroSubtitle: {
-        fontSize: 15,
-        color: Colors.textMuted,
-        lineHeight: 22,
-    },
-    categoryTitle: {
-        fontSize: 20,
-        fontWeight: '800',
-        color: Colors.text,
-        marginBottom: 16,
-        letterSpacing: -0.5,
-    },
-    menuGrid: {
-        gap: 16,
-    },
-    premiumMenuItem: {
-        backgroundColor: Colors.surface,
-        borderRadius: 20,
-        padding: 16,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        ...Shadows.sm,
-    },
-    successIconOuter: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: '#DCFCE7',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    successTitle: {
-        fontSize: 28,
-        fontWeight: '900',
-        color: Colors.text,
-        marginBottom: 8,
-        letterSpacing: -0.5,
-    },
-    successSubtitle: {
-        fontSize: 16,
-        color: Colors.textMuted,
-        textAlign: 'center',
-        marginBottom: 32,
-        paddingHorizontal: 20,
-    },
-    successDetailsCard: {
-        width: '100%',
-        backgroundColor: Colors.surface,
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        gap: 16,
-    },
-    successDetailRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 16,
-    },
-    successDetailText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.text,
-    },
-    menuItemFlex: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    menuItemImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 12,
-        backgroundColor: Colors.border,
-    },
-    premiumQuantityControls: {
-        marginTop: 12,
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-    },
-    qtyActiveContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: Colors.primarySoft,
-        borderRadius: 12,
-        padding: 4,
-        gap: 12,
-    },
-    qtyBtnPremium: {
-        width: 32,
-        height: 32,
-        borderRadius: 8,
-        backgroundColor: '#FFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    qtyTextPremium: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.text,
-        minWidth: 20,
-        textAlign: 'center',
-    },
-    addBtnPremium: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 12,
-        backgroundColor: Colors.primarySoft,
-    },
-    addBtnText: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.primary,
-    },
-    footerPremium: {
-        paddingHorizontal: 24,
-        paddingVertical: 20,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-        backgroundColor: Colors.background,
-        borderTopWidth: 1,
-        borderTopColor: 'rgba(0,0,0,0.05)',
-        ...Shadows.md,
-    },
-    cartSummaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    cartCountText: {
-        fontSize: 13,
-        color: Colors.textMuted,
-        fontWeight: '700',
-    },
-    cartTotalText: {
-        fontSize: 18,
-        fontWeight: '900',
-        color: Colors.text,
-    },
-    confirmPreorderBtn: {
-        backgroundColor: Colors.primary,
-        paddingHorizontal: 24,
-        paddingVertical: 14,
-        borderRadius: 16,
-        ...Shadows.sm,
-    },
-    confirmPreorderBtnText: {
-        color: '#FFF',
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    skipRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    backBtnSecondary: {
-        flex: 1,
-        height: 56,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: Colors.surface,
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    backBtnSecondaryText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: Colors.textSecondary,
-    },
-    skipBtnPrimary: {
-        flex: 2,
-        height: 56,
-        backgroundColor: Colors.surface,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.primary,
-    },
-    skipBtnPrimaryText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.primary,
-    },
-});
+function getStyles(colors: any) {
+    return StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: colors.background,
+        },
+        dragHandleContainer: {
+            alignItems: 'center',
+            paddingTop: 12,
+            paddingBottom: 4,
+            backgroundColor: colors.background,
+        },
+        dragHandle: {
+            width: 40,
+            height: 5,
+            borderRadius: 3,
+            backgroundColor: colors.border,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 8,
+            paddingBottom: 16,
+            paddingTop: 8,
+        },
+        headerTitle: {
+            fontSize: 18,
+            fontWeight: '800',
+            color: colors.text,
+            letterSpacing: -0.5,
+        },
+        closeButton: {
+            padding: 12,
+            borderRadius: 22,
+            backgroundColor: colors.surface,
+            marginLeft: 12,
+        },
+        content: {
+            flex: 1,
+            paddingHorizontal: 24,
+            paddingTop: 16,
+        },
+        summaryBox: {
+            backgroundColor: colors.primarySoft,
+            padding: 24,
+            borderRadius: 24,
+            marginBottom: 32,
+        },
+        summaryHeader: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            marginBottom: 8,
+        },
+        summaryDot: {
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: colors.primary,
+        },
+        summaryRestaurant: {
+            fontSize: 16,
+            fontWeight: '800',
+            color: colors.primary,
+            letterSpacing: 0.5,
+            textTransform: 'uppercase',
+        },
+        summaryText: {
+            fontSize: 22,
+            color: colors.text,
+            fontWeight: '800',
+            letterSpacing: -0.5,
+        },
+        section: {
+            marginBottom: 32,
+        },
+        sectionLabel: {
+            fontSize: 20,
+            fontWeight: '800',
+            color: colors.text,
+            marginBottom: 16,
+            letterSpacing: -0.5,
+        },
+        selectionGrid: {
+            flexDirection: 'column',
+            gap: 16,
+            marginBottom: 32,
+        },
+        selectionCard: {
+            backgroundColor: colors.surface,
+            padding: 16,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 16,
+        },
+        iconCircle: {
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: colors.primarySoft,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        cardLabel: {
+            fontSize: 13,
+            color: colors.textMuted,
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+            marginBottom: 2,
+        },
+        cardValue: {
+            fontSize: 17,
+            color: colors.text,
+            fontWeight: '800',
+        },
+        noTablesContainer: {
+            alignItems: 'center',
+            paddingVertical: 40,
+            paddingHorizontal: 20,
+        },
+        noTablesText: {
+            textAlign: 'center',
+            fontSize: 16,
+            color: colors.textMuted,
+            marginBottom: 24,
+            lineHeight: 24,
+        },
+        secondaryButtonInline: {
+            paddingHorizontal: 24,
+            paddingVertical: 12,
+            borderRadius: 20,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        secondaryButtonInlineText: {
+            fontSize: 15,
+            fontWeight: '700',
+            color: colors.text,
+        },
+        footer: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 24,
+            paddingVertical: 24,
+            paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: 'rgba(0,0,0,0.05)',
+        },
+        primaryButton: {
+            backgroundColor: colors.primary,
+            height: 64,
+            borderRadius: 32,
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: 12,
+            ...Shadows.md,
+        },
+        primaryButtonText: {
+            color: '#FFF',
+            fontSize: 18,
+            fontWeight: '800',
+            letterSpacing: 0.5,
+        },
+        disabledButton: {
+            opacity: 0.5,
+            shadowOpacity: 0,
+        },
+        footerRow: {
+            flexDirection: 'row',
+            gap: 12,
+            alignItems: 'center',
+        },
+        backButtonInline: {
+            width: 64,
+            height: 64,
+            borderRadius: 32,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        backButtonText: {
+            color: colors.text,
+            fontSize: 16,
+            fontWeight: '700',
+        },
+        menuItem: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            paddingVertical: 16,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.border,
+        },
+        menuItemInfo: {
+            flex: 1,
+            paddingRight: 16,
+        },
+        menuItemName: {
+            fontSize: 16,
+            fontWeight: '800',
+            color: colors.text,
+            marginBottom: 4,
+        },
+        menuItemDesc: {
+            fontSize: 14,
+            color: colors.textMuted,
+            lineHeight: 20,
+        },
+        menuItemPrice: {
+            fontSize: 16,
+            fontWeight: '800',
+            color: colors.text,
+        },
+        viewToggleContainer: {
+            alignItems: 'flex-end',
+            marginBottom: 16,
+        },
+        viewToggleButton: {
+            paddingVertical: 8,
+            paddingHorizontal: 16,
+            borderRadius: 20,
+            backgroundColor: colors.primarySoft,
+        },
+        viewToggleButtonText: {
+            fontSize: 14,
+            fontWeight: '700',
+            color: colors.primary,
+        },
+        floorPlanContainer: {
+            height: 300,
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: colors.border,
+            overflow: 'hidden',
+            position: 'relative',
+        },
+        floorPlanPlaceholderText: {
+            position: 'absolute',
+            top: '50%',
+            left: 0,
+            right: 0,
+            textAlign: 'center',
+            fontSize: 14,
+            color: colors.textMuted,
+            transform: [{ translateY: -10 }],
+            zIndex: 0,
+        },
+        mockFloorPlan: {
+            flex: 1,
+            position: 'relative',
+            zIndex: 1,
+        },
+        mockTable: {
+            position: 'absolute',
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: '#FFF',
+            borderWidth: 2,
+            borderColor: colors.border,
+            justifyContent: 'center',
+            alignItems: 'center',
+            ...Shadows.sm,
+        },
+        mockTableActive: {
+            borderColor: colors.primary,
+            backgroundColor: colors.primarySoft,
+        },
+        mockTableText: {
+            fontSize: 14,
+            fontWeight: '800',
+            color: colors.text,
+        },
+        mockTableTextActive: {
+            color: colors.primary,
+        },
+        quantityControls: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            marginLeft: 8,
+        },
+        qtyButton: {
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            backgroundColor: colors.primarySoft,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        qtyText: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.text,
+            minWidth: 20,
+            textAlign: 'center',
+        },
+        cartTotalRow: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+            paddingHorizontal: 8,
+        },
+        cartTotalLabel: {
+            fontSize: 14,
+            fontWeight: '700',
+            color: colors.textMuted,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+        },
+        cartTotalValue: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.primary,
+        },
+        emptyContainer: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: 40,
+        },
+        emptySubtext: {
+            fontSize: 14,
+            color: colors.textMuted,
+            textAlign: 'center',
+        },
+        // Premium Menu Styles
+        menuIntro: {
+            marginBottom: 24,
+        },
+        menuIntroTitle: {
+            fontSize: 24,
+            fontWeight: '800',
+            color: colors.text,
+            marginBottom: 8,
+        },
+        menuIntroSubtitle: {
+            fontSize: 15,
+            color: colors.textMuted,
+            lineHeight: 22,
+        },
+        categoryTitle: {
+            fontSize: 20,
+            fontWeight: '800',
+            color: colors.text,
+            marginBottom: 16,
+            letterSpacing: -0.5,
+        },
+        menuGrid: {
+            gap: 16,
+        },
+        premiumMenuItem: {
+            backgroundColor: colors.surface,
+            borderRadius: 20,
+            padding: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            ...Shadows.sm,
+        },
+        successIconOuter: {
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            backgroundColor: '#DCFCE7',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+        },
+        successTitle: {
+            fontSize: 28,
+            fontWeight: '900',
+            color: colors.text,
+            marginBottom: 8,
+            letterSpacing: -0.5,
+        },
+        successSubtitle: {
+            fontSize: 16,
+            color: colors.textMuted,
+            textAlign: 'center',
+            marginBottom: 32,
+            paddingHorizontal: 20,
+        },
+        successDetailsCard: {
+            width: '100%',
+            backgroundColor: colors.surface,
+            borderRadius: 24,
+            padding: 24,
+            borderWidth: 1,
+            borderColor: colors.border,
+            gap: 16,
+        },
+        successDetailRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 16,
+        },
+        successDetailText: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.text,
+        },
+        menuItemFlex: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 12,
+        },
+        menuItemImage: {
+            width: 80,
+            height: 80,
+            borderRadius: 12,
+            backgroundColor: colors.border,
+        },
+        premiumQuantityControls: {
+            marginTop: 12,
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+        },
+        qtyActiveContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: colors.primarySoft,
+            borderRadius: 12,
+            padding: 4,
+            gap: 12,
+        },
+        qtyBtnPremium: {
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            backgroundColor: '#FFF',
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
+        qtyTextPremium: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.text,
+            minWidth: 20,
+            textAlign: 'center',
+        },
+        addBtnPremium: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            borderRadius: 12,
+            backgroundColor: colors.primarySoft,
+        },
+        addBtnText: {
+            fontSize: 14,
+            fontWeight: '700',
+            color: colors.primary,
+        },
+        footerPremium: {
+            paddingHorizontal: 24,
+            paddingVertical: 20,
+            paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: 'rgba(0,0,0,0.05)',
+            ...Shadows.md,
+        },
+        cartSummaryRow: {
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+        },
+        cartCountText: {
+            fontSize: 13,
+            color: colors.textMuted,
+            fontWeight: '700',
+        },
+        cartTotalText: {
+            fontSize: 18,
+            fontWeight: '900',
+            color: colors.text,
+        },
+        confirmPreorderBtn: {
+            backgroundColor: colors.primary,
+            paddingHorizontal: 24,
+            paddingVertical: 14,
+            borderRadius: 16,
+            ...Shadows.sm,
+        },
+        confirmPreorderBtnText: {
+            color: '#FFF',
+            fontWeight: 'bold',
+            fontSize: 16,
+        },
+        skipRow: {
+            flexDirection: 'row',
+            gap: 12,
+        },
+        backBtnSecondary: {
+            flex: 1,
+            height: 56,
+            borderRadius: 16,
+            justifyContent: 'center',
+            alignItems: 'center',
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+        },
+        backBtnSecondaryText: {
+            fontSize: 16,
+            fontWeight: '600',
+            color: colors.textSecondary,
+        },
+        skipBtnPrimary: {
+            flex: 2,
+            height: 56,
+            backgroundColor: colors.surface,
+            borderRadius: 16,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: colors.primary,
+        },
+        skipBtnPrimaryText: {
+            fontSize: 16,
+            fontWeight: '700',
+            color: colors.primary,
+        },
+    });
+}

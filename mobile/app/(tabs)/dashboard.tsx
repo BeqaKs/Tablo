@@ -6,13 +6,13 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    SafeAreaView,
     RefreshControl,
     Platform,
     StatusBar
 } from 'react-native';
 import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame, Sparkles } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../src/services/supabase';
 import { cacheService } from '../../src/services/cache';
 import { Colors } from '../../src/constants/Colors';
@@ -54,7 +54,7 @@ export default function DashboardScreen() {
             // 1. Fetch Restaurant
             const { data: restData, error: restError } = await supabase
                 .from('restaurants')
-                .select('*')
+                .select('*, average_check')
                 .eq('owner_id', user.id)
                 .single();
 
@@ -203,7 +203,7 @@ export default function DashboardScreen() {
                 <View style={styles.header}>
                     <Text style={styles.restName}>{restaurant.name}</Text>
                     <Text style={styles.dateText}>
-                        {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        {new Date().toLocaleDateString(t('common.locale') === 'ka' ? 'ka-GE' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </Text>
                 </View>
 
@@ -246,8 +246,8 @@ export default function DashboardScreen() {
                             <Text style={styles.kpiLabel}>{t('dashboard.estRevenue')}</Text>
                             <TrendingUp size={16} color="#10B981" />
                         </View>
-                        <Text style={styles.kpiValue}>₾{stats.todayCovers * 85}</Text>
-                        <Text style={styles.kpiSub}>{t('dashboard.avgCheck', { amount: '₾85' })}</Text>
+                        <Text style={styles.kpiValue}>{t('common.currency') || '₾'}{stats.todayCovers * (restaurant.average_check || 85)}</Text>
+                        <Text style={styles.kpiSub}>{t('dashboard.avgCheck', { amount: `${t('common.currency') || '₾'}${restaurant.average_check || 85}` })}</Text>
                     </View>
                 </View>
 
@@ -266,7 +266,7 @@ export default function DashboardScreen() {
                             onPress={toggleHitlist}
                         >
                             <Text style={styles.hitlistToggleText}>
-                                {restaurant.is_open ? 'ACTIVE' : 'PROMOTE'}
+                                {restaurant.is_open ? t('dashboard.active') : t('dashboard.promote')}
                             </Text>
                         </TouchableOpacity>
                     </View>
@@ -279,7 +279,7 @@ export default function DashboardScreen() {
                         onPress={() => setActiveTab('reservations')}
                     >
                         <Text style={[styles.tabText, activeTab === 'reservations' && styles.activeTabText]}>
-                            Reservations ({reservations.length})
+                            {t('dashboard.tabs.reservations')} ({reservations.length})
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -287,7 +287,7 @@ export default function DashboardScreen() {
                         onPress={() => setActiveTab('waitlist')}
                     >
                         <Text style={[styles.tabText, activeTab === 'waitlist' && styles.activeTabText]}>
-                            Waitlist ({waitlist.length})
+                            {t('dashboard.tabs.waitlist')} ({waitlist.length})
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -308,14 +308,14 @@ export default function DashboardScreen() {
                                 reservations.slice(0, 10).map((res) => (
                                     <View key={res.id} style={styles.resItem}>
                                         <View style={styles.tableBadge}>
-                                            <Text style={styles.tableLabel}>TBL</Text>
-                                            <Text style={styles.tableValue}>{res.table_id ? 'T' + res.table_id.slice(-2) : 'TBD'}</Text>
+                                            <Text style={styles.tableLabel}>{t('dashboard.tablePrefix')}</Text>
+                                            <Text style={styles.tableValue}>{res.table_id ? t('dashboard.tablePrefixShort') + res.table_id.slice(-2) : 'TBD'}</Text>
                                         </View>
                                         <View style={styles.resInfo}>
                                             <View style={styles.resRow}>
-                                                <Text style={styles.guestName} numberOfLines={1}>{res.guest_name || 'Guest'}</Text>
+                                                <Text style={styles.guestName} numberOfLines={1}>{res.guest_name || t('common.guest')}</Text>
                                                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(res.status || '') + '22' }]}>
-                                                    <Text style={[styles.statusText, { color: getStatusColor(res.status || '') }]}>{(res.status || 'unknown').toUpperCase()}</Text>
+                                                    <Text style={[styles.statusText, { color: getStatusColor(res.status || '') }]}>{t(`dashboard.status.${res.status || 'unknown'}`).toUpperCase()}</Text>
                                                 </View>
                                             </View>
                                             <View style={styles.resDetailRow}>
@@ -335,13 +335,13 @@ export default function DashboardScreen() {
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <Users size={20} color={Colors.text} />
-                            <Text style={styles.sectionTitle}>Active Waitlist</Text>
+                            <Text style={styles.sectionTitle}>{t('dashboard.activeWaitlist')}</Text>
                         </View>
 
                         <View style={styles.resList}>
                             {waitlist.length === 0 ? (
                                 <View style={styles.emptyRes}>
-                                    <Text style={styles.emptyText}>No one is currently on the waitlist.</Text>
+                                    <Text style={styles.emptyText}>{t('dashboard.noWaitlist')}</Text>
                                 </View>
                             ) : (
                                 waitlist.map((item, index) => (
@@ -353,14 +353,14 @@ export default function DashboardScreen() {
                                             <View style={styles.resRow}>
                                                 <Text style={styles.guestName} numberOfLines={1}>{item.guest_name}</Text>
                                                 <View style={[styles.statusBadge, { backgroundColor: Colors.primary + '22' }]}>
-                                                    <Text style={[styles.statusText, { color: Colors.primary }]}>{item.status.toUpperCase()}</Text>
+                                                    <Text style={[styles.statusText, { color: Colors.primary }]}>{t(`dashboard.status.${item.status || 'unknown'}`).toUpperCase()}</Text>
                                                 </View>
                                             </View>
                                             <View style={styles.resDetailRow}>
                                                 <Phone size={12} color={Colors.textMuted} />
                                                 <Text style={styles.resDetailText}>{item.guest_phone}</Text>
                                                 <View style={styles.dot} />
-                                                <Text style={styles.resDetailText}>{item.party_size} guests</Text>
+                                                <Text style={styles.resDetailText}>{t('dashboard.guests', { count: item.party_size })}</Text>
                                             </View>
                                         </View>
                                         <View style={styles.actionRow}>
@@ -368,7 +368,7 @@ export default function DashboardScreen() {
                                                 style={styles.notifyButton}
                                                 onPress={() => updateWaitlistStatus(item.id, 'offered')}
                                             >
-                                                <Text style={styles.notifyButtonText}>OFFER</Text>
+                                                <Text style={styles.notifyButtonText}>{t('dashboard.offer')}</Text>
                                             </TouchableOpacity>
                                         </View>
                                     </View>

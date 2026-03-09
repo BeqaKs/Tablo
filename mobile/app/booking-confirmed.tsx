@@ -19,7 +19,11 @@ import {
     Clock, Users, MapPin, QrCode, Copy
 } from 'lucide-react-native';
 import { format } from 'date-fns';
+import { ka, enUS } from 'date-fns/locale';
 import { Colors } from '../src/constants/Colors';
+import { t } from '../src/localization/i18n';
+import i18n from '../src/localization/i18n';
+import { supabase } from '../src/services/supabase';
 
 const { width } = Dimensions.get('window');
 const CONFETTI_COLORS = ['#e11d48', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
@@ -86,6 +90,8 @@ export default function BookingConfirmedScreen() {
     const router = useRouter();
     const [showConfetti, setShowConfetti] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [status, setStatus] = useState<'pending' | 'confirmed' | 'seated' | 'cancelled'>(params.status as any || 'pending');
+    const [loading, setLoading] = useState(!params.status);
     const scaleAnim = useRef(new Animated.Value(0)).current;
 
     const restaurant = (params.restaurant as string) || 'Restaurant';
@@ -96,8 +102,9 @@ export default function BookingConfirmedScreen() {
     const address = (params.address as string) || '';
     const slug = (params.slug as string) || '';
 
-    const formattedDate = date ? format(new Date(date + 'T12:00:00'), 'EEE, MMM d, yyyy') : '';
-    const shortDate = date ? format(new Date(date + 'T12:00:00'), 'MMM d, yyyy') : '—';
+    const locale = i18n.locale === 'ka' ? ka : enUS;
+    const formattedDate = date ? format(new Date(date + 'T12:00:00'), 'EEE, MMM d, yyyy', { locale }) : '';
+    const shortDate = date ? format(new Date(date + 'T12:00:00'), 'MMM d, yyyy', { locale }) : '—';
 
     useEffect(() => {
         // Entrance animation for the success icon
@@ -108,17 +115,63 @@ export default function BookingConfirmedScreen() {
             useNativeDriver: true,
         }).start();
 
+        // Fetch current status if not provided or to be fresh
+        const fetchStatus = async () => {
+            if (!bookingId) return;
+            try {
+                const { data, error } = await supabase
+                    .from('reservations')
+                    .select('status')
+                    .eq('id', bookingId)
+                    .single();
+                if (data) setStatus(data.status);
+            } catch (err) {
+                console.error('Error fetching booking status:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStatus();
+
+        // Subscribe to real-time updates for this booking
+        const subscription = supabase
+            .channel(`booking-status-${bookingId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'reservations',
+                    filter: `id=eq.${bookingId}`,
+                },
+                (payload) => {
+                    if (payload.new.status) {
+                        setStatus(payload.new.status);
+                    }
+                }
+            )
+            .subscribe();
+
         // Stop confetti after 4 seconds
         const timer = setTimeout(() => setShowConfetti(false), 4500);
-        return () => clearTimeout(timer);
-    }, []);
+        return () => {
+            clearTimeout(timer);
+            subscription.unsubscribe();
+        };
+    }, [bookingId]);
 
     const handleShare = async () => {
-        const shareText = `🍽️ Joining me for dinner at ${restaurant}?\n📅 ${formattedDate} at ${time}\n👥 ${guests} guests`;
+        const shareText = t('bookings.shareTemplate', {
+            name: restaurant,
+            date: formattedDate,
+            time: time,
+            guests: guests
+        });
         try {
             await Share.share({
                 message: shareText,
-                title: `Dinner at ${restaurant}`,
+                title: t('bookings.shareTitle', { name: restaurant }),
             });
         } catch { }
     };
@@ -160,9 +213,13 @@ export default function BookingConfirmedScreen() {
                             <Check size={14} color="#FFF" strokeWidth={3} />
                         </View>
                     </Animated.View>
-                    <Text style={styles.title}>Booking Confirmed!</Text>
+                    <Text style={styles.title}>
+                        {status === 'pending' ? t('confirmedPage.pendingTitle') : t('confirmedPage.title')}
+                    </Text>
                     <Text style={styles.subtitle}>
-                        Your table at <Text style={styles.subtitleBold}>{restaurant}</Text> is all set.
+                        {status === 'pending'
+                            ? t('confirmedPage.pendingSubtitle', { restaurant })
+                            : t('confirmedPage.subtitle', { restaurant })}
                     </Text>
                 </View>
 
@@ -174,7 +231,7 @@ export default function BookingConfirmedScreen() {
                     {/* Restaurant header */}
                     <View style={styles.ticketHeader}>
                         <View style={styles.ticketHeaderLeft}>
-                            <Text style={styles.ticketLabel}>RESERVATION AT</Text>
+                            <Text style={styles.ticketLabel}>{t('bookings.reservationAt')}</Text>
                             <Text style={styles.ticketRestaurant}>{restaurant}</Text>
                             {address ? (
                                 <View style={styles.addressRow}>
@@ -184,22 +241,22 @@ export default function BookingConfirmedScreen() {
                             ) : null}
                         </View>
                         <View style={styles.ticketInitialCircle}>
-                            <Text style={styles.ticketInitial}>{restaurant[0]}</Text>
+                            <Text style={styles.ticketInitial}>{restaurant ? restaurant[0] : 'R'}</Text>
                         </View>
                     </View>
 
                     {/* Details grid */}
                     <View style={styles.detailsGrid}>
                         <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>DATE</Text>
+                            <Text style={styles.detailLabel}>{t('restaurant.date')}</Text>
                             <Text style={styles.detailValue}>{shortDate}</Text>
                         </View>
                         <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>TIME</Text>
+                            <Text style={styles.detailLabel}>{t('restaurant.time')}</Text>
                             <Text style={styles.detailValue}>{time || '—'}</Text>
                         </View>
                         <View style={styles.detailItem}>
-                            <Text style={styles.detailLabel}>GUESTS</Text>
+                            <Text style={styles.detailLabel}>{t('bookings.guests')}</Text>
                             <Text style={styles.detailValue}>{guests}</Text>
                         </View>
                     </View>
@@ -218,14 +275,16 @@ export default function BookingConfirmedScreen() {
                                 <View style={styles.qrInfo}>
                                     <View style={styles.qrLabelRow}>
                                         <QrCode size={12} color={Colors.textMuted} />
-                                        <Text style={styles.qrLabel}>SHOW AT HOST STAND</Text>
+                                        <Text style={styles.qrLabel}>{t('confirmedPage.scanHostStand')}</Text>
                                     </View>
                                     <Text style={styles.bookingIdText}>
                                         #{bookingId.slice(0, 8).toUpperCase()}
                                     </Text>
-                                    <View style={styles.confirmedBadge}>
-                                        <View style={styles.pulseDot} />
-                                        <Text style={styles.confirmedText}>Confirmed</Text>
+                                    <View style={[styles.confirmedBadge, status === 'pending' && styles.pendingBadge]}>
+                                        <View style={[styles.pulseDot, status === 'pending' && styles.pendingPulseDot]} />
+                                        <Text style={[styles.confirmedText, status === 'pending' && styles.pendingText]}>
+                                            {status === 'pending' ? t('bookings.status.pending') : t('bookings.status.confirmed')}
+                                        </Text>
                                     </View>
                                 </View>
                                 <Image
@@ -240,8 +299,10 @@ export default function BookingConfirmedScreen() {
                                     <Check size={20} color={Colors.success} />
                                 </View>
                                 <View>
-                                    <Text style={styles.confirmedSimpleTitle}>Confirmed</Text>
-                                    <Text style={styles.confirmedSimpleSub}>Confirmation sent to your email</Text>
+                                    <Text style={[styles.confirmedSimpleTitle, status === 'pending' && styles.pendingText]}>
+                                        {status === 'pending' ? t('bookings.status.pending') : t('bookings.status.confirmed')}
+                                    </Text>
+                                    <Text style={styles.confirmedSimpleSub}>{t('confirmedPage.confirmationSent')}</Text>
                                 </View>
                             </View>
                         )}
@@ -257,12 +318,12 @@ export default function BookingConfirmedScreen() {
                             <CalendarPlus size={18} color={Colors.primary} />
                         )}
                         <Text style={styles.actionText}>
-                            {copied ? 'Copied!' : 'Add to Calendar'}
+                            {copied ? t('common.copied') : t('confirmedPage.addToCalendar')}
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                         <Share2 size={18} color={Colors.primary} />
-                        <Text style={styles.actionText}>Invite Guests</Text>
+                        <Text style={styles.actionText}>{t('confirmedPage.inviteGuests')}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -270,12 +331,12 @@ export default function BookingConfirmedScreen() {
                     style={styles.viewBookingsButton}
                     onPress={() => router.replace('/(tabs)/bookings')}
                 >
-                    <Text style={styles.viewBookingsText}>View My Bookings</Text>
+                    <Text style={styles.viewBookingsText}>{t('confirmedPage.viewBookings')}</Text>
                     <ChevronRight size={18} color="#FFF" />
                 </TouchableOpacity>
 
                 <Text style={styles.footerNote}>
-                    A confirmation has been sent to your email.
+                    {t('confirmedPage.confirmationSent')}
                 </Text>
             </ScrollView>
         </SafeAreaView>
@@ -521,6 +582,16 @@ const styles = StyleSheet.create({
         fontSize: 11,
         fontWeight: '700',
         color: '#047857',
+    },
+    pendingBadge: {
+        backgroundColor: '#FFFBEB',
+        borderColor: '#FEF3C7',
+    },
+    pendingPulseDot: {
+        backgroundColor: '#F59E0B',
+    },
+    pendingText: {
+        color: '#B45309',
     },
     qrImage: {
         width: 96,

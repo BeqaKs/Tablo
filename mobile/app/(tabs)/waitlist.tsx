@@ -99,7 +99,7 @@ export default function MyWaitlistScreen() {
                             if (error) throw error;
                             setEntries(prev => prev.filter(e => e.id !== id));
                         } catch (error) {
-                            Alert.alert(t('common.error') || 'Error', 'Could not leave the waitlist.');
+                            Alert.alert(t('common.error') || 'Error', t('waitlist.cancelError') || 'Could not leave the waitlist.');
                         }
                         setActingId(null);
                     },
@@ -116,7 +116,7 @@ export default function MyWaitlistScreen() {
                 .update({ status: 'claimed' })
                 .eq('id', id);
             if (error) throw error;
-            Alert.alert(t('common.success') || 'Spot Claimed!', 'Your table is ready. Head to the host stand.');
+            Alert.alert(t('waitlist.claimSuccess') || 'Spot Claimed!', t('waitlist.claimSuccessDesc') || 'Your table is ready. Head to the host stand.');
             setEntries(prev => prev.map(e => e.id === id ? { ...e, status: 'claimed' } : e));
 
             // Wait briefly before refreshing or let the user navigate
@@ -124,7 +124,7 @@ export default function MyWaitlistScreen() {
                 fetchWaitlist();
             }, 2000);
         } catch (error) {
-            Alert.alert(t('common.error') || 'Error', 'Could not claim this spot.');
+            Alert.alert(t('common.error') || 'Error', t('waitlist.errorClaim') || 'Could not claim this spot.');
             setActingId(null);
         }
     };
@@ -133,7 +133,7 @@ export default function MyWaitlistScreen() {
         const restaurant = Array.isArray(item.restaurants) ? item.restaurants[0] : item.restaurants;
         const isOffered = item.status === 'offered';
         const timeStr = item.requested_time
-            ? new Date(item.requested_time).toLocaleString('en-US', {
+            ? new Date(item.requested_time).toLocaleString(t('common.locale') === 'ka' ? 'ka-GE' : 'en-US', {
                 weekday: 'short', month: 'short', day: 'numeric',
                 hour: 'numeric', minute: '2-digit',
             })
@@ -166,7 +166,7 @@ export default function MyWaitlistScreen() {
                             <Text style={styles.restaurantName} numberOfLines={1}>{restaurant?.name || 'Restaurant'}</Text>
                             <View style={[styles.statusBadge, isOffered ? styles.badgeOffered : styles.badgeWaiting]}>
                                 <Text style={[styles.statusText, isOffered ? styles.statusOffered : styles.statusWaiting]}>
-                                    {isOffered ? 'ACTION REQUIRED' : `#${item.position ?? '?'} IN QUEUE`}
+                                    {isOffered ? t('waitlist.actionRequired') : t('waitlist.inQueueLabel', { pos: item.position ?? '?' })}
                                 </Text>
                             </View>
                         </View>
@@ -184,7 +184,7 @@ export default function MyWaitlistScreen() {
                                 <View style={styles.detailIconBox}>
                                     <Users size={14} color={Colors.primary} />
                                 </View>
-                                <Text style={styles.detailText}>{item.party_size} guests</Text>
+                                <Text style={styles.detailText}>{t('dashboard.guests', { count: item.party_size })}</Text>
                             </View>
                             {restaurant?.address ? (
                                 <View style={styles.detailChip}>

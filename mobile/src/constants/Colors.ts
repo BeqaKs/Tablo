@@ -28,6 +28,7 @@ const lightColors = {
     overlay: 'rgba(0, 0, 0, 0.5)',
     overlayLight: 'rgba(0, 0, 0, 0.03)',
     shadow: '#0F172A',
+    card: '#FFFFFF',
 };
 
 const darkColors = {
@@ -60,6 +61,7 @@ const darkColors = {
     overlay: 'rgba(0, 0, 0, 0.7)',
     overlayLight: 'rgba(255, 255, 255, 0.05)',
     shadow: '#000000',
+    card: '#1E293B',
 };
 
 export const Colors = {

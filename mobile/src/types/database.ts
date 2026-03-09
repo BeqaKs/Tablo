@@ -535,6 +535,7 @@ export type Database = {
       restaurants: {
         Row: {
           address: string | null
+          average_check: number | null
           cancellation_policy: string | null
           city: string | null
           created_at: string | null
@@ -562,6 +563,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          average_check?: number | null
           cancellation_policy?: string | null
           city?: string | null
           created_at?: string | null
@@ -589,6 +591,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          average_check?: number | null
           cancellation_policy?: string | null
           city?: string | null
           created_at?: string | null

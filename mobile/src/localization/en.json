@@ -198,9 +198,12 @@
         "success": {
             "checkEmail": "Please check your email to confirm your account before signing in.",
             "accountCreated": "Account created successfully!"
-        }
+        },
+        "signInRequired": "Sign In Required",
+        "signInToReserve": "Please sign in to make a reservation."
     },
     "bookings": {
+        "reservationAt": "RESERVATION AT",
         "title": "My Bookings",
         "subtitle": "Manage your restaurant reservations",
         "active": "Active Reservations",
@@ -211,6 +214,10 @@
         "guests": "Guests",
         "guest": "Guest",
         "table": "Table",
+        "errorCancel": "Could not cancel this booking.",
+        "shareLabel": "Share",
+        "shareTemplate": "I have a booking at {name}\n📅 {date} at {time}\n👥 {guests} guests",
+        "shareTitle": "Booking at {name}",
         "specialRequests": "Special Requests",
         "status": {
             "pending": "Pending",
@@ -249,27 +256,6 @@
             "success": "Reservation details updated!"
         },
         "success": "Reservation created successfully!",
-        "confirmedPage": {
-            "title": "You're confirmed!",
-            "subtitle": "Your table at {restaurant} is reserved.",
-            "celebrationReady": "{occasion} celebration ready!",
-            "scanHostStand": "Show at the host stand",
-            "addToCalendar": "Add to Calendar",
-            "inviteGuests": "Invite Guests",
-            "viewBookings": "View My Bookings",
-            "confirmationSent": "A confirmation has been sent to your email and phone.",
-            "loading": "Loading your confirmation...",
-            "shareModalTitle": "Invite your crew 🍽️",
-            "shareModalDesc": "Share this reservation",
-            "whosJoining": "Who's joining?",
-            "copyLink": "Copy invite link",
-            "shareVia": "Share via…",
-            "reservationAt": "Your reservation at",
-            "date": "Date",
-            "time": "Time",
-            "guests": "Guests",
-            "bookingId": "Booking ID"
-        },
         "countdown": {
             "in": "in",
             "d": "d",
@@ -300,7 +286,29 @@
         "signInDesc": "Sign in to view and join restaurant waitlists.",
         "leaveQueue": "Leave Queue",
         "leaveQueueConfirm": "Are you sure you want to leave this queue?",
-        "leaveWaitlist": "Leave Waitlist"
+        "errorClaim": "Could not claim this spot.",
+        "claimSuccess": "Spot Claimed!",
+        "claimSuccessDesc": "Your table is ready. Head to the host stand.",
+        "actionRequired": "ACTION REQUIRED",
+        "inQueueLabel": "# {pos} IN QUEUE",
+        "mins": "mins",
+        "leaveWaitlist": "Leave Waitlist",
+        "statusTitle": "Waitlist Status",
+        "errorNotFound": "Status not found",
+        "status": {
+            "waiting": "Waiting",
+            "offered": "Offered",
+            "claimed": "Claimed",
+            "cancelled": "Cancelled",
+            "expired": "Expired"
+        },
+        "errorLoad": "Could not load waitlist status.",
+        "cancelTitle": "Cancel Waitlist",
+        "cancelConfirm": "Are you sure you want to leave the waitlist?",
+        "cancelError": "Could not cancel at this time.",
+        "inQueue": "in queue",
+        "estWait": "Est. Wait",
+        "autoUpdateInfo": "This page updates automatically. We'll send you a notification when your table is ready!"
     },
     "menu": {
         "orderInAdvance": "Order in Advance?",
@@ -374,12 +382,29 @@
         "editProfileModal": {
             "title": "Edit Profile",
             "nameLabel": "Full Name",
+            "namePlaceholder": "Your full name",
             "phoneLabel": "Phone Number",
             "emailLabel": "Email",
             "save": "Save Changes"
-        }
+        },
+        "nameRequired": "Name cannot be empty.",
+        "updateSuccess": "Profile updated successfully!",
+        "updateError": "Could not update profile. Please try again.",
+        "notifUpdateSuccess": "Notification preferences updated!",
+        "friendsNetwork": "Friends & Network",
+        "friendsSubtitle": "View your dining friends",
+        "securityPrivacyDesc": "Your account is secured with email authentication. To change your password, sign out and use \"Forgot Password\" on the login screen.",
+        "paymentMethodsDesc": "Payment methods management coming soon.",
+        "signOutConfirm": "Are you sure you want to sign out?",
+        "helpEmailTitle": "Email Support",
+        "helpEmailSub": "support@tablo.ge",
+        "helpFaqTitle": "FAQ",
+        "helpFaqSub": "Frequently asked questions",
+        "helpCallTitle": "Call Us",
+        "helpCallSub": "+995 32 000 000"
     },
     "common": {
+        "copied": "Copied!",
         "loading": "Loading...",
         "error": "Error",
         "success": "Success",
@@ -395,11 +420,16 @@
         "filter": "Filter",
         "sort": "Sort",
         "viewAll": "View All",
-        "at": "at",
-        "upTo": "up to",
-        "optional": "Optional",
-        "closed": "Closed",
-        "restaurant": "Restaurant"
+        "matchPercent": "%{percent}% Matching",
+        "currency": "₾",
+        "timeSlots": {
+            "10am": "10:00 AM",
+            "12pm": "12:00 PM",
+            "2pm": "02:00 PM",
+            "4pm": "04:00 PM",
+            "6pm": "06:00 PM",
+            "8pm": "08:00 PM"
+        }
     },
     "restaurants": {
         "title": "Restaurants",
@@ -437,7 +467,9 @@
         "chooseTable": "Choose a table",
         "switchFloorPlan": "Switch to Floor Plan",
         "switchList": "Switch to List View",
+        "matchingPct": "%{pct}% Matching",
         "noTables": "No tables available for {{count}} guests at this time.",
+        "tableAlreadyTaken": "This table was just reserved by someone else. Please try another table or time.",
         "changeTimeOrGuests": "Change Time or Guests",
         "change": "Change",
         "availableTables": "Available Tables",
@@ -512,7 +544,15 @@
         "tabOverview": "Overview",
         "tabMenu": "Menu",
         "tabReview": "Review",
-        "reviewsLabel": "Reviews"
+        "reviewsLabel": "Reviews",
+        "writeReview": "Write a Review",
+        "noReviews": "No reviews yet. Be the first!",
+        "preOrderFromMenu": "Pre-order from Menu",
+        "preOrderSubtitle": "Select items you'd like to have ready when you arrive. You can also skip this step.",
+        "noMenuItems": "No menu items available for pre-order.",
+        "itemsSelected": "items selected",
+        "skipAndConfirm": "Skip & Confirm",
+        "bookingFailed": "Failed to create reservation. Please try again."
     },
     "footer": {
         "forDiners": "For Diners",
@@ -655,6 +695,7 @@
     "dashboard": {
         "welcome": "Welcome to Tablo!",
         "noRestaurant": "No restaurant assigned yet. Contact an admin.",
+        "noRestaurantDesc": "You don't have a restaurant linked to your profile.",
         "occupancy": "Current Occupancy",
         "tablesTotal": "{count} tables total",
         "totalCovers": "Total Covers Today",
@@ -688,8 +729,21 @@
             "pending": "Pending",
             "confirmed": "Confirmed",
             "seated": "Seated",
-            "completed": "Completed"
-        }
+            "completed": "Completed",
+            "unknown": "Unknown",
+            "cancelled": "Cancelled"
+        },
+        "tablePrefix": "TBL",
+        "tablePrefixShort": "T",
+        "tabs": {
+            "reservations": "Reservations",
+            "waitlist": "Waitlist"
+        },
+        "activeWaitlist": "Active Waitlist",
+        "noWaitlist": "No one is currently on the waitlist.",
+        "offer": "OFFER",
+        "active": "ACTIVE",
+        "promote": "PROMOTE"
     },
     "aiConcierge": {
         "title": "Dining Concierge",
@@ -704,5 +758,60 @@
         "subtitle": "Exclusive tables still available for tonight.",
         "tablesLeft": "{count} Table Left at {time}",
         "bookNow": "Book Now"
+    },
+    "friends": {
+        "title": "Friends",
+        "myFriends": "My Friends",
+        "addFriends": "Add Friends",
+        "noFriends": "No friends yet",
+        "noFriendsSubtitle": "Start building your dining network by adding friends.",
+        "findFriends": "Find Friends",
+        "since": "Since",
+        "pendingRequests": "Pending Requests",
+        "searchPlaceholder": "Search by name...",
+        "noResults": "No users found.",
+        "searchPrompt": "Type at least 3 characters to search for users.",
+        "removeFriend": "Remove Friend",
+        "removeFriendConfirm": "Are you sure you want to remove this friend?",
+        "successRequestSent": "Friend request sent!",
+        "statusFriends": "Friends",
+        "statusPending": "Pending",
+        "add": "Add",
+        "userSince": "Since {{date}}",
+        "noUsersFound": "No users found.",
+        "searchHint": "Type at least 3 characters to search for users."
+    },
+    "confirmedPage": {
+        "title": "Booking Confirmed!",
+        "pendingTitle": "Reservation Requested",
+        "subtitle": "Your table at {restaurant} is all set.",
+        "pendingSubtitle": "Your request has been sent to {restaurant}. We'll notify you once they confirm it.",
+        "celebrationReady": "{occasion} celebration ready!",
+        "scanHostStand": "SHOW AT HOST STAND",
+        "addToCalendar": "Add to Calendar",
+        "inviteGuests": "Invite Guests",
+        "viewBookings": "View My Bookings",
+        "confirmationSent": "A confirmation has been sent to your email.",
+        "loading": "Loading your confirmation...",
+        "shareModalTitle": "Invite your crew 🍽️",
+        "shareModalDesc": "Share this reservation",
+        "whosJoining": "Who's joining?",
+        "copyLink": "Copy invite link",
+        "shareVia": "Share via…",
+        "reservationAt": "Your reservation at",
+        "shareModal": {
+            "title": "Invite your crew 🍽️",
+            "description": "Share this reservation",
+            "whosJoining": "Who's joining?",
+            "copyLink": "Copy invite link",
+            "shareVia": "Share via…"
+        },
+        "reservationDetails": {
+            "reservationAt": "Your reservation at",
+            "date": "Date",
+            "time": "Time",
+            "guests": "Guests",
+            "bookingId": "Booking ID"
+        }
     }
 }

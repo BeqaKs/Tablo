@@ -3,7 +3,6 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     TouchableOpacity,
     ActivityIndicator,
     Alert,
@@ -12,12 +11,16 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ChevronLeft, Clock, Users, RefreshCw, XCircle } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../src/services/supabase';
-import { Colors } from '../../src/constants/Colors';
+import { useTheme } from '../../src/context/ThemeContext';
+import { t } from '../../src/localization/i18n';
 
 export default function WaitlistStatusScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
+    const { colors, isDark } = useTheme();
+
     const [status, setStatus] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -25,6 +28,8 @@ export default function WaitlistStatusScreen() {
     const slideAnim = useRef(new Animated.Value(40)).current;
     const infoFade = useRef(new Animated.Value(0)).current;
     const infoSlide = useRef(new Animated.Value(30)).current;
+
+    const styles = getStyles(colors);
 
     useEffect(() => {
         if (id) {
@@ -79,7 +84,7 @@ export default function WaitlistStatusScreen() {
             setStatus(data);
         } catch (error) {
             console.error('Error fetching waitlist status:', error);
-            Alert.alert('Error', 'Could not load waitlist status.');
+            Alert.alert(t('common.error'), t('waitlist.errorLoad'));
         } finally {
             setLoading(false);
         }
@@ -87,12 +92,12 @@ export default function WaitlistStatusScreen() {
 
     const handleCancel = async () => {
         Alert.alert(
-            'Cancel Waitlist',
-            'Are you sure you want to leave the waitlist?',
+            t('waitlist.cancelTitle'),
+            t('waitlist.cancelConfirm'),
             [
-                { text: 'No', style: 'cancel' },
+                { text: t('common.no'), style: 'cancel' },
                 {
-                    text: 'Yes, Cancel',
+                    text: t('common.yes'),
                     style: 'destructive',
                     onPress: async () => {
                         try {
@@ -104,7 +109,7 @@ export default function WaitlistStatusScreen() {
                             if (error) throw error;
                             router.back();
                         } catch (error) {
-                            Alert.alert('Error', 'Could not cancel at this time.');
+                            Alert.alert(t('common.error'), t('waitlist.cancelError'));
                         }
                     },
                 },
@@ -115,7 +120,7 @@ export default function WaitlistStatusScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={Colors.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
@@ -123,21 +128,31 @@ export default function WaitlistStatusScreen() {
     if (!status) {
         return (
             <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>Status not found</Text>
+                <Text style={styles.errorText}>{t('waitlist.errorNotFound')}</Text>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <Text style={styles.backLink}>Go Back</Text>
+                    <Text style={styles.backLink}>{t('common.back')}</Text>
                 </TouchableOpacity>
             </View>
         );
     }
 
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'offered': return colors.success;
+            case 'waiting': return colors.primary;
+            case 'cancelled':
+            case 'expired': return colors.textMuted;
+            default: return colors.primary;
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <ChevronLeft size={24} color={Colors.text} />
+                    <ChevronLeft size={24} color={colors.text} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Waitlist Status</Text>
+                <Text style={styles.headerTitle}>{t('waitlist.statusTitle')}</Text>
                 <View style={{ width: 44 }} />
             </View>
 
@@ -147,76 +162,68 @@ export default function WaitlistStatusScreen() {
 
                     <View style={styles.positionCircle}>
                         <Text style={styles.positionNumber}>#{status.position || '?'}</Text>
-                        <Text style={styles.positionLabel}>in queue</Text>
+                        <Text style={styles.positionLabel}>{t('waitlist.inQueue')}</Text>
                     </View>
 
                     <View style={styles.statsRow}>
                         <View style={styles.statItem}>
-                            <Users size={20} color={Colors.primary} />
+                            <Users size={20} color={colors.primary} />
                             <Text style={styles.statValue}>{status.party_size}</Text>
-                            <Text style={styles.statLabel}>Guests</Text>
+                            <Text style={styles.statLabel}>{t('common.guest')}</Text>
                         </View>
                         <View style={styles.statItem}>
-                            <Clock size={20} color={Colors.primary} />
-                            <Text style={styles.statValue}>~15m</Text>
-                            <Text style={styles.statLabel}>Est. Wait</Text>
+                            <Clock size={20} color={colors.primary} />
+                            <Text style={styles.statValue}>~15{t('common.minutesShort') || 'm'}</Text>
+                            <Text style={styles.statLabel}>{t('waitlist.estWait')}</Text>
                         </View>
                     </View>
 
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(status.status) }]}>
-                        <Text style={styles.statusText}>{status.status.toUpperCase()}</Text>
+                        <Text style={styles.statusText}>{t(`waitlist.status.${status.status}`).toUpperCase()}</Text>
                     </View>
                 </Animated.View>
 
                 <Animated.View style={[styles.infoBox, { opacity: infoFade, transform: [{ translateY: infoSlide }] }]}>
-                    <RefreshCw size={20} color={Colors.primary} />
+                    <RefreshCw size={20} color={colors.primary} />
                     <Text style={styles.infoText}>
-                        This page updates automatically. We'll send you a notification when your table is ready!
+                        {t('waitlist.autoUpdateInfo')}
                     </Text>
                 </Animated.View>
 
                 <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-                    <XCircle size={20} color={Colors.error} />
-                    <Text style={styles.cancelButtonText}>Leave Waitlist</Text>
+                    <XCircle size={20} color={colors.error} />
+                    <Text style={styles.cancelButtonText}>{t('waitlist.leaveWaitlist')}</Text>
                 </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-const getStatusColor = (status: string) => {
-    switch (status) {
-        case 'offered': return Colors.success;
-        case 'waiting': return Colors.primary;
-        case 'cancelled':
-        case 'expired': return Colors.textMuted;
-        default: return Colors.primary;
-    }
-};
-
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.background,
+        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        backgroundColor: colors.background,
     },
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+        backgroundColor: colors.background,
     },
     errorText: {
         fontSize: 18,
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 16,
     },
     backLink: {
-        color: Colors.primary,
+        color: colors.primary,
         fontSize: 16,
         fontWeight: '700',
     },
@@ -230,7 +237,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
     },
     backButton: {
         width: 44,
@@ -244,12 +251,12 @@ const styles = StyleSheet.create({
     },
     statusCard: {
         width: '100%',
-        backgroundColor: Colors.surface,
+        backgroundColor: colors.surface,
         borderRadius: 32,
         padding: 32,
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: colors.border,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.05,
@@ -260,7 +267,7 @@ const styles = StyleSheet.create({
     restaurantName: {
         fontSize: 24,
         fontWeight: '800',
-        color: Colors.text,
+        color: colors.text,
         marginBottom: 32,
         textAlign: 'center',
     },
@@ -268,22 +275,22 @@ const styles = StyleSheet.create({
         width: 140,
         height: 140,
         borderRadius: 70,
-        backgroundColor: Colors.background,
+        backgroundColor: colors.background,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 8,
-        borderColor: Colors.primary,
+        borderColor: colors.primary,
         marginBottom: 32,
     },
     positionNumber: {
         fontSize: 42,
         fontWeight: '900',
-        color: Colors.primary,
+        color: colors.primary,
     },
     positionLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: Colors.textMuted,
+        color: colors.textMuted,
         textTransform: 'uppercase',
     },
     statsRow: {
@@ -298,13 +305,13 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 20,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         marginTop: 8,
     },
     statLabel: {
         fontSize: 12,
         fontWeight: '600',
-        color: Colors.textMuted,
+        color: colors.textMuted,
         textTransform: 'uppercase',
         marginTop: 2,
     },
@@ -321,17 +328,19 @@ const styles = StyleSheet.create({
     },
     infoBox: {
         flexDirection: 'row',
-        backgroundColor: Colors.secondary,
+        backgroundColor: colors.surface, // Changed from secondary for better consistency
         padding: 20,
         borderRadius: 20,
         alignItems: 'center',
         gap: 16,
         marginBottom: 40,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     infoText: {
         flex: 1,
         fontSize: 14,
-        color: Colors.text,
+        color: colors.text,
         lineHeight: 20,
         fontWeight: '500',
     },
@@ -342,7 +351,7 @@ const styles = StyleSheet.create({
         padding: 12,
     },
     cancelButtonText: {
-        color: Colors.error,
+        color: colors.error,
         fontSize: 16,
         fontWeight: '700',
     },

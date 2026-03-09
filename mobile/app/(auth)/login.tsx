@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     ActivityIndicator,
@@ -18,6 +17,7 @@ import {
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, ArrowRight, ChevronLeft } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../src/constants/Colors';
 import { t } from '../../src/localization/i18n';
@@ -101,21 +101,20 @@ export default function LoginScreen() {
 
                 if (result.type === 'success' && result.url) {
                     const url = result.url;
+                    // OAuth success
 
-                    console.log('OAuth success:', url);
+                    const hash = url.split('#')[1] || '';
+                    const query = url.split('?')[1] || '';
+                    const params = new URLSearchParams(hash || query);
 
-                    const urlObj = new URL(url.replace('#', '?'));
-
-                    const accessToken = urlObj.searchParams.get('access_token');
-                    const refreshToken = urlObj.searchParams.get('refresh_token');
-                    const code = urlObj.searchParams.get('code');
+                    const accessToken = params.get('access_token');
+                    const refreshToken = params.get('refresh_token');
+                    const code = params.get('code');
 
                     if (code) {
                         const { error } = await supabase.auth.exchangeCodeForSession(code);
                         if (error) throw error;
-                    }
-
-                    if (accessToken && refreshToken) {
+                    } else if (accessToken && refreshToken) {
                         const { error } = await supabase.auth.setSession({
                             access_token: accessToken,
                             refresh_token: refreshToken,
@@ -128,7 +127,7 @@ export default function LoginScreen() {
                 }
             }
         } catch (error: any) {
-            console.error('Google Login Error:', error);
+            // Google Login Error
             Alert.alert(
                 t('common.error'),
                 error.message || 'Failed to sign in with Google'

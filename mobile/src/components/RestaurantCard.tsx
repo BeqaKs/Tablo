@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions, Animated }
 import { Star, MapPin, Clock } from 'lucide-react-native';
 import { Colors } from '../constants/Colors';
 import { Restaurant } from '../types/database';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -14,6 +15,8 @@ interface RestaurantCardProps {
 }
 
 export const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, onPress, index = 0, style }) => {
+    const { colors } = useTheme();
+    const styles = getStyles(colors);
     const imageUrl = restaurant.gallery_images?.[0] || restaurant.images?.[0] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000&auto=format&fit=crop';
 
     const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -98,14 +101,14 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, onPr
 
                     <View style={styles.infoRow}>
                         <View style={styles.infoChip}>
-                            <MapPin size={13} color={Colors.textMuted} />
+                            <MapPin size={13} color={colors.textMuted} />
                             <Text style={styles.infoText} numberOfLines={1}>
                                 {restaurant.city || 'Tbilisi'}
                             </Text>
                         </View>
                         <View style={styles.dot} />
                         <View style={styles.infoChip}>
-                            <Clock size={13} color={Colors.textMuted} />
+                            <Clock size={13} color={colors.textMuted} />
                             <Text style={styles.infoText}>Open Now</Text>
                         </View>
                     </View>
@@ -115,9 +118,9 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({ restaurant, onPr
     );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
     container: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: colors.surface,
         borderRadius: 20,
         marginBottom: 16,
         shadowColor: '#000',
@@ -128,6 +131,8 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         width: width - 32,
         alignSelf: 'center',
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     imageContainer: {
         height: 180,
@@ -139,14 +144,13 @@ const styles = StyleSheet.create({
     },
     imageGradient: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'transparent',
-        // Subtle dark gradient at the bottom for text readability
+        backgroundColor: 'rgba(0,0,0,0.2)', // Subtle overlay for all images
     },
     badgeContainer: {
         position: 'absolute',
         top: 12,
         left: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: colors.glass,
         borderRadius: 100,
         paddingHorizontal: 12,
         paddingVertical: 5,
@@ -159,7 +163,7 @@ const styles = StyleSheet.create({
     cuisineBadge: {
         fontSize: 11,
         fontWeight: '700',
-        color: Colors.text,
+        color: colors.text,
         textTransform: 'uppercase',
         letterSpacing: 0.8,
     },
@@ -167,7 +171,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 12,
         right: 12,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backgroundColor: colors.glass,
         borderRadius: 100,
         paddingHorizontal: 10,
         paddingVertical: 5,
@@ -183,7 +187,7 @@ const styles = StyleSheet.create({
     ratingText: {
         fontSize: 13,
         fontWeight: '800',
-        color: Colors.text,
+        color: colors.text,
     },
     content: {
         padding: 16,
@@ -197,7 +201,7 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 18,
         fontWeight: '800',
-        color: Colors.text,
+        color: colors.text,
         flex: 1,
         marginRight: 8,
         letterSpacing: -0.3,
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
     price: {
         fontSize: 13,
         fontWeight: '700',
-        color: Colors.primary,
+        color: colors.primary,
         letterSpacing: 1,
     },
     infoRow: {
@@ -221,12 +225,12 @@ const styles = StyleSheet.create({
         width: 3,
         height: 3,
         borderRadius: 2,
-        backgroundColor: Colors.textMuted,
+        backgroundColor: colors.textMuted,
         marginHorizontal: 8,
     },
     infoText: {
         fontSize: 13,
-        color: Colors.textMuted,
+        color: colors.textMuted,
         fontWeight: '500',
     },
 });

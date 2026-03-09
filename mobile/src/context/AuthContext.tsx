@@ -60,17 +60,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchProfile = async (userId: string) => {
         try {
+            // Check profiles table first as it's the standard for public user data
             const { data, error } = await supabase
-                .from('users')
+                .from('profiles')
                 .select('*')
                 .eq('id', userId)
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (userError) throw userError;
+                setProfile(userData as any);
+                return;
+            }
+
             setProfile(data);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error fetching profile for user:', userId, error);
-            setProfile(null);
+
+            // If it's a critical auth error, we might need to sign out
+            if (error.message?.includes('Invalid Refresh Token') || error.status === 401) {
+                console.error('Critical auth error, cleared session');
+                setSession(null);
+                setUser(null);
+                setProfile(null);
+            } else {
+                setProfile(null);
+            }
         }
     };
 

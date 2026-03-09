@@ -73,7 +73,7 @@ export default function BookingsScreen() {
                             if (error) throw error;
                             setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
                         } catch {
-                            Alert.alert(t('common.error') || 'Error', 'Could not cancel this booking.');
+                            Alert.alert(t('common.error') || 'Error', t('bookings.errorCancel') || 'Could not cancel this booking.');
                         }
                         setCancellingId(null);
                     },
@@ -188,13 +188,21 @@ export default function BookingsScreen() {
                             </TouchableOpacity>
                             <View style={styles.actionDivider} />
                             <TouchableOpacity style={styles.actionBtn} onPress={() => {
-                                const msg = `I have a booking at ${item.restaurants.name}\n📅 ${format(new Date(item.reservation_time), 'EEE, MMM d')} at ${format(new Date(item.reservation_time), 'HH:mm')}\n👥 ${item.guest_count} guests`;
+                                const msg = t('bookings.shareTemplate', {
+                                    name: item.restaurants.name,
+                                    date: format(new Date(item.reservation_time), 'EEE, MMM d'),
+                                    time: format(new Date(item.reservation_time), 'HH:mm'),
+                                    guests: item.guest_count
+                                });
                                 import('react-native').then(({ Share }) => {
-                                    Share.share({ message: msg, title: `Booking at ${item.restaurants.name}` });
+                                    Share.share({
+                                        message: msg,
+                                        title: t('bookings.shareTitle', { name: item.restaurants.name })
+                                    });
                                 });
                             }}>
                                 <Share2 size={16} color={Colors.primary} />
-                                <Text style={styles.actionShareText}>{t('common.viewAll') && 'Share'}</Text>
+                                <Text style={styles.actionShareText}>{t('bookings.shareLabel') || 'Share'}</Text>
                             </TouchableOpacity>
                         </View>
                     )}

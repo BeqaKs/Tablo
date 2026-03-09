@@ -12,54 +12,40 @@ export default function AuthCallback() {
         const handleCallback = async () => {
             if (!url) return;
 
-            console.log('AuthCallback received URL:', url);
+            let accessToken: string | null = null;
+            let refreshToken: string | null = null;
 
-            let accessToken = null;
-            let refreshToken = null;
+            // Robust URL parsing - handles hashes (#), query params (?), and deep link formats
+            const rawUrl = url;
+            // URL parsing
 
-            // Robust URL parsing - handles hashes, query params, and deep link formats
-            const normalizedUrl = url.replace('#', '?');
-            let urlObj;
-            try {
-                urlObj = new URL(normalizedUrl);
-            } catch (e) {
-                // If it's a deep link like tablo://auth/callback?code=...
-                // we might need to handle it differently if URL constructor fails
-                console.log('URL parsing failed, trying manual parse for deep link');
-                const queryString = normalizedUrl.split('?')[1] || '';
-                const params = new URLSearchParams(queryString);
-                accessToken = params.get('access_token');
-                refreshToken = params.get('refresh_token');
-                const code = params.get('code');
+            // Supabase redirects often use #access_token=...
+            // We'll normalize to use URLSearchParams
+            const hash = rawUrl.split('#')[1] || '';
+            const query = rawUrl.split('?')[1] || '';
 
-                if (code) {
-                    console.log('Found PKCE code in manual parse, exchanging...');
-                    const { error } = await supabase.auth.exchangeCodeForSession(code);
-                    if (!error) { router.replace('/'); return; }
-                }
-            }
+            // Combine both to catch tokens regardless of where they are
+            const params = new URLSearchParams(hash || query);
 
-            if (urlObj) {
-                accessToken = urlObj.searchParams.get('access_token');
-                refreshToken = urlObj.searchParams.get('refresh_token');
-                const code = urlObj.searchParams.get('code');
+            accessToken = params.get('access_token');
+            refreshToken = params.get('refresh_token');
+            const code = params.get('code');
 
-                if (code) {
-                    console.log('Found PKCE code in callback, exchanging for session...');
-                    const { error } = await supabase.auth.exchangeCodeForSession(code);
-                    if (!error) {
-                        router.replace('/');
-                        return;
-                    } else {
-                        console.error('PKCE exchange error:', error.message);
-                        router.replace('/(auth)/login');
-                        return;
-                    }
+            if (code) {
+                // PKCE code exchange
+                const { error } = await supabase.auth.exchangeCodeForSession(code);
+                if (!error) {
+                    router.replace('/');
+                    return;
+                } else {
+                    // PKCE exchange error
+                    router.replace('/(auth)/login');
+                    return;
                 }
             }
 
             if (accessToken && refreshToken) {
-                console.log('Found tokens in callback, setting session...');
+                // Setting session
                 const { error } = await supabase.auth.setSession({
                     access_token: accessToken,
                     refresh_token: refreshToken,
@@ -68,12 +54,12 @@ export default function AuthCallback() {
                 if (!error) {
                     router.replace('/');
                 } else {
-                    console.error('Session error:', error.message);
+                    // Session error
                     router.replace('/(auth)/login');
                 }
-            } else {
-                console.log('No tokens found in callback URL');
-                // Don't auto-redirect immediately as URL might be slow to populate
+            } else if (accessToken || refreshToken) {
+                // Partial tokens
+                // If we have one but not the other, try to let Supabase handle it or log it
             }
         };
 

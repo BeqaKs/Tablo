@@ -8,15 +8,15 @@ import { useAuth } from '../../src/context/AuthContext';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 
-const CustomTabBarButton = (props: any) => {
+const CustomTabBarButton = ({ children, onPress }: any) => {
     return (
         <TouchableOpacity
-            {...props}
+            onPress={onPress}
             activeOpacity={0.8}
             style={styles.customButtonContainer}
         >
             <View style={styles.customButton}>
-                {props.children}
+                {children}
             </View>
         </TouchableOpacity>
     );
@@ -132,8 +132,8 @@ export default function TabLayout() {
                 name="waitlist"
                 options={{
                     href: null,
-                    title: 'Waitlist',
-                    tabBarIcon: ({ color }) => <Home size={24} color={color} />,
+                    title: t('navigation.waitlist') || 'Waitlist',
+                    tabBarIcon: ({ color }) => <Users size={24} color={color} />,
                 }}
             />
             <Tabs.Screen

@@ -12,7 +12,7 @@ export default function LanguageSelectionScreen() {
 
     const handleSelectLanguage = async (lang: 'en' | 'ka') => {
         await setLanguage(lang);
-        router.replace('/(tabs)');
+        router.replace('/(auth)/login');
     };
 
     return (
