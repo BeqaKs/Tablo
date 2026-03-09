@@ -22,7 +22,7 @@ export function TableLibrary() {
             height: shape === 'rectangle' ? 60 : undefined,
             location_type: 'indoor' as const,
             requires_prepayment: false,
-            prepayment_amount: undefined,
+            prepayment_amount: null,
         });
     };
 

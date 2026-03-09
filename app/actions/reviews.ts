@@ -76,3 +76,47 @@ export async function createReview(
 
     return { success: true };
 }
+
+export async function submitReview(
+    bookingId: string,
+    rating: number,
+    comment: string
+): Promise<{ error?: string; success?: boolean }> {
+    const supabase = await createClient();
+
+    // 1. Verify reservation and get details
+    const { data: reservation, error: resError } = await supabase
+        .from('reservations')
+        .select('restaurant_id, user_id, guest_name')
+        .eq('id', bookingId)
+        .single();
+
+    if (resError || !reservation) {
+        return { error: 'Reservation not found or invalid' };
+    }
+
+    // 2. Insert into reviews table
+    const { error } = await supabase.from('reviews').insert({
+        restaurant_id: reservation.restaurant_id,
+        reservation_id: bookingId,
+        user_id: reservation.user_id,
+        rating,
+        review_text: comment.trim() || null,
+        guest_name: reservation.guest_name || 'Guest',
+    });
+
+    if (error) return { error: error.message };
+
+    // 3. Revalidate restaurant page to show the new review
+    const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('slug')
+        .eq('id', reservation.restaurant_id)
+        .single();
+
+    if (restaurant) {
+        revalidatePath(`/restaurants/${restaurant.slug}`);
+    }
+
+    return { success: true };
+}

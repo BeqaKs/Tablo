@@ -311,7 +311,7 @@ export default function OwnerFloorPlanPage() {
             {showWalkIn && (
                 <WalkInModal
                     restaurantId={restaurant.id}
-                    tables={storeTables.map(t => ({ id: t.id, table_number: t.table_number, capacity: t.capacity, zone_name: t.zone_name }))}
+                    tables={storeTables.map(t => ({ id: t.id, table_number: t.table_number, capacity: t.capacity, zone_name: t.zone_name || 'Main Hall' }))}
                     onSuccess={() => { }}
                     onClose={() => setShowWalkIn(false)}
                 />

@@ -113,12 +113,12 @@
             "vegan": "ვეგანური",
             "asian": "აზიური",
             "fineDining": "პრემიუმ კლასი"
-        },
-        "shapes": {
-            "square": "კვადრატული",
-            "round": "მრგვალი",
-            "rectangle": "მართკუთხა"
         }
+    },
+    "shapes": {
+        "square": "კვადრატული",
+        "round": "მრგვალი",
+        "rectangle": "მართკუთხა"
     },
     "inbox": {
         "title": "SMS ინბოქსი",

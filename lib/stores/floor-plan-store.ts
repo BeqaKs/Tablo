@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { Table, TableShape } from '@/types/database';
 
-export interface TablePosition extends Omit<Table, 'id' | 'restaurant_id'> {
+export interface TablePosition extends Omit<Table, 'id' | 'restaurant_id' | 'pos_table_id' | 'rotation_deg' | 'updated_at' | 'x_coord' | 'y_coord' | 'rotation' | 'width' | 'height'> {
     id: string;
     x_coord: number;
     y_coord: number;
     rotation: number; // degrees: 0, 90, 180, 270
-    width?: number; // for rectangles
-    height?: number; // for rectangles
+    width?: number | null; // for rectangles
+    height?: number | null; // for rectangles
 }
 
 interface FloorPlanState {

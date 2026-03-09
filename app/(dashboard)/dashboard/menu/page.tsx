@@ -112,7 +112,7 @@ export default function MenuPage() {
                         Menu Management
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">
-                        {categories.length} categories · {categories.reduce((s, c) => s + (c.menu_items?.length ?? 0), 0)} items
+                        {categories.length} categories · {categories.reduce((s, c) => s + (c.menu_items?.length || 0), 0)} items
                     </p>
                 </div>
                 <Button onClick={() => setShowCatForm(true)} className="gap-2">
@@ -258,9 +258,9 @@ export default function MenuPage() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-sm truncate">{item.name}</p>
                                                 {item.description && <p className="text-xs text-muted-foreground truncate">{item.description}</p>}
-                                                {item.dietary_tags?.length > 0 && (
+                                                {(item.dietary_tags?.length ?? 0) > 0 && (
                                                     <div className="flex gap-1 mt-1 flex-wrap">
-                                                        {item.dietary_tags.map(t => (
+                                                        {item.dietary_tags?.map(t => (
                                                             <span key={t} className="text-xs px-1.5 py-0.5 bg-gray-100 rounded">{t}</span>
                                                         ))}
                                                     </div>

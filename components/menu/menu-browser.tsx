@@ -74,8 +74,8 @@ export function MenuBrowser({ categories, cart, onCartChange }: MenuBrowserProps
                         key={cat.id}
                         onClick={() => setActiveCategory(cat.id)}
                         className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap smooth-transition border ${activeCategory === cat.id
-                                ? 'bg-primary text-white border-primary'
-                                : 'bg-white text-muted-foreground border-gray-200 hover:border-primary/50'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-white text-muted-foreground border-gray-200 hover:border-primary/50'
                             }`}
                     >
                         {cat.name}
@@ -119,9 +119,9 @@ export function MenuBrowser({ categories, cart, onCartChange }: MenuBrowserProps
                                             </p>
                                         )}
                                         {/* Dietary tags */}
-                                        {item.dietary_tags?.length > 0 && (
+                                        {(item.dietary_tags?.length ?? 0) > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-1.5">
-                                                {item.dietary_tags.map(tag => {
+                                                {item.dietary_tags?.map(tag => {
                                                     const info = DIETARY_ICONS[tag]
                                                     return info ? (
                                                         <span
