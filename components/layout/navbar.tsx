@@ -132,11 +132,6 @@ export function Navbar() {
 
                   </>
                 )}
-                <Link href="/profile/friends">
-                  <Button variant="ghost" size="sm" className="rounded-full h-8 px-4 text-xs font-semibold">
-                    {t('navigation.friends')}
-                  </Button>
-                </Link>
                 <Link href="/profile">
                   <Button size="sm" className="rounded-full h-8 px-4 text-xs">
                     {t('navigation.profile')}
