@@ -23,11 +23,21 @@ export function TranslationsProvider({ dictionary, children }: { dictionary: any
         };
     }, [dictionary]);
 
-    // We provide both 't' as a function and the 'raw' dictionary as 't' (legacy support/easy access)
     const contextValue = useMemo(() => {
         const base = (...args: any[]) => (t as any)(...args);
-        Object.assign(base, dictionary);
-        return { t: base };
+
+        // Use a Proxy instead of Object.assign to safely expose dictionary keys
+        // without accidentally overwriting inherited Function properties (like .apply, .call, .name, .map, etc.)
+        const proxy = new Proxy(base, {
+            get(target, prop, receiver) {
+                if (prop in target) {
+                    return Reflect.get(target, prop, receiver);
+                }
+                return dictionary[prop as string];
+            }
+        });
+
+        return { t: proxy };
     }, [t, dictionary]);
 
     return (
