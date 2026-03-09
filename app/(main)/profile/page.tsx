@@ -155,12 +155,6 @@ export default function ProfilePage() {
                         <p className="text-muted-foreground">{t('profile.subtitle')}</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="outline" className="gap-2" asChild>
-                            <Link href="/profile/friends">
-                                <Users className="h-4 w-4" />
-                                <span className="hidden sm:inline">Friends</span>
-                            </Link>
-                        </Button>
                         <form action={signout}>
                             <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 gap-2">
                                 <LogOut className="h-4 w-4" />

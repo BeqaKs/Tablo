@@ -112,8 +112,8 @@ export function Sidebar({
               <UtensilsCrossed className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight text-white">Tablo</span>
-              <span className="text-[10px] font-medium" style={{ color: 'hsl(220 15% 45%)' }}>
+              <span className="text-sm font-bold tracking-tight text-gray-900">Tablo</span>
+              <span className="text-[10px] font-medium text-gray-500">
                 {userRole === 'admin' ? dict.adminPanel : dict.restaurantPanel}
               </span>
             </div>
@@ -130,19 +130,9 @@ export function Sidebar({
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={cn(
-            'hidden lg:flex h-7 w-7 items-center justify-center rounded-md smooth-transition',
+            'hidden lg:flex h-7 w-7 items-center justify-center rounded-md smooth-transition bg-gray-100 hover:bg-gray-200 text-gray-500',
             isCollapsed && 'mx-auto'
           )}
-          style={{
-            background: 'hsl(231 24% 13%)',
-            color: 'hsl(220 15% 50%)',
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'hsl(220 20% 80%)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.color = 'hsl(220 15% 50%)';
-          }}
         >
           {isCollapsed ? (
             <ChevronRight className="h-3.5 w-3.5" />
@@ -153,41 +143,32 @@ export function Sidebar({
 
         <button
           onClick={onClose}
-          className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg smooth-transition"
-          style={{
-            background: 'hsl(231 24% 13%)',
-            color: 'hsl(220 15% 50%)',
-          }}
+          className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg smooth-transition bg-gray-100 text-gray-500"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Service Status (owner only) */}
-      {userRole === 'restaurant_owner' && !isCollapsed && (
-        <div className="px-4 py-3" style={{ borderBottom: '1px solid hsl(231 24% 13%)' }}>
+      {userRole === 'restaurant_owner' && (
+        <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium" style={{ color: 'hsl(220 15% 50%)' }}>
+            <span className="text-xs font-medium text-gray-500">
               {dict.serviceStatus}
             </span>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold smooth-transition"
-              style={
-                isOpen
-                  ? { background: 'hsl(160 60% 45% / 0.15)', color: 'hsl(160 60% 60%)', border: '1px solid hsl(160 60% 45% / 0.25)' }
-                  : { background: 'hsl(231 24% 16%)', color: 'hsl(220 15% 45%)', border: '1px solid hsl(231 24% 20%)' }
-              }
+              className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold smooth-transition bg-gray-50 text-gray-600 hover:bg-gray-100"
             >
               <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: isOpen ? 'hsl(160 60% 55%)' : 'hsl(220 15% 40%)' }}
+                className="h-1.5 w-1.5 rounded-full shadow-sm"
+                style={{ background: isOpen ? '#10b981' : '#9ca3af' }}
               />
               {isOpen ? dict.open : dict.closed}
             </button>
           </div>
           {isOpen && (
-            <p className="mt-1.5 text-[11px]" style={{ color: 'hsl(220 15% 38%)' }}>
+            <p className="mt-1.5 text-[11px] text-gray-400">
               {dict.acceptingReservations}
             </p>
           )}
@@ -196,10 +177,9 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-hide">
-        {userRole === 'admin' && !isCollapsed && (
+        {userRole === 'admin' && (
           <p
-            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest"
-            style={{ color: 'hsl(220 15% 35%)' }}
+            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400"
           >
             {dict.admin}
           </p>
@@ -248,7 +228,7 @@ export function Sidebar({
       </nav>
 
       {/* Language Toggle & Footer */}
-      <div style={{ borderTop: '1px solid hsl(231 24% 13%)' }} className="p-3 space-y-1">
+      <div className="p-3 space-y-1 border-t border-gray-100">
         <button
           onClick={() => {
             const newLocale = currentLocale === 'en' ? 'ka' : 'en';
@@ -256,49 +236,35 @@ export function Sidebar({
             router.refresh();
           }}
           className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-white/5',
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-gray-50 text-gray-500',
             isCollapsed && 'justify-center'
           )}
-          style={{ color: 'hsl(220 15% 65%)' }}
         >
           <Globe className="h-4 w-4" />
           {!isCollapsed && (currentLocale === 'en' ? 'ქართული' : 'English')}
         </button>
 
         {!isCollapsed && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1"
-            style={{ background: 'hsl(231 24% 11%)' }}
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 bg-gray-50"
           >
             <div
-              className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, hsl(347 78% 50%), hsl(262 60% 50%))' }}
+              className="flex h-8 w-8 items-center justify-center rounded-md font-semibold text-white bg-primary text-xs"
             >
-              {userName[0]?.toUpperCase() || 'U'}
+              {userName.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{userName}</p>
-              <p className="text-[10px] capitalize" style={{ color: 'hsl(220 15% 40%)' }}>
-                {userRole?.replace('_', ' ')}
-              </p>
+            <div className="flex flex-col truncate">
+              <span className="text-sm font-medium truncate text-gray-900">{userName}</span>
+              <span className="text-xs truncate text-gray-500 capitalize">{userRole?.replace('_', ' ')}</span>
             </div>
           </div>
         )}
-        <form action={signout}>
+        <form action={signout} className="w-full">
           <button
             type="submit"
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition',
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-gray-50 hover:text-red-500 text-gray-500',
               isCollapsed && 'justify-center'
             )}
-            style={{ color: 'hsl(220 15% 42%)' }}
-            onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'hsl(347 78% 58% / 0.08)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'hsl(347 78% 65%)';
-            }}
-            onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.background = '';
-              (e.currentTarget as HTMLButtonElement).style.color = 'hsl(220 15% 42%)';
-            }}
             title={isCollapsed ? dict.signOut : undefined}
           >
             <LogOut className="h-4 w-4" />

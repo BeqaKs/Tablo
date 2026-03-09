@@ -32,12 +32,7 @@ export function DashboardHeader({
 
     return (
         <header
-            className="sticky top-0 z-20 flex h-14 items-center justify-between px-6"
-            style={{
-                background: 'hsl(231 38% 6% / 0.85)',
-                backdropFilter: 'blur(12px)',
-                borderBottom: '1px solid hsl(231 24% 13%)',
-            }}
+            className="sticky top-0 z-20 flex h-14 items-center justify-between px-6 bg-white border-b border-gray-200"
         >
             {/* Left: Restaurant name + live badge */}
             <div className="flex items-center gap-3">
@@ -47,14 +42,9 @@ export function DashboardHeader({
                 >
                     <Menu className="h-5 w-5" />
                 </button>
-                <h1 className="text-sm font-semibold text-white">{restaurantName}</h1>
+                <h1 className="text-sm font-semibold text-gray-900">{restaurantName}</h1>
                 <span
-                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                    style={{
-                        background: 'hsl(160 60% 45% / 0.14)',
-                        color: 'hsl(160 60% 60%)',
-                        border: '1px solid hsl(160 60% 45% / 0.25)',
-                    }}
+                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100"
                 >
                     <span className="h-1.5 w-1.5 rounded-full bg-current pulse-dot" />
                     {dict.dashboard.live}
@@ -64,18 +54,17 @@ export function DashboardHeader({
             {/* Right: Date + bell */}
             <div className="flex items-center gap-4">
                 {date && (
-                    <div className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>
+                    <div className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500">
                         <span>{date}</span>
-                        <span style={{ color: 'hsl(231 24% 22%)' }}>•</span>
-                        <span className="font-semibold" style={{ color: 'hsl(220 20% 65%)' }}>{time}</span>
+                        <span className="text-gray-300">•</span>
+                        <span className="font-semibold text-gray-700">{time}</span>
                     </div>
                 )}
                 {restaurantId ? (
                     <NotificationsPopover restaurantId={restaurantId} />
                 ) : (
                     <button
-                        className="flex h-8 w-8 items-center justify-center rounded-lg smooth-transition"
-                        style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 50%)' }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg smooth-transition bg-gray-100 text-gray-500 hover:bg-gray-200"
                     >
                         <Bell className="h-4 w-4" />
                     </button>

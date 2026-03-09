@@ -237,11 +237,6 @@ export function Navbar() {
 
                     </>
                   )}
-                  <Link href="/profile/friends" onClick={() => setMobileOpen(false)}>
-                    <Button variant="outline" className="w-full rounded-xl h-11 mb-2">
-                      {t('navigation.friends')}
-                    </Button>
-                  </Link>
                   <Link href="/profile" onClick={() => setMobileOpen(false)}>
                     <Button className="w-full rounded-xl h-11">
                       {t('navigation.profile')}
