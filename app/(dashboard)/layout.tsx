@@ -89,7 +89,7 @@ export default async function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/30">
+    <div className="dark min-h-screen" style={{ background: 'hsl(231 38% 6%)' }}>
       {restaurantId && <HostNotifier restaurantId={restaurantId} />}
       <DashboardShell
         sidebar={
