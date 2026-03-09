@@ -1,3 +1,4 @@
+// lib/get-dictionary.ts
 import { cookies } from 'next/headers';
 import enMessages from '@/messages/en.json';
 import kaMessages from '@/messages/ka.json';
@@ -35,5 +36,5 @@ export async function getDictionary() {
         return result;
     };
 
-    return { t, locale };
+    return { t, dict: messages[locale], locale };
 }

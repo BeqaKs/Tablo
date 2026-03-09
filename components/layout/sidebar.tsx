@@ -1,10 +1,12 @@
+// components/layout/sidebar.tsx
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+
 import {
   LayoutDashboard,
   CalendarDays,
@@ -26,75 +28,60 @@ import {
   ClipboardList,
   Megaphone,
   MessageSquare,
+  Globe,
+  X,
 } from 'lucide-react';
 import { signout } from '@/app/auth/actions';
 
-const sidebarItems = [
-  { icon: LayoutDashboard, label: 'Overview', href: '/dashboard' },
-  { icon: CalendarDays, label: 'Calendar', href: '/dashboard/calendar' },
-  { icon: Armchair, label: 'Floor Plan', href: '/dashboard/floor-plan' },
-  { icon: Users, label: 'Guests', href: '/dashboard/guests' },
-  { icon: MessageSquare, label: 'Inbox', href: '/dashboard/inbox' },
-  { icon: ClipboardList, label: 'Menu', href: '/dashboard/menu' },
-  { icon: CalendarClock, label: 'Schedule', href: '/dashboard/schedule' },
-  { icon: Printer, label: 'Print Manifest', href: '/dashboard/print' },
-  { icon: Megaphone, label: 'Marketing', href: '/dashboard/marketing' },
-  { icon: ShieldCheck, label: 'Staff', href: '/dashboard/staff' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
-];
 
-const adminItems = [
-  { icon: ShieldCheck, label: 'Admin Overview', href: '/dashboard/admin' },
-  { icon: Utensils, label: 'Restaurants', href: '/dashboard/admin/restaurants' },
-  { icon: Users, label: 'Users', href: '/dashboard/admin/users' },
-  { icon: PanelTop, label: 'Tables', href: '/dashboard/admin/tables' },
-  { icon: BookOpen, label: 'Bookings', href: '/dashboard/admin/bookings' },
-];
-
-export function Sidebar() {
+export function Sidebar({
+  dict,
+  currentLocale,
+  userRole,
+  userName,
+  onClose
+}: {
+  dict: any,
+  currentLocale: 'en' | 'ka',
+  userRole: string | null,
+  userName: string,
+  onClose?: () => void
+}) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>('');
-  const supabase = createClient();
 
-  useEffect(() => {
-    async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role, full_name')
-          .eq('id', user.id)
-          .maybeSingle();
+  // Create localized sidebar items
+  const sidebarItems = [
+    { icon: LayoutDashboard, label: dict.overview, href: '/dashboard' },
+    { icon: CalendarDays, label: dict.calendar, href: '/dashboard/calendar' },
+    { icon: Armchair, label: dict.floorPlan, href: '/dashboard/floor-plan' },
+    { icon: Users, label: dict.guests, href: '/dashboard/guests' },
+    { icon: MessageSquare, label: dict.inbox, href: '/dashboard/inbox' },
+    { icon: ClipboardList, label: dict.menu, href: '/dashboard/menu' },
+    { icon: CalendarClock, label: dict.schedule, href: '/dashboard/schedule' },
+    { icon: Printer, label: dict.printManifest, href: '/dashboard/print' },
+    { icon: Megaphone, label: dict.marketing, href: '/dashboard/marketing' },
+    { icon: ShieldCheck, label: dict.staff, href: '/dashboard/staff' },
+    { icon: Settings, label: dict.settings, href: '/dashboard/settings' },
+  ];
 
-        let role = profile?.role || null;
-        if (role !== 'restaurant_owner' && role !== 'admin') {
-          const { data: staff } = await supabase
-            .from('staff_roles')
-            .select('role')
-            .eq('user_id', user.id)
-            .maybeSingle();
-          if (staff) role = staff.role;
-        }
-
-        setUserRole(role);
-        setUserName(profile?.full_name || user.email?.split('@')[0] || 'Owner');
-      }
-    }
-    getUser();
-  }, [supabase]);
-
-  if (!userRole) return null;
+  const adminItems = [
+    { icon: ShieldCheck, label: dict.adminOverview, href: '/dashboard/admin' },
+    { icon: Utensils, label: dict.restaurants, href: '/dashboard/admin/restaurants' },
+    { icon: Users, label: dict.users, href: '/dashboard/admin/users' },
+    { icon: PanelTop, label: dict.tables, href: '/dashboard/admin/tables' },
+    { icon: BookOpen, label: dict.bookings, href: '/dashboard/admin/bookings' },
+  ];
 
   let navItems;
   if (userRole === 'admin') {
     navItems = adminItems;
   } else if (userRole === 'manager') {
-    navItems = sidebarItems.filter(item => !['Settings', 'Staff'].includes(item.label));
+    navItems = sidebarItems.filter(item => ![dict.settings, dict.staff].includes(item.label));
   } else if (userRole === 'host') {
-    navItems = sidebarItems.filter(item => !['Settings', 'Staff', 'Marketing', 'Menu', 'Overview'].includes(item.label));
+    navItems = sidebarItems.filter(item => ![dict.settings, dict.staff, dict.marketing, dict.menu, dict.overview].includes(item.label));
   } else {
     navItems = sidebarItems;
   }
@@ -102,7 +89,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'hidden h-screen flex-col md:flex fixed left-0 top-0 z-40 smooth-transition',
+        'flex h-screen flex-col smooth-transition',
         'border-r',
         isCollapsed ? 'w-16' : 'w-64'
       )}
@@ -127,7 +114,7 @@ export function Sidebar() {
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-bold tracking-tight text-white">Tablo</span>
               <span className="text-[10px] font-medium" style={{ color: 'hsl(220 15% 45%)' }}>
-                {userRole === 'admin' ? 'Admin Panel' : 'Restaurant Panel'}
+                {userRole === 'admin' ? dict.adminPanel : dict.restaurantPanel}
               </span>
             </div>
           </Link>
@@ -143,7 +130,7 @@ export function Sidebar() {
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={cn(
-            'flex h-7 w-7 items-center justify-center rounded-md smooth-transition',
+            'hidden lg:flex h-7 w-7 items-center justify-center rounded-md smooth-transition',
             isCollapsed && 'mx-auto'
           )}
           style={{
@@ -163,6 +150,17 @@ export function Sidebar() {
             <ChevronLeft className="h-3.5 w-3.5" />
           )}
         </button>
+
+        <button
+          onClick={onClose}
+          className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg smooth-transition"
+          style={{
+            background: 'hsl(231 24% 13%)',
+            color: 'hsl(220 15% 50%)',
+          }}
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Service Status (owner only) */}
@@ -170,7 +168,7 @@ export function Sidebar() {
         <div className="px-4 py-3" style={{ borderBottom: '1px solid hsl(231 24% 13%)' }}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium" style={{ color: 'hsl(220 15% 50%)' }}>
-              Service Status
+              {dict.serviceStatus}
             </span>
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -185,12 +183,12 @@ export function Sidebar() {
                 className="h-1.5 w-1.5 rounded-full"
                 style={{ background: isOpen ? 'hsl(160 60% 55%)' : 'hsl(220 15% 40%)' }}
               />
-              {isOpen ? 'Open' : 'Closed'}
+              {isOpen ? dict.open : dict.closed}
             </button>
           </div>
           {isOpen && (
             <p className="mt-1.5 text-[11px]" style={{ color: 'hsl(220 15% 38%)' }}>
-              Accepting reservations
+              {dict.acceptingReservations}
             </p>
           )}
         </div>
@@ -203,7 +201,7 @@ export function Sidebar() {
             className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest"
             style={{ color: 'hsl(220 15% 35%)' }}
           >
-            Admin
+            {dict.admin}
           </p>
         )}
 
@@ -249,8 +247,24 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer — User + Sign Out */}
+      {/* Language Toggle & Footer */}
       <div style={{ borderTop: '1px solid hsl(231 24% 13%)' }} className="p-3 space-y-1">
+        <button
+          onClick={() => {
+            const newLocale = currentLocale === 'en' ? 'ka' : 'en';
+            document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000;`;
+            router.refresh();
+          }}
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-white/5',
+            isCollapsed && 'justify-center'
+          )}
+          style={{ color: 'hsl(220 15% 65%)' }}
+        >
+          <Globe className="h-4 w-4" />
+          {!isCollapsed && (currentLocale === 'en' ? 'ქართული' : 'English')}
+        </button>
+
         {!isCollapsed && (
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1"
             style={{ background: 'hsl(231 24% 11%)' }}
@@ -285,10 +299,10 @@ export function Sidebar() {
               (e.currentTarget as HTMLButtonElement).style.background = '';
               (e.currentTarget as HTMLButtonElement).style.color = 'hsl(220 15% 42%)';
             }}
-            title={isCollapsed ? 'Sign Out' : undefined}
+            title={isCollapsed ? dict.signOut : undefined}
           >
             <LogOut className="h-4 w-4" />
-            {!isCollapsed && 'Sign Out'}
+            {!isCollapsed && dict.signOut}
           </button>
         </form>
       </div>

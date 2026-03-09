@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2, Save, Store, Phone, Globe, Map, MessageSquare } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Switch } from '@/components/ui/switch';
+import { useTranslations } from '@/components/translations-provider';
 
 const PRICE_RANGES = ['₾', '₾₾', '₾₾₾', '₾₾₾₾'];
 
@@ -77,6 +78,8 @@ export default function OwnerSettingsPage() {
     const [restaurant, setRestaurant] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { t } = useTranslations();
+    const st = t.settings || {};
 
     useEffect(() => { loadData(); }, []);
 
@@ -109,7 +112,7 @@ export default function OwnerSettingsPage() {
             sms_enabled: restaurant.sms_enabled,
         }).eq('id', restaurant.id);
         if (error) toast.error(error.message);
-        else toast.success('Settings saved!');
+        else toast.success(st.saveSuccess || 'Settings saved!');
         setSaving(false);
     }
 
@@ -118,46 +121,46 @@ export default function OwnerSettingsPage() {
             <div className="flex items-center justify-center py-24">
                 <div className="flex flex-col items-center gap-3">
                     <Loader2 className="h-8 w-8 animate-spin" style={{ color: 'hsl(347 78% 58%)' }} />
-                    <p className="text-sm" style={{ color: 'hsl(220 15% 45%)' }}>Loading settings...</p>
+                    <p className="text-sm" style={{ color: 'hsl(220 15% 45%)' }}>{st.loadLoading || 'Loading settings...'}</p>
                 </div>
             </div>
         );
     }
 
     if (!restaurant) {
-        return <div className="text-center p-8 mt-20" style={{ color: 'hsl(220 15% 45%)' }}>No restaurant assigned.</div>;
+        return <div className="text-center p-8 mt-20" style={{ color: 'hsl(220 15% 45%)' }}>{st.noRestaurant || "No restaurant assigned."}</div>;
     }
 
     return (
         <form onSubmit={handleSave}>
             <div className="space-y-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-white">Restaurant Settings</h1>
-                        <p className="text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>Manage your public profile — {restaurant.name}</p>
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{st.title || "Restaurant Settings"}</h1>
+                        <p className="text-xs sm:text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>{(st.subtitle || "Manage your public profile — {name}").replace('{name}', restaurant.name)}</p>
                     </div>
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth-transition btn-dash-primary disabled:opacity-50"
+                        className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth-transition btn-dash-primary disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? (st.saving || 'Saving...') : (st.saveChanges || 'Save Changes')}
                     </button>
                 </div>
 
                 {/* Basic Info */}
                 <div className="dash-card p-6">
-                    <SectionHeader icon={Store} title="Basic Information" subtitle="Your restaurant's public-facing details" />
+                    <SectionHeader icon={Store} title={st.basicInfo?.title || "Basic Information"} subtitle={st.basicInfo?.subtitle || "Your restaurant's public-facing details"} />
                     <div className="grid sm:grid-cols-2 gap-4">
-                        <FormField label="Restaurant Name" value={restaurant.name || ''} onChange={v => set('name', v)} placeholder="e.g. Shavi Lomi" />
-                        <FormField label="Cuisine Type" value={restaurant.cuisine_type || ''} onChange={v => set('cuisine_type', v)} placeholder="e.g. Georgian, Italian" />
-                        <FormTextarea label="Description" value={restaurant.description || ''} onChange={v => set('description', v)} />
+                        <FormField label={st.basicInfo?.name || "Restaurant Name"} value={restaurant.name || ''} onChange={v => set('name', v)} placeholder="e.g. Shavi Lomi" />
+                        <FormField label={st.basicInfo?.cuisine || "Cuisine Type"} value={restaurant.cuisine_type || ''} onChange={v => set('cuisine_type', v)} placeholder="e.g. Georgian, Italian" />
+                        <FormTextarea label={st.basicInfo?.description || "Description"} value={restaurant.description || ''} onChange={v => set('description', v)} />
                         {/* Price Range */}
                         <div className="sm:col-span-2">
                             <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
-                                Price Range
+                                {st.basicInfo?.priceRange || "Price Range"}
                             </label>
                             <div className="flex gap-2">
                                 {PRICE_RANGES.map(pr => (
@@ -181,31 +184,31 @@ export default function OwnerSettingsPage() {
 
                 {/* Contact Info */}
                 <div className="dash-card p-6">
-                    <SectionHeader icon={Phone} title="Contact Information" subtitle="How guests can reach you" />
+                    <SectionHeader icon={Phone} title={st.contactInfo?.title || "Contact Information"} subtitle={st.contactInfo?.subtitle || "How guests can reach you"} />
                     <div className="grid sm:grid-cols-2 gap-4">
-                        <FormField label="Phone" type="tel" value={restaurant.phone || ''} onChange={v => set('phone', v)} placeholder="+995 555 000 000" />
-                        <FormField label="Email" type="email" value={restaurant.email || ''} onChange={v => set('email', v)} placeholder="info@restaurant.ge" />
-                        <FormField label="Website" value={restaurant.website || ''} onChange={v => set('website', v)} placeholder="https://restaurant.ge" span />
+                        <FormField label={st.contactInfo?.phone || "Phone"} type="tel" value={restaurant.phone || ''} onChange={v => set('phone', v)} placeholder="+995 555 000 000" />
+                        <FormField label={st.contactInfo?.email || "Email"} type="email" value={restaurant.email || ''} onChange={v => set('email', v)} placeholder="info@restaurant.ge" />
+                        <FormField label={st.contactInfo?.website || "Website"} value={restaurant.website || ''} onChange={v => set('website', v)} placeholder="https://restaurant.ge" span />
                     </div>
                 </div>
 
                 {/* Location */}
                 <div className="dash-card p-6">
-                    <SectionHeader icon={Map} title="Location" subtitle="Your restaurant's physical address" />
+                    <SectionHeader icon={Map} title={st.location?.title || "Location"} subtitle={st.location?.subtitle || "Your restaurant's physical address"} />
                     <div className="grid sm:grid-cols-2 gap-4">
-                        <FormField label="City" value={restaurant.city || ''} onChange={v => set('city', v)} placeholder="Tbilisi" />
-                        <FormField label="Address" value={restaurant.address || ''} onChange={v => set('address', v)} placeholder="14 Rustaveli Ave" />
+                        <FormField label={st.location?.city || "City"} value={restaurant.city || ''} onChange={v => set('city', v)} placeholder="Tbilisi" />
+                        <FormField label={st.location?.address || "Address"} value={restaurant.address || ''} onChange={v => set('address', v)} placeholder="14 Rustaveli Ave" />
                     </div>
                 </div>
 
                 {/* Notifications & Integrations */}
                 <div className="dash-card p-6">
-                    <SectionHeader icon={MessageSquare} title="Notifications & Integrations" subtitle="Manage external communications" />
+                    <SectionHeader icon={MessageSquare} title={st.notifications?.title || "Notifications & Integrations"} subtitle={st.notifications?.subtitle || "Manage external communications"} />
                     <div className="flex items-center justify-between">
                         <div>
-                            <h4 className="text-sm font-medium text-white">SMS Notifications</h4>
+                            <h4 className="text-sm font-medium text-white">{st.notifications?.smsTitle || "SMS Notifications"}</h4>
                             <p className="text-xs text-muted-foreground mt-1">
-                                Send automated booking confirmations and waitlist alerts via SMS.
+                                {st.notifications?.smsDescription || "Send automated booking confirmations and waitlist alerts via SMS."}
                             </p>
                         </div>
                         <Switch

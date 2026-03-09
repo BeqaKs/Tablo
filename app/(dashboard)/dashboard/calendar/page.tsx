@@ -6,6 +6,7 @@ import {
     getOwnerTables, createWalkInBooking, updateBookingNotes
 } from '@/app/actions/owner';
 import { getRestaurantWaitlist, promoteFromWaitlist, leaveWaitlist } from '@/app/actions/waitlist';
+import { useTranslations } from '@/components/translations-provider';
 import { toast } from 'sonner';
 import {
     CalendarDays, ChevronLeft, ChevronRight, Users, Clock,
@@ -19,6 +20,7 @@ import {
     parseISO, getHours, getMinutes, differenceInMinutes,
     startOfDay, addMinutes
 } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -27,14 +29,14 @@ const START_HOUR = 10;  // 10:00
 const END_HOUR = 24;    // midnight
 const HOURS = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 
-const STATUS_CFG: Record<string, { label: string; bg: string; border: string; text: string; dot: string }> = {
-    pending: { label: 'Pending', bg: 'hsl(38 80% 55% / 0.18)', border: 'hsl(38 80% 55% / 0.5)', text: 'hsl(38 80% 75%)', dot: 'hsl(38 80% 60%)' },
-    confirmed: { label: 'Confirmed', bg: 'hsl(200 70% 50% / 0.18)', border: 'hsl(200 70% 50% / 0.5)', text: 'hsl(200 70% 75%)', dot: 'hsl(200 70% 55%)' },
-    seated: { label: 'Seated', bg: 'hsl(160 60% 45% / 0.20)', border: 'hsl(160 60% 45% / 0.5)', text: 'hsl(160 60% 75%)', dot: 'hsl(160 60% 50%)' },
-    completed: { label: 'Done', bg: 'hsl(220 15% 28% / 0.6)', border: 'hsl(220 15% 35% / 0.5)', text: 'hsl(220 15% 55%)', dot: 'hsl(220 15% 45%)' },
-    cancelled: { label: 'Cancelled', bg: 'hsl(347 78% 50% / 0.15)', border: 'hsl(347 78% 50% / 0.4)', text: 'hsl(347 78% 70%)', dot: 'hsl(347 78% 55%)' },
-    no_show: { label: 'No Show', bg: 'hsl(262 60% 50% / 0.18)', border: 'hsl(262 60% 50% / 0.4)', text: 'hsl(262 60% 70%)', dot: 'hsl(262 60% 55%)' },
-};
+const getStatusCfg = (t: any): Record<string, { label: string; bg: string; border: string; text: string; dot: string }> => ({
+    pending: { label: t.calendar?.status?.pending || 'Pending', bg: 'hsl(38 80% 55% / 0.18)', border: 'hsl(38 80% 55% / 0.5)', text: 'hsl(38 80% 75%)', dot: 'hsl(38 80% 60%)' },
+    confirmed: { label: t.calendar?.status?.confirmed || 'Confirmed', bg: 'hsl(200 70% 50% / 0.18)', border: 'hsl(200 70% 50% / 0.5)', text: 'hsl(200 70% 75%)', dot: 'hsl(200 70% 55%)' },
+    seated: { label: t.calendar?.status?.seated || 'Seated', bg: 'hsl(160 60% 45% / 0.20)', border: 'hsl(160 60% 45% / 0.5)', text: 'hsl(160 60% 75%)', dot: 'hsl(160 60% 50%)' },
+    completed: { label: t.calendar?.status?.completed || 'Done', bg: 'hsl(220 15% 28% / 0.6)', border: 'hsl(220 15% 35% / 0.5)', text: 'hsl(220 15% 55%)', dot: 'hsl(220 15% 45%)' },
+    cancelled: { label: t.calendar?.status?.cancelled || 'Cancelled', bg: 'hsl(347 78% 50% / 0.15)', border: 'hsl(347 78% 50% / 0.4)', text: 'hsl(347 78% 70%)', dot: 'hsl(347 78% 55%)' },
+    no_show: { label: t.calendar?.status?.noShow || 'No Show', bg: 'hsl(262 60% 50% / 0.18)', border: 'hsl(262 60% 50% / 0.4)', text: 'hsl(262 60% 70%)', dot: 'hsl(262 60% 55%)' },
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -45,13 +47,14 @@ function minutesSinceStart(dt: Date) {
 function topPx(startMin: number) { return (startMin / 60) * HOUR_HEIGHT; }
 function heightPx(durationMin: number) { return Math.max((durationMin / 60) * HOUR_HEIGHT, 28); }
 
-const sc = (status: string) => STATUS_CFG[status] || STATUS_CFG.pending;
+const sc = (t: any, status: string) => getStatusCfg(t)[status] || getStatusCfg(t).pending;
 const now = () => new Date();
 
 // ─── StatusBadge ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-    const cfg = sc(status);
+    const t = useTranslations();
+    const cfg = getStatusCfg(t)[status] || getStatusCfg(t).pending;
     return (
         <span
             className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
@@ -71,6 +74,7 @@ function WalkInModal({
     tables: any[]; selectedDate: Date; defaultTime: string;
     onClose: () => void; onSave: () => void;
 }) {
+    const t = useTranslations();
     const [form, setForm] = useState({
         table_id: tables[0]?.id || '',
         guest_name: '',
@@ -83,8 +87,8 @@ function WalkInModal({
     const [saving, setSaving] = useState(false);
 
     const handleSubmit = async () => {
-        if (!form.guest_name.trim()) { toast.error('Guest name required'); return; }
-        if (!form.table_id) { toast.error('Select a table'); return; }
+        if (!form.guest_name.trim()) { toast.error(t.calendar?.guestNameRequired || 'Guest name required'); return; }
+        if (!form.table_id) { toast.error(t.calendar?.selectATable || 'Select a table'); return; }
         setSaving(true);
         const [h, m] = form.time.split(':').map(Number);
         const dt = new Date(selectedDate);
@@ -99,9 +103,10 @@ function WalkInModal({
             reservation_time: dt.toISOString(),
             end_time: endDt.toISOString(),
         });
+        setSaving(true); // intentional to show saving state
         setSaving(false);
         if (result.error) toast.error(result.error);
-        else { toast.success('Walk-in added!'); onSave(); onClose(); }
+        else { toast.success(t.calendar?.walkInAdded || 'Walk-in added!'); onSave(); onClose(); }
     };
 
     return (
@@ -112,53 +117,53 @@ function WalkInModal({
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'hsl(160 60% 45% / 0.15)' }}>
                             <UserPlus className="h-4 w-4" style={{ color: 'hsl(160 60% 60%)' }} />
                         </div>
-                        <h3 className="font-bold text-white">Quick Walk-In</h3>
+                        <h3 className="font-bold text-white">{t.calendar?.quickWalkIn}</h3>
                     </div>
                     <button onClick={onClose} className="p-1.5 rounded-lg btn-dash-ghost"><X className="h-4 w-4" /></button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                     <div className="col-span-2">
-                        <label className="dash-label">Guest Name *</label>
-                        <input className="dash-input w-full" placeholder="Full name" value={form.guest_name}
+                        <label className="dash-label">{t.calendar?.guestName} *</label>
+                        <input className="dash-input w-full" placeholder={t.calendar?.guestName} value={form.guest_name}
                             onChange={e => setForm(f => ({ ...f, guest_name: e.target.value }))} />
                     </div>
                     <div>
-                        <label className="dash-label">Table</label>
+                        <label className="dash-label">{t.calendar?.table}</label>
                         <select className="dash-input w-full" value={form.table_id}
                             onChange={e => setForm(f => ({ ...f, table_id: e.target.value }))}>
-                            {tables.map(t => (
-                                <option key={t.id} value={t.id}>T{t.table_number} (cap {t.capacity})</option>
+                            {tables.map(table => (
+                                <option key={table.id} value={table.id}>{t('dashboard.tableShort') || 'T'}{table.table_number} ({t.calendar?.guests} {table.capacity})</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="dash-label">Guests</label>
+                        <label className="dash-label">{t.calendar?.guests}</label>
                         <input type="number" min="1" max="20" className="dash-input w-full" value={form.guest_count}
                             onChange={e => setForm(f => ({ ...f, guest_count: +e.target.value }))} />
                     </div>
                     <div>
-                        <label className="dash-label">Start Time</label>
+                        <label className="dash-label">{t.calendar?.startTime}</label>
                         <input type="time" className="dash-input w-full" value={form.time}
                             onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
                     </div>
                     <div>
-                        <label className="dash-label">Duration</label>
+                        <label className="dash-label">{t.calendar?.duration}</label>
                         <select className="dash-input w-full" value={form.duration_hours}
                             onChange={e => setForm(f => ({ ...f, duration_hours: +e.target.value }))}>
                             {[0.5, 1, 1.5, 2, 2.5, 3, 4].map(h => (
-                                <option key={h} value={h}>{h === 0.5 ? '30 min' : `${h}h`}</option>
+                                <option key={h} value={h}>{h === 0.5 ? `30 ${t.calendar?.min}` : `${h}${t.calendar?.h}`}</option>
                             ))}
                         </select>
                     </div>
                     <div>
-                        <label className="dash-label">Phone</label>
+                        <label className="dash-label">{t.calendar?.phone}</label>
                         <input className="dash-input w-full" placeholder="+1..." value={form.guest_phone}
                             onChange={e => setForm(f => ({ ...f, guest_phone: e.target.value }))} />
                     </div>
-                    <div>
-                        <label className="dash-label">Notes</label>
-                        <input className="dash-input w-full" placeholder="Special requests..."
+                    <div className="col-span-2">
+                        <label className="dash-label">{t.calendar?.notes}</label>
+                        <input className="dash-input w-full" placeholder="..."
                             value={form.guest_notes} onChange={e => setForm(f => ({ ...f, guest_notes: e.target.value }))} />
                     </div>
                 </div>
@@ -166,7 +171,7 @@ function WalkInModal({
                 <button onClick={handleSubmit} disabled={saving}
                     className="w-full py-3 rounded-xl font-semibold text-sm smooth-transition btn-dash-primary flex items-center justify-center gap-2">
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    {saving ? 'Saving...' : 'Confirm Walk-In'}
+                    {saving ? t.calendar?.saving : t.calendar?.confirmWalkIn}
                 </button>
             </div>
         </div>
@@ -182,13 +187,14 @@ function BookingSlideOver({
     onStatusChange: (id: string, status: string) => Promise<void>;
     onRefresh: () => void;
 }) {
+    const t = useTranslations();
     const [notes, setNotes] = useState(booking.guest_notes || '');
     const [editingNotes, setEditingNotes] = useState(false);
     const [savingNotes, setSavingNotes] = useState(false);
     const [changing, setChanging] = useState<string | null>(null);
     const date = parseISO(booking.reservation_time);
     const endDate = booking.end_time ? parseISO(booking.end_time) : null;
-    const cfg = sc(booking.status);
+    const cfg = getStatusCfg(t)[booking.status] || getStatusCfg(t).pending;
     const table = tables.find(t => t.id === booking.table_id);
 
     const handleStatus = async (status: string) => {
@@ -205,21 +211,21 @@ function BookingSlideOver({
         await updateBookingNotes(booking.id, notes);
         setSavingNotes(false);
         setEditingNotes(false);
-        toast.success('Notes saved');
+        toast.success(t.calendar?.saveSuccess || 'Notes saved');
     };
 
     const NEXT_ACTIONS: Record<string, { status: string; label: string; color: string }[]> = {
         pending: [
-            { status: 'confirmed', label: 'Confirm', color: 'hsl(200 70% 50%)' },
-            { status: 'cancelled', label: 'Cancel', color: 'hsl(347 78% 55%)' },
+            { status: 'confirmed', label: t.calendar?.status?.confirmed || 'Confirm', color: 'hsl(200 70% 50%)' },
+            { status: 'cancelled', label: t.calendar?.status?.cancelled || 'Cancel', color: 'hsl(347 78% 55%)' },
         ],
         confirmed: [
-            { status: 'seated', label: 'Seat Now', color: 'hsl(160 60% 45%)' },
-            { status: 'no_show', label: 'No Show', color: 'hsl(262 60% 50%)' },
-            { status: 'cancelled', label: 'Cancel', color: 'hsl(347 78% 55%)' },
+            { status: 'seated', label: t.calendar?.status?.seated || 'Seat Now', color: 'hsl(160 60% 45%)' },
+            { status: 'no_show', label: t.calendar?.status?.noShow || 'No Show', color: 'hsl(262 60% 50%)' },
+            { status: 'cancelled', label: t.calendar?.status?.cancelled || 'Cancel', color: 'hsl(347 78% 55%)' },
         ],
         seated: [
-            { status: 'completed', label: 'Mark Complete', color: 'hsl(220 15% 55%)' },
+            { status: 'completed', label: t.calendar?.status?.completed || 'Mark Complete', color: 'hsl(220 15% 55%)' },
         ],
     };
     const actions = NEXT_ACTIONS[booking.status] || [];
@@ -256,10 +262,10 @@ function BookingSlideOver({
                     {/* Info grid */}
                     <div className="grid grid-cols-2 gap-4">
                         {[
-                            { icon: Users, label: 'Party Size', value: `${booking.guest_count} guest${booking.guest_count !== 1 ? 's' : ''}` },
-                            { icon: LayoutGrid, label: 'Table', value: table ? `Table ${table.table_number} (cap. ${table.capacity})` : booking.tables?.table_number || 'N/A' },
-                            { icon: Clock, label: 'Duration', value: endDate ? `${differenceInMinutes(endDate, date)}min` : '2h (est.)' },
-                            { icon: Phone, label: 'Phone', value: booking.guest_phone || '—' },
+                            { icon: Users, label: t.calendar?.partySize, value: `${booking.guest_count} ${t.calendar?.guests}` },
+                            { icon: LayoutGrid, label: t.calendar?.table, value: table ? `${t('dashboard.tableShort') || 'Table'} ${table.table_number} (cap. ${table.capacity})` : booking.tables?.table_number || 'N/A' },
+                            { icon: Clock, label: t.calendar?.duration, value: endDate ? `${differenceInMinutes(endDate, date)}${t.calendar?.min}` : `2${t.calendar?.h} (est.)` },
+                            { icon: Phone, label: t.calendar?.phone, value: booking.guest_phone || '—' },
                         ].map(({ icon: Icon, label, value }) => (
                             <div key={label} className="rounded-xl p-3" style={{ background: 'hsl(231 32% 14%)' }}>
                                 <div className="flex items-center gap-1.5 mb-1">
@@ -276,11 +282,11 @@ function BookingSlideOver({
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
                                 <MessageSquare className="h-3.5 w-3.5" style={{ color: 'hsl(220 15% 45%)' }} />
-                                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 45%)' }}>Notes</span>
+                                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 45%)' }}>{t.calendar?.notes}</span>
                             </div>
                             {!editingNotes && (
                                 <button onClick={() => setEditingNotes(true)} className="flex items-center gap-1 text-xs btn-dash-ghost px-2 py-1 rounded">
-                                    <Edit3 className="h-3 w-3" /> Edit
+                                    <Edit3 className="h-3 w-3" /> {t.calendar?.edit}
                                 </button>
                             )}
                         </div>
@@ -291,31 +297,31 @@ function BookingSlideOver({
                                     className="dash-input w-full resize-none"
                                     value={notes}
                                     onChange={e => setNotes(e.target.value)}
-                                    placeholder="Add notes for this booking..."
+                                    placeholder={`${t.calendar?.notes}...`}
                                 />
                                 <div className="flex gap-2">
                                     <button onClick={handleSaveNotes} disabled={savingNotes}
                                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold btn-dash-primary">
                                         {savingNotes ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                                        Save
+                                        {t.calendar?.save}
                                     </button>
                                     <button onClick={() => { setEditingNotes(false); setNotes(booking.guest_notes || ''); }}
-                                        className="px-3 py-1.5 rounded-lg text-xs btn-dash-ghost">Cancel</button>
+                                        className="px-3 py-1.5 rounded-lg text-xs btn-dash-ghost">{t.calendar?.cancel}</button>
                                 </div>
                             </div>
                         ) : (
                             <div className="rounded-xl p-3 min-h-[56px] text-sm italic"
                                 style={{ background: 'hsl(231 32% 14%)', color: notes ? 'hsl(220 15% 65%)' : 'hsl(220 15% 35%)' }}>
-                                {notes || 'No notes for this booking.'}
+                                {notes || t.calendar?.noNotes}
                             </div>
                         )}
                     </div>
 
                     {/* Timeline indicators */}
                     <div className="rounded-xl p-4" style={{ background: 'hsl(231 32% 14%)', border: '1px solid hsl(231 24% 20%)' }}>
-                        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'hsl(220 15% 42%)' }}>Booking Timeline</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'hsl(220 15% 42%)' }}>{t.calendar?.bookingTimeline}</p>
                         <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full" style={{ background: sc(booking.status).dot }} />
+                            <div className="h-2 w-2 rounded-full" style={{ background: getStatusCfg(t)[booking.status].dot }} />
                             <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'hsl(231 24% 20%)' }}>
                                 {(() => {
                                     const now = new Date();
@@ -327,7 +333,7 @@ function BookingSlideOver({
                                     return (
                                         <div className="h-full rounded-full" style={{
                                             width: `${pct}%`,
-                                            background: sc(booking.status).dot,
+                                            background: getStatusCfg(t)[booking.status].dot,
                                         }} />
                                     );
                                 })()}
@@ -344,7 +350,7 @@ function BookingSlideOver({
                 {/* Actions footer */}
                 {actions.length > 0 && (
                     <div className="p-6 space-y-3" style={{ borderTop: '1px solid hsl(231 24% 18%)' }}>
-                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 42%)' }}>Change Status</p>
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'hsl(220 15% 42%)' }}>{t.calendar?.changeStatus}</p>
                         <div className="flex flex-col gap-2">
                             {actions.map(action => (
                                 <button
@@ -385,6 +391,7 @@ function TimelineView({
     bookings: any[]; tables: any[]; selectedDate: Date;
     onSelectBooking: (b: any) => void;
 }) {
+    const t = useTranslations();
     const scrollRef = useRef<HTMLDivElement>(null);
     const nowRef = useRef<HTMLDivElement>(null);
     const currentMinute = (getHours(new Date()) - START_HOUR) * 60 + getMinutes(new Date());
@@ -422,18 +429,18 @@ function TimelineView({
                 {tables.map(t => (
                     <div key={t.id} className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
                         style={{ color: 'hsl(220 20% 65%)', borderRight: '1px solid hsl(231 24% 15%)' }}>
-                        T{t.table_number}
+                        {t('dashboard.tableShort') || 'T'}{t.table_number}
                         <span className="block text-[9px] font-normal" style={{ color: 'hsl(220 15% 38%)' }}>cap {t.capacity}</span>
                     </div>
                 ))}
                 {unassignedBookings.length > 0 && (
                     <div className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
                         style={{ color: 'hsl(38 80% 65%)' }}>
-                        Unassigned
+                        {t.calendar?.unassigned}
                     </div>
                 )}
                 {tables.length === 0 && (
-                    <div className="flex-1 text-center py-2 text-xs" style={{ color: 'hsl(220 15% 40%)' }}>All Bookings</div>
+                    <div className="flex-1 text-center py-2 text-xs" style={{ color: 'hsl(220 15% 40%)' }}>{t.calendar?.allBookings}</div>
                 )}
             </div>
 
@@ -498,7 +505,7 @@ function TimelineView({
                                                 ? minutesSinceStart(parseISO(booking.end_time))
                                                 : startMin + 120;
                                             const durMin = endMin - startMin;
-                                            const cfg = sc(booking.status);
+                                            const cfg = getStatusCfg(t)[booking.status];
                                             return (
                                                 <button
                                                     key={booking.id}
@@ -532,7 +539,7 @@ function TimelineView({
                                     const endMin = booking.end_time
                                         ? minutesSinceStart(parseISO(booking.end_time))
                                         : startMin + 120;
-                                    const cfg = sc(booking.status);
+                                    const cfg = getStatusCfg(t)[booking.status];
                                     return (
                                         <button
                                             key={booking.id}
@@ -557,7 +564,7 @@ function TimelineView({
                                 style={{ borderRight: '1px solid hsl(231 24% 13%)', height: `${HOURS.length * HOUR_HEIGHT}px` }}>
                                 {unassignedBookings.map(booking => {
                                     const startMin = minutesSinceStart(parseISO(booking.reservation_time));
-                                    const cfg = sc(booking.status);
+                                    const cfg = getStatusCfg(t)[booking.status];
                                     return (
                                         <button
                                             key={booking.id}
@@ -653,6 +660,7 @@ function ListView({
 }: {
     bookings: any[]; tables: any[]; onSelectBooking: (b: any) => void;
 }) {
+    const t = useTranslations();
     const [statusFilter, setStatusFilter] = useState('all');
     const [search, setSearch] = useState('');
 
@@ -679,15 +687,15 @@ function ListView({
             <div className="flex flex-wrap gap-2 items-center">
                 <input
                     className="dash-input flex-1 min-w-[160px] text-sm"
-                    placeholder="Search guest name or phone..."
+                    placeholder={t.calendar?.searchPlaceholder}
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
                 <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'hsl(231 32% 10%)' }}>
                     {['all', 'pending', 'confirmed', 'seated', 'completed', 'cancelled'].map(s => {
-                        const count = s === 'all' ? bookings.length : bookings.filter(b => b.status === s).length;
-                        const cfg = STATUS_CFG[s];
                         const active = statusFilter === s;
+                        const cfg = getStatusCfg(t)[s] as any;
+                        const label = s === 'all' ? (t.calendar?.all || 'All') : (t.calendar?.status?.[s === 'no_show' ? 'noShow' : s] || s.replace('_', ' '));
                         return (
                             <button key={s} onClick={() => setStatusFilter(s)}
                                 className="px-3 py-1.5 rounded-md text-[11px] font-semibold smooth-transition capitalize"
@@ -695,7 +703,7 @@ function ListView({
                                     ? { background: cfg ? cfg.bg : 'hsl(347 78% 58% / 0.15)', color: cfg ? cfg.text : 'hsl(347 78% 70%)' }
                                     : { color: 'hsl(220 15% 45%)' }
                                 }>
-                                {s === 'all' ? 'All' : s.replace('_', ' ')} ({count})
+                                {label}
                             </button>
                         );
                     })}
@@ -706,7 +714,7 @@ function ListView({
             {Object.keys(grouped).length === 0 && (
                 <div className="text-center py-16 text-sm rounded-xl"
                     style={{ background: 'hsl(231 32% 10%)', color: 'hsl(220 15% 40%)', border: '1px dashed hsl(231 24% 18%)' }}>
-                    No bookings match your filters.
+                    {t.calendar?.noResults}
                 </div>
             )}
             {Object.entries(grouped).map(([dateLabel, dayBooks]) => (
@@ -714,7 +722,7 @@ function ListView({
                     <p className="text-xs font-bold uppercase tracking-widest mb-2 px-1" style={{ color: 'hsl(220 15% 40%)' }}>{dateLabel}</p>
                     <div className="space-y-1.5">
                         {dayBooks.map(booking => {
-                            const cfg = sc(booking.status);
+                            const cfg = getStatusCfg(t)[booking.status];
                             const table = tables.find(t => t.id === booking.table_id);
                             return (
                                 <button key={booking.id} onClick={() => onSelectBooking(booking)}
@@ -731,7 +739,7 @@ function ListView({
                                         </div>
                                         <div className="flex gap-4 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>
                                             <span className="flex items-center gap-1"><Users className="h-3 w-3" />{booking.guest_count}</span>
-                                            <span>{table ? `T${table.table_number}` : booking.tables?.table_number || 'No table'}</span>
+                                            <span>{table ? `${t('dashboard.tableShort') || 'T'}${table.table_number}` : booking.tables?.table_number || t.calendar?.noTable || 'No table'}</span>
                                             {booking.guest_phone && <span>{booking.guest_phone}</span>}
                                         </div>
                                     </div>
@@ -749,6 +757,7 @@ function ListView({
 // ─── StatsBar ────────────────────────────────────────────────────────────────
 
 function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: Date }) {
+    const t = useTranslations();
     const day = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
     const active = day.filter(b => ['pending', 'confirmed', 'seated'].includes(b.status));
     const covers = active.reduce((s, b) => s + b.guest_count, 0);
@@ -757,11 +766,11 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
     const cancelled = day.filter(b => b.status === 'cancelled').length;
 
     const stats = [
-        { label: 'Bookings', value: day.length, sub: `${active.length} active`, dot: 'hsl(200 70% 55%)' },
-        { label: 'Total Covers', value: covers, sub: 'expected guests', dot: 'hsl(262 60% 60%)' },
-        { label: 'Seated', value: seated, sub: 'currently in', dot: 'hsl(160 60% 50%)' },
-        { label: 'Pending', value: pending, sub: 'need confirm', dot: 'hsl(38 80% 60%)' },
-        { label: 'Cancelled', value: cancelled, sub: 'today', dot: 'hsl(347 78% 58%)' },
+        { label: t.calendar?.stats?.bookings, value: day.length, sub: `${active.length} ${t.calendar?.stats?.active}`, dot: 'hsl(200 70% 55%)' },
+        { label: t.calendar?.stats?.totalCovers, value: covers, sub: t.calendar?.stats?.expectedGuests, dot: 'hsl(262 60% 60%)' },
+        { label: t.calendar?.stats?.seated, value: seated, sub: t.calendar?.stats?.currentlyIn, dot: 'hsl(160 60% 50%)' },
+        { label: t.calendar?.stats?.pending, value: pending, sub: t.calendar?.stats?.needConfirm, dot: 'hsl(38 80% 60%)' },
+        { label: t.calendar?.stats?.cancelled, value: cancelled, sub: t.calendar?.stats?.today, dot: 'hsl(347 78% 58%)' },
     ];
 
     return (
@@ -785,6 +794,7 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
 type ViewMode = 'timeline' | 'list';
 
 export default function OwnerCalendarPage() {
+    const t = useTranslations();
     const [bookings, setBookings] = useState<any[]>([]);
     const [restaurant, setRestaurant] = useState<any>(null);
     const [tables, setTables] = useState<any[]>([]);
@@ -862,31 +872,39 @@ export default function OwnerCalendarPage() {
                     {/* Today */}
                     <button onClick={() => setSelectedDate(startOfDay(new Date()))}
                         className="px-3 py-2 rounded-lg text-sm font-semibold btn-dash-ghost hidden sm:block">
-                        Today
+                        {t.calendar?.today}
                     </button>
                     {/* View toggle */}
-                    <div className="flex p-0.5 rounded-lg gap-0.5" style={{ background: 'hsl(231 32% 10%)' }}>
-                        {([['timeline', CalendarDays], ['list', List]] as [ViewMode, any][]).map(([mode, Icon]) => (
-                            <button key={mode} onClick={() => setViewMode(mode)}
-                                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold smooth-transition capitalize"
-                                style={viewMode === mode
-                                    ? { background: 'hsl(347 78% 58% / 0.15)', color: 'hsl(347 78% 70%)' }
-                                    : { color: 'hsl(220 15% 45%)' }
-                                }>
-                                <Icon className="h-3.5 w-3.5" /> {mode}
-                            </button>
-                        ))}
+                    <div className="flex bg-[hsl(231_32%_10%)] p-1 rounded-lg">
+                        <button onClick={() => setViewMode('timeline')}
+                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
+                                viewMode === 'timeline' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
+                            style={viewMode === 'timeline' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            <LayoutGrid className="h-3.5 w-3.5" />
+                            {t.calendar?.timeline}
+                        </button>
+                        <button onClick={() => setViewMode('list')}
+                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
+                                viewMode === 'list' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
+                            style={viewMode === 'list' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            <List className="h-3.5 w-3.5" />
+                            {t.calendar?.list}
+                        </button>
                     </div>
                     {/* Walk-in */}
-                    <button onClick={() => setShowWalkIn(true)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold smooth-transition btn-dash-primary">
-                        <Coffee className="h-4 w-4" /> Walk-In
+                    <button
+                        onClick={() => setShowWalkIn(true)}
+                        className="bg-hsl(160_60%_45%) hover:bg-hsl(160_60%_40%) text-white px-4 py-2 rounded-lg text-sm font-semibold smooth-transition flex items-center gap-2"
+                        style={{ background: 'hsl(160 60% 45%)' }}
+                    >
+                        <UserPlus className="h-4 w-4" />
+                        {t.calendar?.quickWalkIn}
                     </button>
                     {/* Waitlist Toggle */}
                     <button onClick={() => setShowWaitlist(true)}
                         className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold smooth-transition ${showWaitlist ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-zinc-800 text-white hover:bg-zinc-700'}`}>
                         <ListChecks className="h-4 w-4" />
-                        Waitlist {waitlist.length > 0 && <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">{waitlist.length}</span>}
+                        {t.calendar?.waitlist} {waitlist.length > 0 && <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">{waitlist.length}</span>}
                     </button>
                 </div>
             </div>
@@ -929,12 +947,16 @@ export default function OwnerCalendarPage() {
 
             {/* ── Status legend ── */}
             <div className="shrink-0 flex flex-wrap gap-3 items-center pb-2">
-                {Object.entries(STATUS_CFG).map(([key, cfg]) => (
-                    <span key={key} className="flex items-center gap-1.5 text-xs" style={{ color: 'hsl(220 15% 48%)' }}>
-                        <span className="h-2 w-2 rounded-full shrink-0" style={{ background: cfg.dot }} />
-                        {cfg.label}
-                    </span>
-                ))}
+                {['pending', 'confirmed', 'seated', 'completed', 'cancelled', 'no_show'].map(key => {
+                    const cfg = getStatusCfg(t)[key];
+                    if (!cfg) return null;
+                    return (
+                        <span key={key} className="flex items-center gap-1.5 text-xs" style={{ color: 'hsl(220 15% 48%)' }}>
+                            <span className="h-2 w-2 rounded-full shrink-0" style={{ background: cfg.dot }} />
+                            {cfg.label}
+                        </span>
+                    );
+                })}
             </div>
 
             {/* ── Booking slide-over ── */}

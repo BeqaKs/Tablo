@@ -12,6 +12,9 @@
         "forRestaurants": "For Restaurants",
         "adminPanel": "Admin Panel"
     },
+    "dashboard_web": {
+        "live": "Live"
+    },
     "home": {
         "hero": {
             "badge": "Premium Dining Experience",
@@ -111,6 +114,43 @@
             "asian": "Asian",
             "fineDining": "Fine Dining"
         }
+    },
+    "shapes": {
+        "square": "Square",
+        "round": "Round",
+        "rectangle": "Rectangle"
+    },
+    "inbox": {
+        "title": "SMS Inbox",
+        "noMessages": "No messages yet.",
+        "selectConversation": "Select a conversation to start texting",
+        "guestProfile": "Guest Profile",
+        "typeMessage": "Type a message...",
+        "pressEnter": "Press Enter to send, Shift+Enter for new line.",
+        "sentSuccess": "Message sent",
+        "noRestaurant": "No restaurant assigned.",
+        "you": "You: "
+    },
+    "staff": {
+        "title": "Staff Roles",
+        "subtitle": "Manage your restaurant employees and their access levels",
+        "inviteTitle": "Invite Staff Member",
+        "emailLabel": "Email Address",
+        "roleLabel": "Role",
+        "addStaff": "Add Staff",
+        "adding": "Adding...",
+        "successAdd": "Staff member added successfully!",
+        "note": "Note: The staff member must already have created a Tablo account with this email address before you can assign them a role. Managers have full access except for billing/ownership settings. Hosts only have access to Floor Plan, Guests, Calendar, and Menu.",
+        "currentStaff": "Current Staff",
+        "membersCount": "{count} members",
+        "loading": "Loading staff...",
+        "noMembers": "No staff members assigned yet. Add one above.",
+        "roles": {
+            "manager": "Manager",
+            "host": "Host"
+        },
+        "removeAccess": "Remove Access",
+        "removeConfirm": "Are you sure you want to remove this staff member?"
     },
     "auth": {
         "signIn": "Sign In",
@@ -304,7 +344,8 @@
         "upTo": "up to",
         "optional": "Optional",
         "closed": "Closed",
-        "restaurant": "Restaurant"
+        "restaurant": "Restaurant",
+        "guestsShort": "p"
     },
     "restaurants": {
         "title": "Restaurants",
@@ -537,6 +578,7 @@
         "available": "Available"
     },
     "dashboard": {
+        "locale": "en-US",
         "welcome": "Welcome to Tablo!",
         "noRestaurant": "No restaurant assigned yet. Contact an admin.",
         "occupancy": "Current Occupancy",
@@ -563,6 +605,7 @@
         "guestsShort": "ppl",
         "viewFloorPlan": "View Floor Plan",
         "guestDirectory": "Guest Directory",
+        "tableShort": "TBL",
         "risk": {
             "high": "🔴 High risk",
             "medium": "🟡 Medium",
@@ -573,6 +616,49 @@
             "confirmed": "Confirmed",
             "seated": "Seated",
             "completed": "Completed"
+        },
+        "sidebar": {
+            "overview": "Overview",
+            "calendar": "Calendar",
+            "floorPlan": "Floor Plan",
+            "guests": "Guests",
+            "inbox": "Inbox",
+            "menu": "Menu",
+            "schedule": "Schedule",
+            "printManifest": "Print Manifest",
+            "marketing": "Marketing",
+            "staff": "Staff",
+            "settings": "Settings",
+            "adminOverview": "Admin Overview",
+            "restaurants": "Restaurants",
+            "users": "Users",
+            "tables": "Tables",
+            "bookings": "Bookings",
+            "admin": "Admin",
+            "serviceStatus": "Service Status",
+            "open": "Open",
+            "closed": "Closed",
+            "acceptingReservations": "Accepting reservations",
+            "adminPanel": "Admin Panel",
+            "restaurantPanel": "Restaurant Panel",
+            "signOut": "Sign Out"
+        },
+        "dashboard_web": {
+            "revenueTrend": "Revenue & Bookings Trend",
+            "past7Days": "Past 7 Days",
+            "period7D": "7D",
+            "period30D": "30D",
+            "reservationsByStatus": "Reservations by Status",
+            "recentActivity": "Recent Activity",
+            "noActivity": "No recent activity recorded",
+            "revenue": "Revenue",
+            "bookings": "Bookings",
+            "pleaseLogin": "Please log in",
+            "live": "LIVE",
+            "viewAll": "View All",
+            "dailyStats": "Daily stats",
+            "quickActions": "Quick Actions",
+            "noReservationsToday": "No reservations for today"
         }
     },
     "aiConcierge": {
@@ -588,5 +674,139 @@
         "subtitle": "Exclusive tables still available for tonight.",
         "tablesLeft": "{count} Table Left at {time}",
         "bookNow": "Book Now"
+    },
+    "calendar": {
+        "title": "Calendar",
+        "quickWalkIn": "Quick Walk-In",
+        "guestName": "Guest Name",
+        "guestNameRequired": "Guest name required",
+        "selectATable": "Select a table",
+        "walkInAdded": "Walk-in added!",
+        "table": "Table",
+        "guests": "Guests",
+        "startTime": "Start Time",
+        "duration": "Duration",
+        "min": "min",
+        "h": "h",
+        "phone": "Phone",
+        "notes": "Notes",
+        "saving": "Saving...",
+        "confirmWalkIn": "Confirm Walk-In",
+        "partySize": "Party Size",
+        "edit": "Edit",
+        "save": "Save",
+        "cancel": "Cancel",
+        "noNotes": "No notes for this booking",
+        "saveSuccess": "Notes saved",
+        "bookingTimeline": "Booking Timeline",
+        "changeStatus": "Change Status",
+        "unassigned": "Unassigned",
+        "allBookings": "All Bookings",
+        "active": "Active",
+        "noResults": "No results found for this period",
+        "status": {
+            "pending": "Pending",
+            "confirmed": "Confirmed",
+            "seated": "Seated",
+            "completed": "Done",
+            "cancelled": "Cancelled",
+            "noShow": "No Show"
+        },
+        "stats": {
+            "bookings": "Bookings",
+            "totalCovers": "Total Covers",
+            "active": "Active",
+            "expectedGuests": "Expected guests today",
+            "seated": "Seated",
+            "currentlyIn": "Currently in restaurant",
+            "pending": "Pending",
+            "needConfirm": "Need confirmation",
+            "cancelled": "Cancelled",
+            "today": "Today"
+        }
+    },
+    "floor_plan": {
+        "title": "Floor Plan Builder",
+        "noRestaurant": "No restaurant found for you.",
+        "tableNoRequired": "Table number is required",
+        "createSuccess": "Table created!",
+        "deleteConfirm": "Delete this table?",
+        "deleteSuccess": "Table deleted",
+        "saving": "Saving layout...",
+        "saveSuccess": "Floor plan saved successfully!",
+        "bgSetHint": "Background set. Don't forget to Save Layout!",
+        "dropSuccess": "Image loaded locally. Save to persist.",
+        "walkIn": "Walk-In",
+        "reset": "Reset",
+        "saveLayout": "Save Layout",
+        "bgImage": "Background Image (URL)",
+        "bgPlaceholder": "https://example.com/plan.jpg or Drop file below",
+        "update": "Update",
+        "addTable": "Add Table",
+        "tableNo": "Table No.",
+        "shape": "Shape",
+        "capacity": "Capacity",
+        "add": "Add",
+        "cancel": "Cancel",
+        "closeForm": "Close Form",
+        "addNewTable": "Add New Table",
+        "tableList": "Table List",
+        "noTables": "No tables yet",
+        "dropHint": "Drop image to update background",
+        "shapes": {
+            "square": "Square",
+            "round": "Round",
+            "rectangle": "Rectangle"
+        }
+    },
+    "walk_in": {
+        "title": "Add Walk-In",
+        "subtitle": "Fast check-in for arriving guests",
+        "guestName": "Guest Name *",
+        "guestNamePlaceholder": "Enter guest name",
+        "partySize": "Party Size",
+        "table": "Table",
+        "optional": "optional",
+        "noTables": "No tables available for {count} guests",
+        "seatAnywhere": "Seat anywhere",
+        "cancel": "Cancel",
+        "seatGuest": "Seat Guest →",
+        "success": "Walk-in for {name} added!"
+    },
+    "settings": {
+        "title": "Restaurant Settings",
+        "subtitle": "Manage your public profile — {name}",
+        "saveChanges": "Save Changes",
+        "saving": "Saving...",
+        "saveSuccess": "Settings saved!",
+        "loadLoading": "Loading settings...",
+        "noRestaurant": "No restaurant assigned.",
+        "basicInfo": {
+            "title": "Basic Information",
+            "subtitle": "Your restaurant's public-facing details",
+            "name": "Restaurant Name",
+            "cuisine": "Cuisine Type",
+            "description": "Description",
+            "priceRange": "Price Range"
+        },
+        "contactInfo": {
+            "title": "Contact Information",
+            "subtitle": "How guests can reach you",
+            "phone": "Phone",
+            "email": "Email",
+            "website": "Website"
+        },
+        "location": {
+            "title": "Location",
+            "subtitle": "Your restaurant's physical address",
+            "city": "City",
+            "address": "Address"
+        },
+        "notifications": {
+            "title": "Notifications & Integrations",
+            "subtitle": "Manage external communications",
+            "smsTitle": "SMS Notifications",
+            "smsDescription": "Send automated booking confirmations and waitlist alerts via SMS."
+        }
     }
 }

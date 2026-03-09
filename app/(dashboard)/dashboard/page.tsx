@@ -1,9 +1,9 @@
 import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame } from "lucide-react";
 import { formatGEL } from "@/lib/utils/currency";
-import { createClient } from "@/lib/supabase/server";
 import { getDictionary } from "@/lib/get-dictionary";
 import Link from "next/link";
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import { getDashboardStats } from "@/app/actions/owner";
 
 // Dark metric card
 function MetricCard({
@@ -50,21 +50,10 @@ function MetricCard({
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
   const { t } = await getDictionary();
+  const { data: stats, error } = await getDashboardStats();
 
-  if (!user) {
-    return <div className="text-white p-8">Please log in</div>;
-  }
-
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('id, name')
-    .eq('owner_id', user.id)
-    .single();
-
-  if (!restaurant) {
+  if (error) {
     return (
       <div className="dash-card p-10 text-center">
         <div
@@ -74,110 +63,25 @@ export default async function DashboardPage() {
           <Flame className="h-8 w-8" style={{ color: 'hsl(347 78% 65%)' }} />
         </div>
         <h2 className="text-xl font-bold text-white mb-2">{t('dashboard.welcome')}</h2>
-        <p style={{ color: 'hsl(220 15% 50%)' }}>{t('dashboard.noRestaurant')}</p>
+        <p style={{ color: 'hsl(220 15% 50%)' }}>{error === 'Not authenticated' ? t('dashboard_web.pleaseLogin') : t('dashboard.noRestaurant')}</p>
       </div>
     );
   }
 
-  // Fetch Tables
-  const { data: tables } = await supabase
-    .from('tables')
-    .select('id, capacity, table_number')
-    .eq('restaurant_id', restaurant.id);
+  if (!stats) return null;
 
-  const totalCapacity = (tables || []).reduce((sum, t) => sum + t.capacity, 0);
-
-  // Fetch Reservations for today
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  const { data: reservations } = await supabase
-    .from('reservations')
-    .select(`
-      id, guest_name, guest_count, reservation_time, status, guest_phone, occasion,
-      tables ( table_number ),
-      orders:order_id (
-        order_items (
-            quantity,
-            menu_items ( name )
-        )
-      )
-    `)
-    .eq('restaurant_id', restaurant.id)
-    .gte('reservation_time', today.toISOString())
-    .lt('reservation_time', tomorrow.toISOString())
-    .order('reservation_time', { ascending: true });
-
-  const activeReservations = (reservations || []).filter(r => ['pending', 'confirmed'].includes(r.status));
-  const seatedReservations = (reservations || []).filter(r => r.status === 'seated');
-  const todayCovers = (reservations || []).filter(r => r.status !== 'cancelled' && r.status !== 'no_show').reduce((sum, r) => sum + r.guest_count, 0);
-  const seatedCovers = seatedReservations.reduce((sum, r) => sum + r.guest_count, 0);
-
-  const upcomingBookings = (reservations || [])
-    .filter(r => new Date(r.reservation_time) > new Date() && ['pending', 'confirmed'].includes(r.status))
-    .slice(0, 6)
-    .map(r => ({
-      id: r.id,
-      time: new Date(r.reservation_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      guestName: r.guest_name || 'Guest',
-      partySize: r.guest_count,
-      table: (r.tables as any)?.table_number || 'TBD',
-      phone: r.guest_phone || '—',
-      status: r.status,
-      occasion: r.occasion,
-      preOrderedItems: Array.isArray(r.orders)
-        ? r.orders[0]?.order_items?.map((item: any) => `${item.quantity}x ${item.menu_items?.name}`).join(', ')
-        : (r.orders as any)?.order_items?.map((item: any) => `${item.quantity}x ${item.menu_items?.name}`).join(', '),
-    }));
-
-  // No-show risk score: 0 = low, 1 = medium, 2 = high
-  function noShowRisk(booking: typeof upcomingBookings[0], rawReservation?: any): { label: string; color: string; bg: string } {
-    let score = 0;
-    // Same-day booking = higher risk
-    const hoursTil = rawReservation
-      ? (new Date(rawReservation.reservation_time).getTime() - Date.now()) / 3600000
-      : 0;
-    if (hoursTil < 2) score += 2;
-    else if (hoursTil < 6) score += 1;
-    // Large party = slightly higher risk
-    if (booking.partySize >= 6) score += 1;
-    // No phone = higher risk
-    if (booking.phone === '—') score += 1;
-
-    if (score >= 3) return { label: t('dashboard.risk.high'), color: 'hsl(0 72% 65%)', bg: 'hsl(0 72% 65% / 0.1)' };
-    if (score >= 1) return { label: t('dashboard.risk.medium'), color: 'hsl(38 80% 65%)', bg: 'hsl(38 80% 65% / 0.1)' };
-    return { label: t('dashboard.risk.low'), color: 'hsl(145 60% 55%)', bg: 'hsl(145 60% 55% / 0.1)' };
-  }
-
-  // Upsell opportunities from upcoming reservations with special occasions
-  const upsellOpportunities = (reservations || [])
-    .filter(r => ['pending', 'confirmed'].includes(r.status) && r.occasion && r.occasion !== '')
-    .slice(0, 4)
-    .map(r => {
-      const occasionEmoji: Record<string, { emoji: string; suggestion: string }> = {
-        Birthday: { emoji: '🎂', suggestion: 'Send a birthday upgrade message?' },
-        Anniversary: { emoji: '🥂', suggestion: 'Offer a champagne welcome?' },
-        'Date Night': { emoji: '💕', suggestion: 'Prepare a romantic table setting?' },
-        Business: { emoji: '💼', suggestion: 'Reserve a quiet section?' },
-        'Baby Shower': { emoji: '🍼', suggestion: 'Prepare a special cake option?' },
-        Graduation: { emoji: '🎓', suggestion: 'Arrange a graduation celebration?' },
-      };
-      const info = occasionEmoji[r.occasion!] || { emoji: '🎉', suggestion: 'Send a personalized welcome?' };
-      return {
-        id: r.id,
-        guestName: r.guest_name || 'Guest',
-        time: new Date(r.reservation_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        occasion: r.occasion,
-        emoji: info.emoji,
-        suggestion: info.suggestion,
-      };
-    });
-
-  const averageCheck = 85;
-  const estimatedRevenue = todayCovers * averageCheck;
-  const occupancyPercentage = totalCapacity > 0 ? Math.round((seatedCovers / totalCapacity) * 100) : 0;
+  const {
+    restaurantName,
+    occupancy,
+    totalTables,
+    totalCovers,
+    activeReservations,
+    estimatedRevenue,
+    chartData,
+    avgCheck,
+    upcomingBookings,
+    upsellOpportunities
+  } = stats;
 
   const statusStyle = (status: string) => {
     const map: Record<string, { bg: string; color: string; label: string }> = {
@@ -189,19 +93,33 @@ export default async function DashboardPage() {
     return map[status] || map.pending;
   };
 
+  // No-show risk score: 0 = low, 1 = medium, 2 = high
+  function noShowRisk(booking: any): { label: string; color: string; bg: string } {
+    let score = 0;
+    const hoursTil = (new Date(booking.rawReservation.reservation_time).getTime() - Date.now()) / 3600000;
+    if (hoursTil < 2) score += 2;
+    else if (hoursTil < 6) score += 1;
+    if (booking.partySize >= 6) score += 1;
+    if (booking.phone === '—') score += 1;
+
+    if (score >= 3) return { label: t('dashboard.risk.high'), color: 'hsl(0 72% 65%)', bg: 'hsl(0 72% 65% / 0.1)' };
+    if (score >= 1) return { label: t('dashboard.risk.medium'), color: 'hsl(38 80% 65%)', bg: 'hsl(38 80% 65% / 0.1)' };
+    return { label: t('dashboard.risk.low'), color: 'hsl(145 60% 55%)', bg: 'hsl(145 60% 55% / 0.1)' };
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">{restaurant.name}</h2>
-          <p className="text-sm mt-0.5" style={{ color: 'hsl(220 15% 45%)' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{restaurantName}</h2>
+          <p className="text-xs sm:text-sm mt-0.5" style={{ color: 'hsl(220 15% 45%)' }}>
+            {new Date().toLocaleDateString(t('dashboard.locale') || 'ka-GE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
         <Link
           href="/dashboard/calendar"
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold smooth-transition btn-dash-primary"
+          className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold smooth-transition btn-dash-primary"
         >
           {t('dashboard.newReservation')}
         </Link>
@@ -211,8 +129,8 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label={t('dashboard.occupancy')}
-          value={`${seatedCovers} / ${totalCapacity}`}
-          sub={t('dashboard.tablesTotal', { count: tables?.length || 0 })}
+          value={`${occupancy}%`}
+          sub={t('dashboard.tablesTotal', { count: totalTables })}
           accent="hsl(347 78% 58%)"
           icon={Users}
         >
@@ -224,20 +142,17 @@ export default async function DashboardPage() {
               <div
                 className="h-full rounded-full smooth-transition"
                 style={{
-                  width: `${Math.min(occupancyPercentage, 100)}%`,
+                  width: `${occupancy}%`,
                   background: 'linear-gradient(90deg, hsl(347 78% 52%), hsl(318 70% 45%))',
                 }}
               />
-            </div>
-            <div className="mt-1.5 text-right text-xs font-bold" style={{ color: 'hsl(347 78% 65%)' }}>
-              {occupancyPercentage}%
             </div>
           </div>
         </MetricCard>
 
         <MetricCard
           label={t('dashboard.totalCovers')}
-          value={todayCovers}
+          value={totalCovers}
           sub={t('dashboard.guestsArriving')}
           accent="hsl(262 60% 56%)"
           icon={Users}
@@ -245,7 +160,7 @@ export default async function DashboardPage() {
 
         <MetricCard
           label={t('dashboard.activeReservations')}
-          value={activeReservations.length}
+          value={activeReservations}
           sub={<span style={{ color: 'hsl(38 80% 60%)' }}>{t('dashboard.upcomingSoon', { count: upcomingBookings.length })}</span>}
           accent="hsl(38 80% 55%)"
           icon={CalendarCheck}
@@ -254,16 +169,16 @@ export default async function DashboardPage() {
         <MetricCard
           label={t('dashboard.estRevenue')}
           value={formatGEL(estimatedRevenue)}
-          sub={t('dashboard.avgCheck', { amount: formatGEL(averageCheck) })}
+          sub={t('dashboard.avgCheck', { amount: formatGEL(Number(avgCheck)) })}
           accent="hsl(160 60% 45%)"
           icon={TrendingUp}
         />
       </div>
 
       {/* Bottom Grid */}
-      <div className="grid gap-4 lg:grid-cols-7">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
         {/* Upcoming Reservations */}
-        <div className="dash-card col-span-4 p-5">
+        <div className="dash-card col-span-1 lg:col-span-4 p-5">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <div
@@ -291,12 +206,12 @@ export default async function DashboardPage() {
               >
                 {t('dashboard.noUpcoming')}
               </div>
-            ) : upcomingBookings.map((booking) => {
+            ) : upcomingBookings.map((booking: any) => {
               const ss = statusStyle(booking.status);
               return (
                 <div
                   key={booking.id}
-                  className="flex items-center gap-4 rounded-lg px-4 py-3 smooth-transition cursor-default"
+                  className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-lg px-4 py-3 smooth-transition cursor-default"
                   style={{ background: 'hsl(231 24% 11%)' }}
                 >
                   {/* Table chip */}
@@ -304,7 +219,7 @@ export default async function DashboardPage() {
                     className="flex h-11 w-11 flex-shrink-0 flex-col items-center justify-center rounded-lg text-center"
                     style={{ background: 'hsl(347 78% 58% / 0.10)' }}
                   >
-                    <span className="text-[9px] font-medium" style={{ color: 'hsl(347 78% 60%)' }}>TBL</span>
+                    <span className="text-[9px] font-medium" style={{ color: 'hsl(347 78% 60%)' }}>{t('dashboard.tableShort') || 'TBL'}</span>
                     <span className="text-sm font-bold" style={{ color: 'hsl(347 78% 70%)' }}>{booking.table}</span>
                   </div>
 
@@ -369,7 +284,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Upsell Suggestions Panel */}
-        <div className="dash-card col-span-3 p-5 flex flex-col gap-4">
+        <div className="dash-card col-span-1 lg:col-span-3 p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-white">{t('dashboard.suggestionsTitle')}</span>
             <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ background: 'hsl(347 78% 58% / 0.15)', color: 'hsl(347 78% 70%)' }}>
@@ -383,7 +298,7 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {upsellOpportunities.map(op => (
+              {upsellOpportunities.map((op: any) => (
                 <div key={op.id} className="flex items-start gap-3 rounded-lg px-3 py-2.5" style={{ background: 'hsl(231 24% 11%)' }}>
                   <span className="text-lg shrink-0 mt-0.5">{op.emoji}</span>
                   <div className="flex-1 min-w-0">
@@ -457,26 +372,17 @@ export default async function DashboardPage() {
               <TrendingUp className="h-4 w-4" style={{ color: 'hsl(347 78% 65%)' }} />
             </div>
             <div>
-              <h3 className="text-[15px] font-semibold text-white">Revenue & Bookings Trend</h3>
-              <p className="text-xs" style={{ color: 'hsl(220 15% 45%)' }}>Past 7 Days</p>
+              <h3 className="text-[15px] font-semibold text-white">{t('dashboard_web.revenueTrend')}</h3>
+              <p className="text-xs" style={{ color: 'hsl(220 15% 45%)' }}>{t('dashboard_web.past7Days')}</p>
             </div>
           </div>
           <div className="flex gap-2 bg-[hsl(231_24%_16%)] p-1 rounded-md">
-            <button className="px-3 py-1 text-xs font-semibold rounded bg-white text-black shadow-sm">7D</button>
-            <button className="px-3 py-1 text-xs font-medium rounded text-gray-400 hover:text-white transition-colors">30D</button>
+            <button className="px-3 py-1 text-xs font-semibold rounded bg-white text-black shadow-sm">{t('dashboard_web.period7D') || '7D'}</button>
+            <button className="px-3 py-1 text-xs font-medium rounded text-gray-400 hover:text-white transition-colors">{t('dashboard_web.period30D') || '30D'}</button>
           </div>
         </div>
 
-        {/* Generate some dummy data representing an uptrend in revenue */}
-        <RevenueChart data={[
-          { name: 'Mon', revenue: 1200 },
-          { name: 'Tue', revenue: 950 },
-          { name: 'Wed', revenue: 1400 },
-          { name: 'Thu', revenue: 1800 },
-          { name: 'Fri', revenue: 2600 },
-          { name: 'Sat', revenue: 3200 },
-          { name: 'Sun', revenue: 2800 },
-        ]} />
+        <RevenueChart data={chartData} />
       </div>
     </div>
   );

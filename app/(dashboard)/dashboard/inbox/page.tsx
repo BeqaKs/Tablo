@@ -6,6 +6,7 @@ import { getSmsInbox, sendReplySms } from '@/app/actions/inbox';
 import { toast } from 'sonner';
 import { Loader2, MessageSquare, Send, Phone, User, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslations } from '@/components/translations-provider';
 
 export default function InboxPage() {
     const [restaurant, setRestaurant] = useState<any>(null);
@@ -14,6 +15,8 @@ export default function InboxPage() {
     const [replyText, setReplyText] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const { t } = useTranslations();
+    const it = t.inbox || {};
 
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +76,7 @@ export default function InboxPage() {
                 }
                 return t;
             }));
-            toast.success('Message sent');
+            toast.success(it.sentSuccess || 'Message sent');
         }
     };
 
@@ -84,7 +87,7 @@ export default function InboxPage() {
     );
 
     if (!restaurant) return (
-        <div className="p-8 text-center text-muted-foreground mt-20">No restaurant assigned.</div>
+        <div className="p-8 text-center text-muted-foreground mt-20">{it.noRestaurant || "No restaurant assigned."}</div>
     );
 
     return (
@@ -94,14 +97,14 @@ export default function InboxPage() {
                 <div className="p-4 border-b">
                     <h1 className="text-xl font-bold flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 text-primary" />
-                        SMS Inbox
+                        {it.title || "SMS Inbox"}
                     </h1>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {threads.length === 0 ? (
                         <div className="p-6 text-center text-muted-foreground text-sm">
                             <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                            No messages yet.
+                            {it.noMessages || "No messages yet."}
                         </div>
                     ) : (
                         threads.map(thread => (
@@ -117,7 +120,7 @@ export default function InboxPage() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                                    {thread.lastMessage.direction === 'outbound' ? 'You: ' : ''}
+                                    {thread.lastMessage.direction === 'outbound' ? (it.you || 'You: ') : ''}
                                     {thread.lastMessage.content}
                                 </p>
                             </button>
@@ -136,7 +139,7 @@ export default function InboxPage() {
                                     {activeThread.phone}
                                 </h2>
                                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <User className="h-3 w-3" /> Guest Profile
+                                    <User className="h-3 w-3" /> {it.guestProfile || "Guest Profile"}
                                 </p>
                             </div>
                         </div>
@@ -163,7 +166,7 @@ export default function InboxPage() {
                                 <textarea
                                     value={replyText}
                                     onChange={e => setReplyText(e.target.value)}
-                                    placeholder="Type a message..."
+                                    placeholder={it.typeMessage || "Type a message..."}
                                     className="flex-1 bg-transparent resize-none outline-none max-h-32 min-h-[44px] py-3 px-3 text-sm"
                                     onKeyDown={e => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -180,13 +183,13 @@ export default function InboxPage() {
                                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                                 </button>
                             </div>
-                            <p className="text-[10px] text-muted-foreground mt-2 px-2 text-center">Press Enter to send, Shift+Enter for new line.</p>
+                            <p className="text-[10px] text-muted-foreground mt-2 px-2 text-center">{it.pressEnter || "Press Enter to send, Shift+Enter for new line."}</p>
                         </div>
                     </>
                 ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground h-full">
                         <MessageSquare className="h-12 w-12 mb-4 opacity-20" />
-                        <p>Select a conversation to start texting</p>
+                        <p>{it.selectConversation || "Select a conversation to start texting"}</p>
                     </div>
                 )}
             </div>

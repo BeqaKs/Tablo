@@ -10,6 +10,7 @@ import { useFloorPlanStore } from '@/lib/stores/floor-plan-store';
 import { Canvas } from '@/components/floor-plan/canvas';
 import { TablePosition } from '@/lib/stores/floor-plan-store';
 import { WalkInModal } from '@/components/walk-in/walk-in-modal';
+import { useTranslations } from '@/components/translations-provider';
 
 export default function OwnerFloorPlanPage() {
     const [restaurant, setRestaurant] = useState<any>(null);
@@ -18,6 +19,8 @@ export default function OwnerFloorPlanPage() {
     const [zoom, setZoom] = useState(0.8);
     const [bgImageUrl, setBgImageUrl] = useState('');
     const [showWalkIn, setShowWalkIn] = useState(false);
+    const { t } = useTranslations();
+    const ft = t.floor_plan || {};
 
     // Store Access
     const { tables: storeTables, loadTables, addTable, deleteTable, setBackgroundImage, backgroundImage, reset } = useFloorPlanStore();
@@ -61,7 +64,7 @@ export default function OwnerFloorPlanPage() {
                     loadTables(mappedTables);
                 }
             } else {
-                toast.error("No restaurant found for you.");
+                toast.error(ft.noRestaurant || "No restaurant found for you.");
             }
             setLoading(false);
         }
@@ -71,7 +74,7 @@ export default function OwnerFloorPlanPage() {
     }, []);
 
     async function handleCreate() {
-        if (!form.table_number) { toast.error('Table number is required'); return; }
+        if (!form.table_number) { toast.error(ft.tableNoRequired || 'Table number is required'); return; }
 
         const { data: newTable, error } = await createOwnerTable({
             ...form,
@@ -83,7 +86,7 @@ export default function OwnerFloorPlanPage() {
         if (error) {
             toast.error(error);
         } else if (newTable) {
-            toast.success('Table created!');
+            toast.success(ft.createSuccess || 'Table created!');
             setShowCreate(false);
             addTable({
                 ...newTable,
@@ -97,17 +100,17 @@ export default function OwnerFloorPlanPage() {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm('Delete this table?')) return;
+        if (!confirm(ft.deleteConfirm || 'Delete this table?')) return;
         const { error } = await deleteOwnerTable(id);
         if (error) toast.error(error);
         else {
-            toast.success('Table deleted');
+            toast.success(ft.deleteSuccess || 'Table deleted');
             deleteTable(id);
         }
     }
 
     async function handleSaveLayout() {
-        const toastId = toast.loading('Saving layout...');
+        const toastId = toast.loading(ft.saving || 'Saving layout...');
         const { error } = await saveOwnerFloorPlan(
             storeTables,
             backgroundImage
@@ -118,7 +121,7 @@ export default function OwnerFloorPlanPage() {
             toast.error(error);
         } else {
             toast.dismiss(toastId);
-            toast.success('Floor plan saved successfully!');
+            toast.success(ft.saveSuccess || 'Floor plan saved successfully!');
 
             setRestaurant((prev: any) =>
                 prev ? { ...prev, floor_plan_json: { ...prev.floor_plan_json, backgroundImage } } : prev
@@ -129,7 +132,7 @@ export default function OwnerFloorPlanPage() {
     function handleUpdateBackground() {
         if (!bgImageUrl) return;
         setBackgroundImage(bgImageUrl);
-        toast.info('Background set. Don\'t forget to Save Layout!');
+        toast.info(ft.bgSetHint || "Background set. Don't forget to Save Layout!");
     }
 
     function handleDrop(e: React.DragEvent) {
@@ -142,7 +145,7 @@ export default function OwnerFloorPlanPage() {
                 if (result) {
                     setBgImageUrl(result);
                     setBackgroundImage(result);
-                    toast.success('Image loaded locally. Save to persist.');
+                    toast.success(ft.dropSuccess || 'Image loaded locally. Save to persist.');
                 }
             };
             reader.readAsDataURL(file);
@@ -158,7 +161,7 @@ export default function OwnerFloorPlanPage() {
     }
 
     if (!restaurant) {
-        return <div className="text-center p-8 text-muted-foreground mt-20">You need to be assigned to a restaurant to manage a floor plan.</div>;
+        return <div className="text-center p-8 text-muted-foreground mt-20">{ft.noRestaurant || "You need to be assigned to a restaurant to manage a floor plan."}</div>;
     }
 
     return (
@@ -166,7 +169,7 @@ export default function OwnerFloorPlanPage() {
             <div className="space-y-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Floor Plan Builder</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{ft.title || "Floor Plan Builder"}</h1>
                         <p className="text-muted-foreground">{restaurant.name}</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -176,7 +179,7 @@ export default function OwnerFloorPlanPage() {
                             className="gap-2 text-primary border-primary/30 hover:bg-primary/5"
                         >
                             <UserPlus className="h-4 w-4" />
-                            Walk-In
+                            {ft.walkIn || "Walk-In"}
                         </Button>
                         <div className="flex items-center gap-1 bg-white border rounded-lg p-1 mr-2">
                             <Button variant="ghost" size="icon" onClick={() => setZoom(Math.max(0.2, zoom - 0.1))}>
@@ -189,11 +192,11 @@ export default function OwnerFloorPlanPage() {
                         </div>
                         <Button variant="outline" onClick={() => window.location.reload()}>
                             <Undo className="h-4 w-4 mr-2" />
-                            Reset
+                            {ft.reset || "Reset"}
                         </Button>
                         <Button onClick={handleSaveLayout} className="min-w-[120px]">
                             <Save className="h-4 w-4 mr-2" />
-                            Save Layout
+                            {ft.saveLayout || "Save Layout"}
                         </Button>
                     </div>
                 </div>
@@ -201,16 +204,16 @@ export default function OwnerFloorPlanPage() {
                 {/* Controls Bar */}
                 <Card className="p-4 flex gap-6 items-end">
                     <div className="space-y-2 flex-1">
-                        <label className="text-sm font-medium">Background Image (URL)</label>
+                        <label className="text-sm font-medium">{ft.bgImage || "Background Image (URL)"}</label>
                         <div className="flex gap-2">
                             <input
                                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
-                                placeholder="https://example.com/plan.jpg or Drop file below"
+                                placeholder={ft.bgPlaceholder || "https://example.com/plan.jpg or Drop file below"}
                                 value={bgImageUrl}
                                 onChange={(e) => setBgImageUrl(e.target.value)}
                             />
                             <Button variant="secondary" onClick={handleUpdateBackground}>
-                                Update
+                                {ft.update || "Update"}
                             </Button>
                         </div>
                     </div>
@@ -219,30 +222,30 @@ export default function OwnerFloorPlanPage() {
                 {/* Quick Add Table */}
                 {showCreate && (
                     <Card className="p-6 border-primary/20 bg-primary/5 mb-6">
-                        <h3 className="text-lg font-semibold mb-4">Add Table</h3>
+                        <h3 className="text-lg font-semibold mb-4">{ft.addTable || "Add Table"}</h3>
                         <div className="grid md:grid-cols-4 gap-4">
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Table No.</label>
+                                <label className="text-xs font-medium mb-1 block">{ft.tableNo || "Table No."}</label>
                                 <input className="w-full border rounded px-2 py-1.5 text-sm" value={form.table_number}
                                     onChange={e => setForm({ ...form, table_number: e.target.value })} placeholder="T1" />
                             </div>
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Shape</label>
+                                <label className="text-xs font-medium mb-1 block">{ft.shape || "Shape"}</label>
                                 <select className="w-full border rounded px-2 py-1.5 text-sm" value={form.shape}
                                     onChange={e => setForm({ ...form, shape: e.target.value })}>
-                                    <option value="square">Square</option>
-                                    <option value="round">Round</option>
-                                    <option value="rectangle">Rectangle</option>
+                                    <option value="square">{ft.shapes?.square || "Square"}</option>
+                                    <option value="round">{ft.shapes?.round || "Round"}</option>
+                                    <option value="rectangle">{ft.shapes?.rectangle || "Rectangle"}</option>
                                 </select>
                             </div>
                             <div>
-                                <label className="text-xs font-medium mb-1 block">Capacity</label>
+                                <label className="text-xs font-medium mb-1 block">{ft.capacity || "Capacity"}</label>
                                 <input type="number" className="w-full border rounded px-2 py-1.5 text-sm"
                                     value={form.capacity} onChange={e => setForm({ ...form, capacity: parseInt(e.target.value) || 2 })} />
                             </div>
                             <div className="flex items-end gap-2">
-                                <Button onClick={handleCreate} size="sm">Add</Button>
-                                <Button variant="ghost" onClick={() => setShowCreate(false)} size="sm">Cancel</Button>
+                                <Button onClick={handleCreate} size="sm">{ft.add || "Add"}</Button>
+                                <Button variant="ghost" onClick={() => setShowCreate(false)} size="sm">{ft.cancel || "Cancel"}</Button>
                             </div>
                         </div>
                     </Card>
@@ -256,16 +259,16 @@ export default function OwnerFloorPlanPage() {
                             variant={showCreate ? "secondary" : "default"}
                             className="w-full"
                         >
-                            {showCreate ? 'Close Form' : 'Add New Table'}
+                            {showCreate ? (ft.closeForm || 'Close Form') : (ft.addNewTable || 'Add New Table')}
                         </Button>
 
                         <Card className="flex-1 p-4 overflow-y-auto">
-                            <h3 className="font-medium text-sm text-muted-foreground mb-4">Table List</h3>
+                            <h3 className="font-medium text-sm text-muted-foreground mb-4">{ft.tableList || "Table List"}</h3>
                             <div className="space-y-2">
                                 {storeTables.map(table => (
                                     <div key={table.id} className="flex items-center justify-between p-2 border rounded text-sm hover:bg-gray-50 group">
                                         <span className="font-medium">{table.table_number}</span>
-                                        <span className="text-xs text-muted-foreground">{table.capacity}p</span>
+                                        <span className="text-xs text-muted-foreground">{table.capacity}{t.common?.guestsShort || 'p'}</span>
                                         <button
                                             onClick={() => handleDelete(table.id)}
                                             className="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -275,7 +278,7 @@ export default function OwnerFloorPlanPage() {
                                     </div>
                                 ))}
                                 {storeTables.length === 0 && (
-                                    <p className="text-xs text-muted-foreground text-center py-4">No tables yet</p>
+                                    <p className="text-xs text-muted-foreground text-center py-4">{ft.noTables || "No tables yet"}</p>
                                 )}
                             </div>
                         </Card>
@@ -297,7 +300,7 @@ export default function OwnerFloorPlanPage() {
                         <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="text-primary font-medium flex items-center gap-2 bg-white/90 p-3 rounded-full shadow-sm">
                                 <Upload className="h-4 w-4" />
-                                Drop image to update background
+                                {ft.dropHint || "Drop image to update background"}
                             </div>
                         </div>
                     </div>

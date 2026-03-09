@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { UsersRound, Trash2, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getStaff, addStaff, removeStaff } from '@/app/actions/staff';
+import { useTranslations } from '@/components/translations-provider';
 
 function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) {
     return (
@@ -27,6 +28,8 @@ export default function StaffPage() {
     const [role, setRole] = useState<'manager' | 'host'>('host');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const { t } = useTranslations();
+    const st = t.staff || {};
 
     useEffect(() => {
         loadStaff();
@@ -50,7 +53,7 @@ export default function StaffPage() {
         if (res.error) {
             setError(res.error);
         } else {
-            setSuccess('Staff member added successfully!');
+            setSuccess(st.successAdd || 'Staff member added successfully!');
             setEmail('');
             loadStaff();
         }
@@ -58,7 +61,7 @@ export default function StaffPage() {
     }
 
     async function handleRemove(id: string) {
-        if (!confirm('Are you sure you want to remove this staff member?')) return;
+        if (!confirm(st.removeConfirm || 'Are you sure you want to remove this staff member?')) return;
         setFormLoading(true);
         const res = await removeStaff(id);
         if (res.error) {
@@ -73,17 +76,17 @@ export default function StaffPage() {
         <div className="space-y-6 max-w-4xl mx-auto">
             <SectionHeader
                 icon={UsersRound}
-                title="Staff Roles"
-                subtitle="Manage your restaurant employees and their access levels"
+                title={st.title || "Staff Roles"}
+                subtitle={st.subtitle || "Manage your restaurant employees and their access levels"}
             />
 
             {/* Add Staff Form */}
             <div className="dash-card p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Invite Staff Member</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">{st.inviteTitle || "Invite Staff Member"}</h3>
                 <form onSubmit={handleAddStaff} className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-4 items-end">
                         <div className="flex-1 space-y-1.5 w-full">
-                            <label className="text-sm font-medium text-white">Email Address</label>
+                            <label className="text-sm font-medium text-white">{st.emailLabel || "Email Address"}</label>
                             <input
                                 type="email"
                                 required
@@ -94,14 +97,14 @@ export default function StaffPage() {
                             />
                         </div>
                         <div className="w-full sm:w-48 space-y-1.5">
-                            <label className="text-sm font-medium text-white">Role</label>
+                            <label className="text-sm font-medium text-white">{st.roleLabel || "Role"}</label>
                             <select
                                 value={role}
                                 onChange={e => setRole(e.target.value as any)}
                                 className="dash-input w-full"
                             >
-                                <option value="manager">Manager</option>
-                                <option value="host">Host</option>
+                                <option value="manager">{st.roles?.manager || "Manager"}</option>
+                                <option value="host">{st.roles?.host || "Host"}</option>
                             </select>
                         </div>
                         <button
@@ -110,7 +113,7 @@ export default function StaffPage() {
                             className="dash-button-primary w-full sm:w-auto flex items-center justify-center gap-2 h-[42px] px-6"
                         >
                             <Plus className="h-4 w-4" />
-                            {formLoading ? 'Adding...' : 'Add Staff'}
+                            {formLoading ? (st.adding || 'Adding...') : (st.addStaff || 'Add Staff')}
                         </button>
                     </div>
 
@@ -129,8 +132,7 @@ export default function StaffPage() {
                     )}
 
                     <p className="text-xs text-muted-foreground mt-2">
-                        Note: The staff member must already have created a Tablo account with this email address before you can assign them a role.
-                        Managers have full access except for billing/ownership settings. Hosts only have access to Floor Plan, Guests, Calendar, and Menu.
+                        {st.note || "Note: The staff member must already have created a Tablo account with this email address before you can assign them a role. Managers have full access except for billing/ownership settings. Hosts only have access to Floor Plan, Guests, Calendar, and Menu."}
                     </p>
                 </form>
             </div>
@@ -138,17 +140,17 @@ export default function StaffPage() {
             {/* Staff List */}
             <div className="dash-card">
                 <div className="p-4 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                    <h3 className="font-semibold text-white">Current Staff</h3>
+                    <h3 className="font-semibold text-white">{st.currentStaff || "Current Staff"}</h3>
                     <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 text-muted-foreground">
-                        {staffList.length} members
+                        {(st.membersCount || "{count} members").replace('{count}', staffList.length.toString())}
                     </span>
                 </div>
 
                 {loading ? (
-                    <div className="p-8 text-center text-muted-foreground animate-pulse">Loading staff...</div>
+                    <div className="p-8 text-center text-muted-foreground animate-pulse">{st.loading || "Loading staff..."}</div>
                 ) : staffList.length === 0 ? (
                     <div className="p-12 text-center text-muted-foreground text-sm border-t border-white/5">
-                        No staff members assigned yet. Add one above.
+                        {st.noMembers || "No staff members assigned yet. Add one above."}
                     </div>
                 ) : (
                     <div className="divide-y divide-white/5">
@@ -175,7 +177,7 @@ export default function StaffPage() {
                                     className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors border border-transparent hover:border-red-400/20"
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
-                                    Remove Access
+                                    {st.removeAccess || "Remove Access"}
                                 </button>
                             </div>
                         ))}

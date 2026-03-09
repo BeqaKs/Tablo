@@ -1,23 +1,34 @@
+// components/layout/dashboard-header.tsx
 'use client';
 
-import { Bell } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NotificationsPopover } from '@/components/dashboard/notifications-popover';
 
-export function DashboardHeader({ restaurantName, restaurantId }: { restaurantName: string, restaurantId?: string }) {
+export function DashboardHeader({
+    restaurantName,
+    restaurantId,
+    dict,
+    onMenuClick
+}: {
+    restaurantName: string,
+    restaurantId?: string,
+    dict: any,
+    onMenuClick?: () => void
+}) {
     const [time, setTime] = useState('');
     const [date, setDate] = useState('');
 
     useEffect(() => {
         function update() {
             const now = new Date();
-            setTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            setDate(now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }));
+            setTime(now.toLocaleTimeString(dict.locale || 'ka-GE', { hour: '2-digit', minute: '2-digit' }));
+            setDate(now.toLocaleDateString(dict.locale || 'ka-GE', { weekday: 'short', month: 'short', day: 'numeric' }));
         }
         update();
         const id = setInterval(update, 30000);
         return () => clearInterval(id);
-    }, []);
+    }, [dict.locale]);
 
     return (
         <header
@@ -30,6 +41,12 @@ export function DashboardHeader({ restaurantName, restaurantId }: { restaurantNa
         >
             {/* Left: Restaurant name + live badge */}
             <div className="flex items-center gap-3">
+                <button
+                    onClick={onMenuClick}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white lg:hidden smooth-transition hover:bg-white/10"
+                >
+                    <Menu className="h-5 w-5" />
+                </button>
                 <h1 className="text-sm font-semibold text-white">{restaurantName}</h1>
                 <span
                     className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -40,7 +57,7 @@ export function DashboardHeader({ restaurantName, restaurantId }: { restaurantNa
                     }}
                 >
                     <span className="h-1.5 w-1.5 rounded-full bg-current pulse-dot" />
-                    LIVE
+                    {dict.dashboard.live}
                 </span>
             </div>
 

@@ -14,7 +14,7 @@ export function HostNotifier({ restaurantId }: { restaurantId: string }) {
 
         const supabase = createClient();
 
-        console.log(`[HostNotifier] Subscribing to reservations for restaurant ${restaurantId}`);
+        // Subscribing to reservations
 
         const channel = supabase
             .channel(`reservations_notifier_${restaurantId}`)
@@ -27,7 +27,7 @@ export function HostNotifier({ restaurantId }: { restaurantId: string }) {
                     filter: `restaurant_id=eq.${restaurantId}`,
                 },
                 (payload) => {
-                    console.log('New reservation received:', payload.new);
+                    // New reservation received
 
                     const newRes = payload.new;
 
