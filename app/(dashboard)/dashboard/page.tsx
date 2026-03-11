@@ -1,4 +1,4 @@
-import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame } from "lucide-react";
+import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame, UserPlus, Printer, BarChart3, AlertTriangle } from "lucide-react";
 import { formatGEL } from "@/lib/utils/currency";
 import { getDictionary } from "@/lib/get-dictionary";
 import Link from "next/link";
@@ -122,6 +122,31 @@ export default async function DashboardPage() {
           className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold smooth-transition btn-dash-primary"
         >
           {t('dashboard.newReservation')}
+        </Link>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/dashboard/calendar"
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
+          style={{ background: 'hsl(347 78% 58% / 0.12)', color: 'hsl(347 78% 70%)', border: '1px solid hsl(347 78% 58% / 0.2)' }}
+        >
+          <UserPlus className="h-4 w-4" /> Walk-In
+        </Link>
+        <Link
+          href="/dashboard/print"
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
+          style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
+        >
+          <Printer className="h-4 w-4" /> Print Daily Sheet
+        </Link>
+        <Link
+          href="/dashboard/export"
+          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
+          style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
+        >
+          <BarChart3 className="h-4 w-4" /> Reports & Export
         </Link>
       </div>
 

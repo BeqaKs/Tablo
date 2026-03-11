@@ -16,11 +16,6 @@ export default function TermsPage() {
         { title: t('terms.section5Title'), content: t('terms.section5Content') },
         { title: t('terms.section6Title'), content: t('terms.section6Content') },
         { title: t('terms.section7Title'), content: t('terms.section7Content') },
-        { title: t('terms.section8Title'), content: t('terms.section8Content') },
-        { title: t('terms.section9Title'), content: t('terms.section9Content') },
-        { title: t('terms.section10Title'), content: t('terms.section10Content') },
-        { title: t('terms.section11Title'), content: t('terms.section11Content') },
-        { title: t('terms.section12Title'), content: t('terms.section12Content') },
     ];
 
     return (

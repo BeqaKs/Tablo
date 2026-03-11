@@ -2,13 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { getOwnerRestaurant } from '@/app/actions/owner';
+import { getOperatingHours, saveOperatingHours, saveBookingRules } from '@/app/actions/operating-hours';
+import type { OperatingHours, BookingRules } from '@/app/actions/operating-hours';
 import { toast } from 'sonner';
-import { Loader2, Save, Store, Phone, Globe, Map, MessageSquare } from 'lucide-react';
+import { Loader2, Save, Store, Phone, Globe, Map, MessageSquare, Clock, Shield } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { Switch } from '@/components/ui/switch';
 import { useTranslations } from '@/components/translations-provider';
 
 const PRICE_RANGES = ['₾', '₾₾', '₾₾₾', '₾₾₾₾'];
+const DAYS = [
+    { key: 'mon', label: 'Monday' },
+    { key: 'tue', label: 'Tuesday' },
+    { key: 'wed', label: 'Wednesday' },
+    { key: 'thu', label: 'Thursday' },
+    { key: 'fri', label: 'Friday' },
+    { key: 'sat', label: 'Saturday' },
+    { key: 'sun', label: 'Sunday' },
+] as const;
 
 function FormField({
     label,
@@ -57,14 +68,15 @@ function FormTextarea({ label, value, onChange }: { label: string; value: string
     );
 }
 
-function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) {
+function SectionHeader({ icon: Icon, title, subtitle, color }: { icon: React.ElementType; title: string; subtitle: string; color?: string }) {
+    const accentColor = color || 'hsl(347 78% 58%)';
     return (
         <div className="flex items-center gap-4 mb-5">
             <div
                 className="flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ background: 'hsl(347 78% 58% / 0.12)' }}
+                style={{ background: `${accentColor}20` }}
             >
-                <Icon className="h-5 w-5" style={{ color: 'hsl(347 78% 65%)' }} />
+                <Icon className="h-5 w-5" style={{ color: accentColor }} />
             </div>
             <div>
                 <h3 className="text-sm font-semibold text-white">{title}</h3>
@@ -76,8 +88,12 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementTyp
 
 export default function OwnerSettingsPage() {
     const [restaurant, setRestaurant] = useState<any>(null);
+    const [hours, setHours] = useState<OperatingHours | null>(null);
+    const [rules, setRules] = useState<BookingRules | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [savingHours, setSavingHours] = useState(false);
+    const [savingRules, setSavingRules] = useState(false);
     const { t } = useTranslations();
     const st = t.settings || {};
 
@@ -85,14 +101,28 @@ export default function OwnerSettingsPage() {
 
     async function loadData() {
         setLoading(true);
-        const { data, error } = await getOwnerRestaurant();
-        if (error) toast.error(error);
-        if (data) setRestaurant(data);
+        const [restaurantRes, hoursRes] = await Promise.all([
+            getOwnerRestaurant(),
+            getOperatingHours(),
+        ]);
+        if (restaurantRes.error) toast.error(restaurantRes.error);
+        if (restaurantRes.data) setRestaurant(restaurantRes.data);
+        if (hoursRes.data) {
+            setHours(hoursRes.data.operating_hours);
+            setRules(hoursRes.data.booking_rules);
+        }
         setLoading(false);
     }
 
     function set(field: string, value: any) {
         setRestaurant((prev: any) => ({ ...prev, [field]: value }));
+    }
+
+    function setDayHours(day: string, field: string, value: any) {
+        setHours((prev: any) => ({
+            ...prev,
+            [day]: { ...prev[day], [field]: value }
+        }));
     }
 
     async function handleSave(e: React.FormEvent) {
@@ -116,6 +146,24 @@ export default function OwnerSettingsPage() {
         setSaving(false);
     }
 
+    async function handleSaveHours() {
+        if (!hours) return;
+        setSavingHours(true);
+        const result = await saveOperatingHours(hours);
+        if (result.error) toast.error(result.error);
+        else toast.success('Operating hours saved!');
+        setSavingHours(false);
+    }
+
+    async function handleSaveRules() {
+        if (!rules) return;
+        setSavingRules(true);
+        const result = await saveBookingRules(rules);
+        if (result.error) toast.error(result.error);
+        else toast.success('Booking rules saved!');
+        setSavingRules(false);
+    }
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-24">
@@ -132,26 +180,19 @@ export default function OwnerSettingsPage() {
     }
 
     return (
-        <form onSubmit={handleSave}>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{st.title || "Restaurant Settings"}</h1>
-                        <p className="text-xs sm:text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>{(st.subtitle || "Manage your public profile — {name}").replace('{name}', restaurant.name)}</p>
-                    </div>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth-transition btn-dash-primary disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        {saving ? (st.saving || 'Saving...') : (st.saveChanges || 'Save Changes')}
-                    </button>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{st.title || "Restaurant Settings"}</h1>
+                    <p className="text-xs sm:text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>{(st.subtitle || "Manage your public profile — {name}").replace('{name}', restaurant.name)}</p>
                 </div>
+            </div>
 
+            {/* Restaurant Info Form */}
+            <form onSubmit={handleSave}>
                 {/* Basic Info */}
-                <div className="dash-card p-6">
+                <div className="dash-card p-6 mb-4">
                     <SectionHeader icon={Store} title={st.basicInfo?.title || "Basic Information"} subtitle={st.basicInfo?.subtitle || "Your restaurant's public-facing details"} />
                     <div className="grid sm:grid-cols-2 gap-4">
                         <FormField label={st.basicInfo?.name || "Restaurant Name"} value={restaurant.name || ''} onChange={v => set('name', v)} placeholder="e.g. Shavi Lomi" />
@@ -183,7 +224,7 @@ export default function OwnerSettingsPage() {
                 </div>
 
                 {/* Contact Info */}
-                <div className="dash-card p-6">
+                <div className="dash-card p-6 mb-4">
                     <SectionHeader icon={Phone} title={st.contactInfo?.title || "Contact Information"} subtitle={st.contactInfo?.subtitle || "How guests can reach you"} />
                     <div className="grid sm:grid-cols-2 gap-4">
                         <FormField label={st.contactInfo?.phone || "Phone"} type="tel" value={restaurant.phone || ''} onChange={v => set('phone', v)} placeholder="+995 555 000 000" />
@@ -193,7 +234,7 @@ export default function OwnerSettingsPage() {
                 </div>
 
                 {/* Location */}
-                <div className="dash-card p-6">
+                <div className="dash-card p-6 mb-4">
                     <SectionHeader icon={Map} title={st.location?.title || "Location"} subtitle={st.location?.subtitle || "Your restaurant's physical address"} />
                     <div className="grid sm:grid-cols-2 gap-4">
                         <FormField label={st.location?.city || "City"} value={restaurant.city || ''} onChange={v => set('city', v)} placeholder="Tbilisi" />
@@ -202,7 +243,7 @@ export default function OwnerSettingsPage() {
                 </div>
 
                 {/* Notifications & Integrations */}
-                <div className="dash-card p-6">
+                <div className="dash-card p-6 mb-4">
                     <SectionHeader icon={MessageSquare} title={st.notifications?.title || "Notifications & Integrations"} subtitle={st.notifications?.subtitle || "Manage external communications"} />
                     <div className="flex items-center justify-between">
                         <div>
@@ -217,7 +258,163 @@ export default function OwnerSettingsPage() {
                         />
                     </div>
                 </div>
-            </div>
-        </form>
+
+                <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold smooth-transition btn-dash-primary disabled:opacity-50 mb-6"
+                >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? (st.saving || 'Saving...') : (st.saveChanges || 'Save Changes')}
+                </button>
+            </form>
+
+            {/* ═══════════════════════════════════════════ */}
+            {/* Operating Hours */}
+            {/* ═══════════════════════════════════════════ */}
+            {hours && (
+                <div className="dash-card p-6">
+                    <SectionHeader icon={Clock} title="Operating Hours" subtitle="Set your open and close times for each day of the week" color="hsl(262 60% 56%)" />
+                    <div className="space-y-2">
+                        {DAYS.map(({ key, label }) => {
+                            const day = hours[key];
+                            return (
+                                <div
+                                    key={key}
+                                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg px-4 py-3"
+                                    style={{ background: day.is_closed ? 'hsl(231 24% 9%)' : 'hsl(231 24% 11%)' }}
+                                >
+                                    <div className="flex items-center gap-3 sm:w-40 shrink-0">
+                                        <Switch
+                                            checked={!day.is_closed}
+                                            onCheckedChange={(checked) => setDayHours(key, 'is_closed', !checked)}
+                                        />
+                                        <span className={`text-sm font-medium ${day.is_closed ? 'line-through' : ''}`} style={{ color: day.is_closed ? 'hsl(220 15% 35%)' : 'white' }}>
+                                            {label}
+                                        </span>
+                                    </div>
+                                    {!day.is_closed ? (
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <input
+                                                type="time"
+                                                value={day.open}
+                                                onChange={e => setDayHours(key, 'open', e.target.value)}
+                                                className="rounded-lg px-3 py-1.5 text-sm text-white"
+                                                style={{ background: 'hsl(231 24% 14%)', border: '1px solid hsl(231 24% 20%)' }}
+                                            />
+                                            <span className="text-xs" style={{ color: 'hsl(220 15% 40%)' }}>to</span>
+                                            <input
+                                                type="time"
+                                                value={day.close}
+                                                onChange={e => setDayHours(key, 'close', e.target.value)}
+                                                className="rounded-lg px-3 py-1.5 text-sm text-white"
+                                                style={{ background: 'hsl(231 24% 14%)', border: '1px solid hsl(231 24% 20%)' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs italic" style={{ color: 'hsl(0 72% 55%)' }}>Closed</span>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSaveHours}
+                        disabled={savingHours}
+                        className="flex items-center gap-2 mt-4 rounded-lg px-4 py-2 text-sm font-semibold smooth-transition"
+                        style={{ background: 'hsl(262 60% 56% / 0.15)', color: 'hsl(262 60% 75%)', border: '1px solid hsl(262 60% 56% / 0.2)' }}
+                    >
+                        {savingHours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {savingHours ? 'Saving...' : 'Save Hours'}
+                    </button>
+                </div>
+            )}
+
+            {/* ═══════════════════════════════════════════ */}
+            {/* Booking Rules */}
+            {/* ═══════════════════════════════════════════ */}
+            {rules && (
+                <div className="dash-card p-6">
+                    <SectionHeader icon={Shield} title="Booking Rules" subtitle="Control how and when guests can make reservations" color="hsl(38 80% 55%)" />
+                    <div className="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                                Max Party Size
+                            </label>
+                            <input
+                                type="number"
+                                min={1} max={100}
+                                value={rules.max_party_size}
+                                onChange={e => setRules(prev => prev ? { ...prev, max_party_size: Number(e.target.value) } : prev)}
+                                className="dash-input"
+                            />
+                            <p className="text-[10px] mt-1" style={{ color: 'hsl(220 15% 40%)' }}>Largest group you&apos;ll accept online</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                                Max Advance Booking (Days)
+                            </label>
+                            <input
+                                type="number"
+                                min={1} max={365}
+                                value={rules.max_advance_days}
+                                onChange={e => setRules(prev => prev ? { ...prev, max_advance_days: Number(e.target.value) } : prev)}
+                                className="dash-input"
+                            />
+                            <p className="text-[10px] mt-1" style={{ color: 'hsl(220 15% 40%)' }}>How far ahead guests can book</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                                Minimum Lead Time (Hours)
+                            </label>
+                            <input
+                                type="number"
+                                min={0} max={72}
+                                value={rules.min_lead_time_hours}
+                                onChange={e => setRules(prev => prev ? { ...prev, min_lead_time_hours: Number(e.target.value) } : prev)}
+                                className="dash-input"
+                            />
+                            <p className="text-[10px] mt-1" style={{ color: 'hsl(220 15% 40%)' }}>Minimum hours before arrival time</p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'hsl(220 15% 42%)' }}>
+                                Buffer Between Bookings (Minutes)
+                            </label>
+                            <input
+                                type="number"
+                                min={0} max={120}
+                                value={rules.buffer_minutes}
+                                onChange={e => setRules(prev => prev ? { ...prev, buffer_minutes: Number(e.target.value) } : prev)}
+                                className="dash-input"
+                            />
+                            <p className="text-[10px] mt-1" style={{ color: 'hsl(220 15% 40%)' }}>Cleaning/prep time between seatings</p>
+                        </div>
+                        <div className="sm:col-span-2 flex items-center justify-between rounded-lg px-4 py-3" style={{ background: 'hsl(231 24% 11%)' }}>
+                            <div>
+                                <h4 className="text-sm font-medium text-white">Auto-Confirm Bookings</h4>
+                                <p className="text-xs mt-0.5" style={{ color: 'hsl(220 15% 40%)' }}>
+                                    Automatically confirm new reservations instead of leaving them as pending
+                                </p>
+                            </div>
+                            <Switch
+                                checked={rules.auto_confirm}
+                                onCheckedChange={(checked) => setRules(prev => prev ? { ...prev, auto_confirm: checked } : prev)}
+                            />
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleSaveRules}
+                        disabled={savingRules}
+                        className="flex items-center gap-2 mt-4 rounded-lg px-4 py-2 text-sm font-semibold smooth-transition"
+                        style={{ background: 'hsl(38 80% 55% / 0.15)', color: 'hsl(38 80% 65%)', border: '1px solid hsl(38 80% 55% / 0.2)' }}
+                    >
+                        {savingRules ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {savingRules ? 'Saving...' : 'Save Rules'}
+                    </button>
+                </div>
+            )}
+        </div>
     );
 }

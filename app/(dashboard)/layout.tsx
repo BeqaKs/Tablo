@@ -66,6 +66,7 @@ export default async function DashboardLayout({
       schedule: t('dashboard.sidebar.schedule'),
       printManifest: t('dashboard.sidebar.printManifest'),
       marketing: t('dashboard.sidebar.marketing'),
+      analytics: t('dashboard.sidebar.analytics') || 'Analytics',
       staff: t('dashboard.sidebar.staff'),
       settings: t('dashboard.sidebar.settings'),
       adminOverview: t('dashboard.sidebar.adminOverview'),

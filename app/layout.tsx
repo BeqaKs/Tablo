@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     },
     description: 'Discover and book the finest restaurants in Tbilisi, Georgia. Real-time availability, interactive floor plans, and instant confirmation. Your table awaits.',
     keywords: ['restaurant reservations', 'Tbilisi', 'Georgia', 'dining', 'book a table', 'fine dining', 'Georgian restaurants'],
-    authors: [{ name: 'Tablo LLC' }],
+    authors: [{ name: '' }],
     creator: 'Tablo',
     openGraph: {
         type: 'website',
@@ -39,6 +39,21 @@ export const metadata: Metadata = {
         follow: true,
     },
     metadataBase: new URL('https://tablo.ge'),
+    manifest: '/manifest.json',
+    themeColor: '#EE4B5F',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'Tablo Admin',
+    },
+    viewport: {
+        width: 'device-width',
+        initialScale: 1,
+        maximumScale: 1,
+    },
+    icons: {
+        apple: '/icons/icon-192x192.png',
+    },
 };
 
 export default async function RootLayout({

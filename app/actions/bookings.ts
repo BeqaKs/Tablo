@@ -101,7 +101,7 @@ export async function createBooking(data: {
     // Get restaurant details for validation and email
     const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, address, turn_duration_minutes, turn_times_config, is_open, sms_enabled')
+        .select('name, address, turn_duration_minutes, turn_times_config, is_open, sms_enabled, booking_rules')
         .eq('id', data.restaurant_id)
         .single()
 
@@ -132,7 +132,12 @@ export async function createBooking(data: {
         }
     }
 
-    const endTime = new Date(startTime.getTime() + turnDuration * 60000)
+    // Add buffer time to the physical reservation end time to protect it from back-to-back overlaps
+    const bookingRules = (restaurant?.booking_rules as Record<string, any>) || {};
+    const bufferMinutes = typeof bookingRules.buffer_minutes === 'number' ? bookingRules.buffer_minutes : 15;
+    const totalDuration = turnDuration + bufferMinutes;
+    
+    const endTime = new Date(startTime.getTime() + totalDuration * 60000)
 
     let validUserId = null;
     if (user?.id) {
@@ -348,7 +353,8 @@ export async function updateBookingDetails(bookingId: string, data: {
 // Get all tables that are booked or blocked for a specific time slot
 export async function getUnavailableTables(restaurantId: string, date: string, time: string): Promise<string[]> {
     const supabase = await createClient();
-    const reservationTime = new Date(`${date}T${time}`).toISOString();
+    const reservationTime = new Date(`${date}T${time}`);
+    const reservationTimeString = reservationTime.toISOString();
 
     // 1. Get explicitly blocked tables by schedule overrides
     const { data: blockedTables } = await supabase
@@ -358,18 +364,29 @@ export async function getUnavailableTables(restaurantId: string, date: string, t
         .eq('override_date', date)
         .eq('status', 'blocked');
 
-    // 2. Get tables currently booked at this time
-    // We assume a 2 hour dining window for simplicity (-1 hr to +1 hr overlapping)
-    const twoHoursBefore = new Date(new Date(reservationTime).getTime() - 2 * 60 * 60 * 1000).toISOString();
-    const twoHoursAfter = new Date(new Date(reservationTime).getTime() + 2 * 60 * 60 * 1000).toISOString();
+    // 2. We need the turn length to know exactly when THIS new hypothetical reservation would end
+    const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('turn_duration_minutes, booking_rules')
+        .eq('id', restaurantId)
+        .single()
 
+    const turnDuration = restaurant?.turn_duration_minutes || 90;
+    const bookingRules = (restaurant?.booking_rules as Record<string, any>) || {};
+    const bufferMinutes = typeof bookingRules.buffer_minutes === 'number' ? bookingRules.buffer_minutes : 15;
+    const totalDuration = turnDuration + bufferMinutes;
+    
+    const newReservationEndTime = new Date(reservationTime.getTime() + totalDuration * 60000).toISOString();
+
+    // 3. Get tables currently booked overlapping with this specific time window
+    // Correct temporal overlap: Existing Start < New End AND Existing End > New Start
     const { data: bookedReservations } = await supabase
         .from('reservations')
         .select('table_id')
         .eq('restaurant_id', restaurantId)
         .in('status', ['pending', 'confirmed', 'seated'])
-        .gte('reservation_time', twoHoursBefore)
-        .lte('reservation_time', twoHoursAfter);
+        .lt('reservation_time', newReservationEndTime)   // Existing Start < New End
+        .gt('end_time', reservationTimeString);          // Existing End > New Start
 
     const unavailablePaths = [
         ...(blockedTables?.map(t => t.table_id) || []),

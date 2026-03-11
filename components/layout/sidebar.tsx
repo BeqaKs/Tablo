@@ -30,6 +30,8 @@ import {
   MessageSquare,
   Globe,
   X,
+  BarChart3,
+  PieChart,
 } from 'lucide-react';
 import { signout } from '@/app/auth/actions';
 
@@ -63,6 +65,7 @@ export function Sidebar({
     { icon: CalendarClock, label: dict.schedule, href: '/dashboard/schedule' },
     { icon: Printer, label: dict.printManifest, href: '/dashboard/print' },
     { icon: Megaphone, label: dict.marketing, href: '/dashboard/marketing' },
+    { icon: PieChart, label: dict.analytics || 'Analytics & Reports', href: '/dashboard/analytics' },
     { icon: ShieldCheck, label: dict.staff, href: '/dashboard/staff' },
     { icon: Settings, label: dict.settings, href: '/dashboard/settings' },
   ];

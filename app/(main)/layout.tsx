@@ -56,6 +56,7 @@ export default function MainLayout({
                 <li><a href="/contact" className="hover:text-white smooth-transition">{t('navigation.contact')}</a></li>
                 <li><a href="/privacy" className="hover:text-white smooth-transition">{t('footer.privacyPolicy')}</a></li>
                 <li><a href="/terms" className="hover:text-white smooth-transition">{t('footer.termsAndConditions')}</a></li>
+                <li><a href="/refund-policy" className="hover:text-white smooth-transition">{t('refund.title')}</a></li>
               </ul>
             </div>
           </div>

@@ -10,14 +10,19 @@ import { toast } from 'sonner'
 interface WalkInModalProps {
     restaurantId: string
     tables: Array<{ id: string; table_number: string; capacity: number; zone_name: string }>
+    defaultName?: string
+    defaultPhone?: string
+    defaultSize?: number
+    waitlistId?: string
     onSuccess?: () => void
     onClose: () => void
 }
 
-export function WalkInModal({ restaurantId, tables, onSuccess, onClose }: WalkInModalProps) {
+export function WalkInModal({ restaurantId, tables, defaultName, defaultPhone, defaultSize, waitlistId, onSuccess, onClose }: WalkInModalProps) {
     const { t } = useTranslations()
-    const [guestName, setGuestName] = useState('')
-    const [partySize, setPartySize] = useState(2)
+    const [guestName, setGuestName] = useState(defaultName || '')
+    const [guestPhone, setGuestPhone] = useState(defaultPhone || '')
+    const [partySize, setPartySize] = useState(defaultSize || 2)
     const [selectedTableId, setSelectedTableId] = useState<string>('')
     const [loading, setLoading] = useState(false)
 
@@ -46,12 +51,23 @@ export function WalkInModal({ restaurantId, tables, onSuccess, onClose }: WalkIn
                 status: 'seated',
                 attendance_status: 'arrived',
                 guest_name: guestName.trim(),
+                guest_phone: guestPhone.trim(),
                 is_walk_in: true,
             })
 
             if (error) {
-                toast.error(error.message)
+                if (error.message.includes('exclusion')) {
+                    toast.error(t.walk_in?.tableOccupied || 'This table is already occupied for the selected time.')
+                } else {
+                    toast.error(error.message)
+                }
                 return
+            }
+
+            // Claim the waitlist spot if applicable
+            if (waitlistId) {
+                const { updateWaitlistStatusOwner } = await import('@/app/actions/waitlist')
+                await updateWaitlistStatusOwner(waitlistId, 'claimed')
             }
 
             toast.success(t.walk_in?.success?.replace('{name}', guestName) || `Walk-in for ${guestName} added!`)
@@ -95,6 +111,18 @@ export function WalkInModal({ restaurantId, tables, onSuccess, onClose }: WalkIn
                             placeholder={t.walk_in?.guestNamePlaceholder || 'Enter guest name'}
                             className="w-full px-4 py-4 text-lg border-2 rounded-xl focus:outline-none focus:border-primary smooth-transition"
                             autoFocus
+                        />
+                    </div>
+
+                    {/* Guest Phone Optional */}
+                    <div>
+                        <label className="block text-sm font-semibold mb-2">{t.walk_in?.guestPhone || 'Guest Phone'}</label>
+                        <input
+                            type="tel"
+                            value={guestPhone}
+                            onChange={e => setGuestPhone(e.target.value)}
+                            placeholder="+1..."
+                            className="w-full px-4 py-3 border-2 rounded-xl focus:outline-none focus:border-primary smooth-transition"
                         />
                     </div>
 

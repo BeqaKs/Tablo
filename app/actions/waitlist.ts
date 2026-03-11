@@ -212,3 +212,70 @@ export async function getRestaurantWaitlist(restaurantId: string, requestedTime?
     if (error) return { data: [], error: error.message }
     return { data: data || [], error: null }
 }
+
+// ========================
+// Hostess Panel Actions
+// ========================
+
+export async function getLiveWaitlist() {
+    const { requireOwner } = await import('./owner');
+    const { supabase, restaurantId, error: authError } = await requireOwner();
+    
+    if (authError || !restaurantId) return { data: null, error: authError || 'No restaurant found' };
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+
+    const { data, error } = await supabase
+        .from('waitlist')
+        .select('*')
+        .eq('restaurant_id', restaurantId)
+        .in('status', ['waiting', 'offered']) // Include offered to show they were recently pinged
+        .gte('created_at', start.toISOString())
+        .order('created_at', { ascending: true });
+
+    if (error) return { data: null, error: error.message };
+    return { data, error: null };
+}
+
+export async function addWalkInToWaitlist(guestName: string, guestPhone: string, partySize: number) {
+    const { requireOwner } = await import('./owner');
+    const { supabase, restaurantId, error: authError } = await requireOwner();
+    
+    if (authError || !restaurantId) return { data: null, error: authError || 'No restaurant found' };
+
+    const { data, error } = await supabase
+        .from('waitlist')
+        .insert({
+            restaurant_id: restaurantId,
+            guest_name: guestName,
+            guest_phone: guestPhone || null,
+            party_size: partySize,
+            status: 'waiting',
+            requested_time: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) return { data: null, error: error.message };
+    return { data, error: null };
+}
+
+export async function updateWaitlistStatusOwner(id: string, status: 'offered' | 'claimed' | 'expired' | 'cancelled') {
+    const { requireOwner } = await import('./owner');
+    const { supabase, error: authError } = await requireOwner();
+    
+    if (authError) return { error: authError };
+
+    const updateData: any = { status };
+    if (status === 'offered') updateData.offered_at = new Date().toISOString();
+
+    const { error } = await supabase
+        .from('waitlist')
+        .update(updateData)
+        .eq('id', id);
+
+    if (error) return { error: error.message };
+    return { error: null };
+}
+

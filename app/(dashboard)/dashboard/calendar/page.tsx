@@ -12,8 +12,11 @@ import {
     CalendarDays, ChevronLeft, ChevronRight, Users, Clock,
     Phone, MessageSquare, Check, X, Plus, Loader2,
     ChevronDown, CircleDot, AlertCircle, Edit3, Save,
-    UserPlus, LayoutGrid, List, RefreshCw, Coffee, ListChecks
+    UserPlus, LayoutGrid, List, RefreshCw, Coffee, ListChecks,
+    Armchair, ZoomIn, ZoomOut
 } from 'lucide-react';
+import { TableElement } from '@/components/floor-plan/table-element';
+import { WaitlistPanel } from '@/components/waitlist/waitlist-panel';
 import {
     format, addDays, subDays, isSameDay, isToday,
     startOfWeek, endOfWeek, eachDayOfInterval,
@@ -69,17 +72,20 @@ function StatusBadge({ status }: { status: string }) {
 // ─── WalkInModal ────────────────────────────────────────────────────────────
 
 function WalkInModal({
-    tables, selectedDate, defaultTime, onClose, onSave
+    tables, selectedDate, defaultTime, onClose, onSave,
+    defaultName, defaultPhone, defaultSize, waitlistId, defaultTableId
 }: {
     tables: any[]; selectedDate: Date; defaultTime: string;
     onClose: () => void; onSave: () => void;
+    defaultName?: string; defaultPhone?: string; defaultSize?: number; waitlistId?: string;
+    defaultTableId?: string;
 }) {
     const { t } = useTranslations();
     const [form, setForm] = useState({
-        table_id: tables[0]?.id || '',
-        guest_name: '',
-        guest_count: 2,
-        guest_phone: '',
+        table_id: defaultTableId || tables[0]?.id || '',
+        guest_name: defaultName || '',
+        guest_count: defaultSize || 2,
+        guest_phone: defaultPhone || '',
         guest_notes: '',
         time: defaultTime,
         duration_hours: 2,
@@ -105,8 +111,19 @@ function WalkInModal({
         });
         setSaving(true); // intentional to show saving state
         setSaving(false);
-        if (result.error) toast.error(result.error);
-        else { toast.success(t.calendar?.walkInAdded || 'Walk-in added!'); onSave(); onClose(); }
+        if (result.error) {
+            toast.error(result.error);
+        } else {
+            toast.success(t.calendar?.walkInAdded || 'Walk-in added!');
+            
+            if (waitlistId) {
+                const { updateWaitlistStatusOwner } = await import('@/app/actions/waitlist');
+                await updateWaitlistStatusOwner(waitlistId, 'claimed');
+            }
+            
+            onSave();
+            onClose();
+        }
     };
 
     return (
@@ -181,9 +198,9 @@ function WalkInModal({
 // ─── BookingSlideOver ────────────────────────────────────────────────────────
 
 function BookingSlideOver({
-    booking, tables, onClose, onStatusChange, onRefresh
+    booking, tables, allBookings, onClose, onStatusChange, onRefresh
 }: {
-    booking: any; tables: any[]; onClose: () => void;
+    booking: any; tables: any[]; allBookings: any[]; onClose: () => void;
     onStatusChange: (id: string, status: string) => Promise<void>;
     onRefresh: () => void;
 }) {
@@ -195,6 +212,17 @@ function BookingSlideOver({
     const date = parseISO(booking.reservation_time);
     const endDate = booking.end_time ? parseISO(booking.end_time) : null;
     const cfg = getStatusCfg(t)[booking.status] || getStatusCfg(t).pending;
+
+    // Guest visit history from all bookings
+    const guestHistory = allBookings.filter(
+        (b: any) => b.guest_name === booking.guest_name && b.id !== booking.id
+    );
+    const pastVisits = guestHistory.filter((b: any) => b.status === 'completed').length;
+    const noShows = guestHistory.filter((b: any) => b.status === 'no_show').length;
+    const totalCovers = guestHistory.reduce((sum: number, b: any) => sum + (b.guest_count || 0), 0);
+
+    // Overdue detection: confirmed but past reservation time
+    const isOverdue = booking.status === 'confirmed' && new Date() > date;
     const table = tables.find(t => t.id === booking.table_id);
 
     const handleStatus = async (status: string) => {
@@ -242,6 +270,16 @@ function BookingSlideOver({
             >
                 {/* Header */}
                 <div className="p-6" style={{ borderBottom: '1px solid hsl(231 24% 18%)' }}>
+                    {/* Overdue alert */}
+                    {isOverdue && (
+                        <div className="flex items-center gap-2 rounded-lg px-3 py-2 mb-4 animate-pulse"
+                            style={{ background: 'hsl(38 80% 55% / 0.12)', border: '1px solid hsl(38 80% 55% / 0.3)' }}>
+                            <AlertCircle className="h-4 w-4 shrink-0" style={{ color: 'hsl(38 80% 65%)' }} />
+                            <span className="text-xs font-semibold" style={{ color: 'hsl(38 80% 70%)' }}>
+                                Late arrival — {differenceInMinutes(new Date(), date)} min past reservation time
+                            </span>
+                        </div>
+                    )}
                     <div className="flex items-start justify-between gap-4 mb-4">
                         <div>
                             <h2 className="text-xl font-bold text-white">{booking.guest_name}</h2>
@@ -254,7 +292,15 @@ function BookingSlideOver({
                             <X className="h-4 w-4" />
                         </button>
                     </div>
-                    <StatusBadge status={booking.status} />
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <StatusBadge status={booking.status} />
+                        {booking.source === 'walk_in' && (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                                style={{ background: 'hsl(160 60% 45% / 0.15)', color: 'hsl(160 60% 70%)', border: '1px solid hsl(160 60% 45% / 0.3)' }}>
+                                <Coffee className="h-2.5 w-2.5" /> Walk-in
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 {/* Details */}
@@ -316,6 +362,27 @@ function BookingSlideOver({
                             </div>
                         )}
                     </div>
+
+                    {/* Guest history */}
+                    {pastVisits + noShows > 0 && (
+                        <div className="rounded-xl p-4" style={{ background: 'hsl(231 32% 14%)', border: '1px solid hsl(231 24% 20%)' }}>
+                            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'hsl(220 15% 42%)' }}>Guest History</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="text-center">
+                                    <p className="text-lg font-bold text-white">{pastVisits}</p>
+                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>Past Visits</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-lg font-bold" style={{ color: noShows > 0 ? 'hsl(347 78% 65%)' : 'white' }}>{noShows}</p>
+                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>No-Shows</p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-lg font-bold text-white">{totalCovers}</p>
+                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>Total Covers</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Timeline indicators */}
                     <div className="rounded-xl p-4" style={{ background: 'hsl(231 32% 14%)', border: '1px solid hsl(231 24% 20%)' }}>
@@ -589,6 +656,78 @@ function TimelineView({
     );
 }
 
+// ─── LiveFloorPlan ────────────────────────────────────────────────────────────
+
+function LiveFloorPlan({
+    restaurant, tables, bookings, onSelectTable
+}: {
+    restaurant: any; tables: any[]; bookings: any[];
+    onSelectTable: (table: any, currentBooking?: any) => void;
+}) {
+    const { t } = useTranslations();
+    const [zoom, setZoom] = useState(0.8);
+    const bgImageUrl = restaurant?.floor_plan_json?.backgroundImage || '';
+
+    // Calculate current status for each table
+    const now = new Date();
+    
+    // We only care about active bookings right now
+    const activeBookings = bookings.filter(b => {
+        if (!['pending', 'confirmed', 'seated'].includes(b.status)) return false;
+        const start = new Date(b.reservation_time);
+        const end = b.end_time ? new Date(b.end_time) : new Date(start.getTime() + 2 * 3600000); // fallback 2h
+        
+        // Is current time within the booking window?
+        return now >= start && now <= end;
+    });
+
+    return (
+        <div className="flex flex-col h-full bg-gray-100 rounded-xl relative group overflow-hidden border border-gray-200" style={{ borderColor: 'hsl(231 24% 18%)' }}>
+            {/* Zoom Controls */}
+            <div className="absolute top-4 right-4 z-20 flex gap-1 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                <button className="p-1.5 hover:bg-gray-100 rounded smooth-transition flex items-center justify-center text-gray-600" onClick={() => setZoom(Math.max(0.2, zoom - 0.1))}><ZoomOut className="h-4 w-4" /></button>
+                <div className="text-xs font-mono w-12 text-center flex items-center justify-center text-gray-600 font-semibold">{Math.round(zoom * 100)}%</div>
+                <button className="p-1.5 hover:bg-gray-100 rounded smooth-transition flex items-center justify-center text-gray-600" onClick={() => setZoom(Math.min(2, zoom + 0.1))}><ZoomIn className="h-4 w-4" /></button>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4 bg-gray-50/50">
+                <div style={{ width: '1200px', height: '800px', transform: `scale(${zoom})`, transformOrigin: 'top left', transition: 'transform 0.1s ease-out', margin: '0 auto', position: 'relative' }} className="bg-white border-2 border-dashed border-gray-300 rounded-lg">
+                    {bgImageUrl && (
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{ backgroundImage: `url(${bgImageUrl})`, backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', opacity: 0.5 }}
+                        />
+                    )}
+                    
+                    {tables.map(table => {
+                        // Find if this table is currently booked
+                        const currentBooking = activeBookings.find(b => b.table_id === table.id);
+                        const status = currentBooking ? 'booked' : 'available';
+                        const bookingInfo = currentBooking ? {
+                            guestName: currentBooking.guest_name,
+                            time: format(new Date(currentBooking.reservation_time), 'h:mm a'),
+                            partySize: currentBooking.guest_count,
+                            notes: currentBooking.guest_notes || undefined
+                        } : undefined;
+
+                        return (
+                            <TableElement
+                                key={table.id}
+                                table={{...table, x_coord: Number(table.x_coord), y_coord: Number(table.y_coord), rotation: Number(table.rotation)}}
+                                isSelected={false}
+                                onSelect={() => onSelectTable(table, currentBooking)}
+                                readOnly={true}
+                                status={status}
+                                bookingInfo={bookingInfo}
+                            />
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── WeekStrip ───────────────────────────────────────────────────────────────
 
 function WeekStrip({
@@ -791,7 +930,7 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
-type ViewMode = 'timeline' | 'list';
+type ViewMode = 'timeline' | 'list' | 'floor';
 
 export default function OwnerCalendarPage() {
     const { t } = useTranslations();
@@ -803,10 +942,11 @@ export default function OwnerCalendarPage() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
-    const [weekOffset, setWeekOffset] = useState(0);
     const [viewMode, setViewMode] = useState<ViewMode>('timeline');
     const [selectedBooking, setSelectedBooking] = useState<any>(null);
     const [showWalkIn, setShowWalkIn] = useState(false);
+    const [waitlistWalkIn, setWaitlistWalkIn] = useState<{id: string, name: string, phone: string, size: number} | null>(null);
+    const [selectedTableForWalkIn, setSelectedTableForWalkIn] = useState<string | undefined>(undefined);
 
     const loadData = useCallback(async (silent = false) => {
         if (!silent) setLoading(true); else setRefreshing(true);
@@ -838,7 +978,7 @@ export default function OwnerCalendarPage() {
         await loadData(true);
     };
 
-    const weekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), weekOffset * 7);
+    // weekStart was unused here before, but let's just make sure we don't leave broken code if it was used anywhere. Actually it wasn't used after line 891. We just removed it.
 
     if (loading) {
         return (
@@ -890,6 +1030,13 @@ export default function OwnerCalendarPage() {
                             <List className="h-3.5 w-3.5" />
                             {t.calendar?.list}
                         </button>
+                        <button onClick={() => setViewMode('floor')}
+                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
+                                viewMode === 'floor' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
+                            style={viewMode === 'floor' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            <Armchair className="h-3.5 w-3.5" />
+                            {t.dashboard_web?.live || 'Live'}
+                        </button>
                     </div>
                     {/* Walk-in */}
                     <button
@@ -901,10 +1048,11 @@ export default function OwnerCalendarPage() {
                         {t.calendar?.quickWalkIn}
                     </button>
                     {/* Waitlist Toggle */}
-                    <button onClick={() => setShowWaitlist(true)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold smooth-transition ${showWaitlist ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-zinc-800 text-white hover:bg-zinc-700'}`}>
-                        <ListChecks className="h-4 w-4" />
-                        {t.calendar?.waitlist} {waitlist.length > 0 && <span className="ml-1 bg-white/20 px-1.5 py-0.5 rounded text-xs">{waitlist.length}</span>}
+                    <button onClick={() => setShowWaitlist(!showWaitlist)}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold smooth-transition flex items-center gap-2 ${showWaitlist ? 'bg-hsl(38_80%_55%) text-hsl(231_38%_6%) shadow-sm' : 'btn-dash-primary'}`}
+                        style={showWaitlist ? { background: 'hsl(38 80% 55%)', color: 'hsl(231 38% 6%)' } : {}}>
+                        <ListChecks className="h-4 w-4" /> 
+                        {t.calendar?.waitlist} 
                     </button>
                 </div>
             </div>
@@ -915,8 +1063,8 @@ export default function OwnerCalendarPage() {
                     selectedDate={selectedDate}
                     bookings={bookings}
                     onSelectDate={d => setSelectedDate(d)}
-                    onPrevWeek={() => setWeekOffset(w => w - 1)}
-                    onNextWeek={() => setWeekOffset(w => w + 1)}
+                    onPrevWeek={() => setSelectedDate(prev => subDays(prev, 7))}
+                    onNextWeek={() => setSelectedDate(prev => addDays(prev, 7))}
                 />
             </div>
 
@@ -926,20 +1074,54 @@ export default function OwnerCalendarPage() {
             </div>
 
             {/* ── Main content ── */}
-            <div className="flex-1 min-h-0 dash-card overflow-hidden">
-                {viewMode === 'timeline' ? (
-                    <TimelineView
-                        bookings={bookings}
-                        tables={tables}
-                        selectedDate={selectedDate}
-                        onSelectBooking={setSelectedBooking}
-                    />
-                ) : (
-                    <div className="h-full overflow-auto p-5">
-                        <ListView
+            <div className="flex-1 min-h-0 flex overflow-hidden">
+                <div className="flex-1 min-h-0 dash-card overflow-hidden">
+                    {viewMode === 'timeline' ? (
+                        <TimelineView
                             bookings={bookings}
                             tables={tables}
+                            selectedDate={selectedDate}
                             onSelectBooking={setSelectedBooking}
+                        />
+                    ) : viewMode === 'list' ? (
+                        <div className="h-full overflow-auto p-5">
+                            <ListView
+                                bookings={bookings}
+                                tables={tables}
+                                onSelectBooking={setSelectedBooking}
+                            />
+                        </div>
+                    ) : (
+                        <LiveFloorPlan
+                            restaurant={restaurant}
+                            tables={tables}
+                            bookings={bookings}
+                            onSelectTable={(table, currentBooking) => {
+                                if (currentBooking) {
+                                    setSelectedBooking(currentBooking);
+                                } else {
+                                    setSelectedTableForWalkIn(table.id);
+                                    setShowWalkIn(true);
+                                }
+                            }}
+                        />
+                    )}
+                </div>
+
+                {/* Waitlist Sidebar (Visible on Timeline and List views) */}
+                {restaurant && viewMode !== 'floor' && showWaitlist && (
+                    <div className="hidden lg:block h-full shadow-xl z-10 relative">
+                        <WaitlistPanel 
+                            restaurantId={restaurant.id}
+                            onSeatGuest={(entry) => {
+                                setWaitlistWalkIn({
+                                    id: entry.id,
+                                    name: entry.guest_name,
+                                    phone: entry.guest_phone || '',
+                                    size: entry.party_size
+                                });
+                                setShowWalkIn(true);
+                            }}
                         />
                     </div>
                 )}
@@ -964,6 +1146,7 @@ export default function OwnerCalendarPage() {
                 <BookingSlideOver
                     booking={selectedBooking}
                     tables={tables}
+                    allBookings={bookings}
                     onClose={() => setSelectedBooking(null)}
                     onStatusChange={handleStatusChange}
                     onRefresh={() => loadData(true)}
@@ -971,96 +1154,31 @@ export default function OwnerCalendarPage() {
             )}
 
             {/* ── Walk-in modal ── */}
-            {showWalkIn && (
+            {showWalkIn && restaurant && tables && (
                 <WalkInModal
                     tables={tables}
                     selectedDate={selectedDate}
                     defaultTime={nowTime.split(' ')[0]}
-                    onClose={() => setShowWalkIn(false)}
-                    onSave={() => loadData(true)}
+                    defaultName={waitlistWalkIn?.name}
+                    defaultPhone={waitlistWalkIn?.phone}
+                    defaultSize={waitlistWalkIn?.size}
+                    waitlistId={waitlistWalkIn?.id}
+                    defaultTableId={selectedTableForWalkIn}
+                    onSave={() => {
+                        loadData(true);
+                        setWaitlistWalkIn(null);
+                        setSelectedTableForWalkIn(undefined);
+                    }}
+                    onClose={() => {
+                        setShowWalkIn(false);
+                        setWaitlistWalkIn(null);
+                        setSelectedTableForWalkIn(undefined);
+                    }}
                 />
             )}
 
             {/* ── Waitlist Slide-over ── */}
-            {showWaitlist && (
-                <div className="fixed inset-y-0 right-0 z-50 w-full md:w-[400px] bg-white border-l shadow-2xl flex flex-col" style={{ borderColor: 'hsl(231 24% 14%)' }}>
-                    <div className="p-5 border-b flex items-start justify-between bg-zinc-50">
-                        <div>
-                            <h2 className="text-xl font-bold tracking-tight text-foreground">Waitlist</h2>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                {format(selectedDate, 'MMM d, yyyy')} • {waitlist.length} waiting
-                            </p>
-                        </div>
-                        <button onClick={() => setShowWaitlist(false)} className="p-2 -mr-2 text-muted-foreground hover:bg-black/5 rounded-full smooth-transition">
-                            <X className="h-5 w-5" />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-auto p-5 space-y-4">
-                        {waitlist.length === 0 ? (
-                            <div className="text-center py-12 text-muted-foreground text-sm">
-                                <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" />
-                                No entries on the waitlist.
-                            </div>
-                        ) : (
-                            waitlist.map((entry) => (
-                                <div key={entry.id} className="dash-card p-4 text-sm relative group overflow-hidden">
-                                    {entry.status === 'offered' && (
-                                        <div className="absolute top-0 inset-x-0 h-1 bg-emerald-500" />
-                                    )}
-                                    <div className="flex items-start justify-between">
-                                        <div className="space-y-1">
-                                            <div className="font-semibold text-base">{entry.guest_name || 'Guest'}</div>
-                                            <div className="text-muted-foreground flex gap-3 text-xs">
-                                                <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {entry.party_size}</span>
-                                                <span className="flex items-center gap-1">⏱️ {format(new Date(entry.requested_time), 'h:mm a')}</span>
-                                            </div>
-                                            {entry.guest_phone && (
-                                                <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                                                    <Phone className="h-3 w-3" /> {entry.guest_phone}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-right">
-                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border ${entry.status === 'offered' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-                                                {entry.status}
-                                            </span>
-                                            {entry.status === 'waiting' && entry.quoted_wait_time != null && (
-                                                <div className="mt-2 text-[11px] font-medium text-amber-700/80">
-                                                    ~{entry.quoted_wait_time}m wait
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t flex gap-2">
-                                        {entry.status === 'waiting' && (
-                                            <button
-                                                onClick={async () => {
-                                                    const res = await promoteFromWaitlist(restaurant.id, entry.requested_time);
-                                                    if (res.error) toast.error(res.error);
-                                                    else { toast.success('Guest promoted via SMS!'); loadData(true); }
-                                                }}
-                                                className="flex-1 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg text-xs font-semibold smooth-transition"
-                                            >
-                                                Promote
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={async () => {
-                                                const res = await leaveWaitlist(entry.id);
-                                                if (res.error) toast.error(res.error);
-                                                else { toast.success('Removed from waitlist'); loadData(true); }
-                                            }}
-                                            className="px-3 py-1.5 text-red-500 hover:bg-red-50 rounded-lg text-xs font-semibold smooth-transition"
-                                        >
-                                            Remove
-                                        </button>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            )}
+            {/* Kept here just in case but we moved it out of the main scrolling container */}
         </div>
     );
 }
