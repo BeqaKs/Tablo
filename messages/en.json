@@ -13,9 +13,6 @@
         "adminPanel": "Admin Panel",
         "analytics": "Analytics & Reports"
     },
-    "dashboard_web": {
-        "live": "Live"
-    },
     "home": {
         "hero": {
             "badge": "Premium Dining Experience",
@@ -645,24 +642,24 @@
             "adminPanel": "Admin Panel",
             "restaurantPanel": "Restaurant Panel",
             "signOut": "Sign Out"
-        },
-        "dashboard_web": {
-            "revenueTrend": "Revenue & Bookings Trend",
-            "past7Days": "Past 7 Days",
-            "period7D": "7D",
-            "period30D": "30D",
-            "reservationsByStatus": "Reservations by Status",
-            "recentActivity": "Recent Activity",
-            "noActivity": "No recent activity recorded",
-            "revenue": "Revenue",
-            "bookings": "Bookings",
-            "pleaseLogin": "Please log in",
-            "live": "LIVE",
-            "viewAll": "View All",
-            "dailyStats": "Daily stats",
-            "quickActions": "Quick Actions",
-            "noReservationsToday": "No reservations for today"
         }
+    },
+    "dashboard_web": {
+        "revenueTrend": "Revenue & Bookings Trend",
+        "past7Days": "Past 7 Days",
+        "period7D": "7D",
+        "period30D": "30D",
+        "reservationsByStatus": "Reservations by Status",
+        "recentActivity": "Recent Activity",
+        "noActivity": "No recent activity recorded",
+        "revenue": "Revenue",
+        "bookings": "Bookings",
+        "pleaseLogin": "Please log in",
+        "live": "LIVE",
+        "viewAll": "View All",
+        "dailyStats": "Daily stats",
+        "quickActions": "Quick Actions",
+        "noReservationsToday": "No reservations for today"
     },
     "aiConcierge": {
         "title": "Dining Concierge",

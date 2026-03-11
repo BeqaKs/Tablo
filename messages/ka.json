@@ -13,9 +13,6 @@
         "adminPanel": "ადმინ პანელი",
         "analytics": "ანალიტიკა და ანგარიშები"
     },
-    "dashboard_web": {
-        "live": "Live"
-    },
     "home": {
         "hero": {
             "badge": "პრემიუმ რესტორნების პლატფორმა",
@@ -645,24 +642,24 @@
             "adminPanel": "ადმინ პანელი",
             "restaurantPanel": "რესტორნის პანელი",
             "signOut": "გამოსვლა"
-        },
-        "dashboard_web": {
-            "revenueTrend": "შემოსავლებისა და ჯავშნების ტრენდი",
-            "past7Days": "ბოლო 7 დღე",
-            "period7D": "7დ",
-            "period30D": "30დ",
-            "reservationsByStatus": "ჯავშნები სტატუსის მიხედვით",
-            "recentActivity": "ბოლო აქტივობა",
-            "noActivity": "ბოლო აქტივობები არ არის",
-            "revenue": "შემოსავალი",
-            "bookings": "ჯავშნები",
-            "pleaseLogin": "გთხოვთ გაიაროთ ავტორიზაცია",
-            "live": "LIVE",
-            "viewAll": "ყველას ნახვა",
-            "dailyStats": "დღიური სტატისტიკა",
-            "quickActions": "სწრაფი მოქმედებები",
-            "noReservationsToday": "დღეს ჯავშნები არ არის"
         }
+    },
+    "dashboard_web": {
+        "revenueTrend": "შემოსავლებისა და ჯავშნების ტრენდი",
+        "past7Days": "ბოლო 7 დღე",
+        "period7D": "7დ",
+        "period30D": "30დ",
+        "reservationsByStatus": "ჯავშნები სტატუსის მიხედვით",
+        "recentActivity": "ბოლო აქტივობა",
+        "noActivity": "ბოლო აქტივობები არ არის",
+        "revenue": "შემოსავალი",
+        "bookings": "ჯავშნები",
+        "pleaseLogin": "გთხოვთ გაიაროთ ავტორიზაცია",
+        "live": "LIVE",
+        "viewAll": "ყველას ნახვა",
+        "dailyStats": "დღიური სტატისტიკა",
+        "quickActions": "სწრაფი მოქმედებები",
+        "noReservationsToday": "დღეს ჯავშნები არ არის"
     },
     "aiConcierge": {
         "title": "სასადილო ასისტენტი",
