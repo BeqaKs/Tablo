@@ -72,23 +72,35 @@ function StatusBadge({ status }: { status: string }) {
 // ─── WalkInModal ────────────────────────────────────────────────────────────
 
 function WalkInModal({
-    tables, selectedDate, defaultTime, onClose, onSave,
+    tables, bookings, selectedDate, defaultTime, onClose, onSave,
     defaultName, defaultPhone, defaultSize, waitlistId, defaultTableId
 }: {
-    tables: any[]; selectedDate: Date; defaultTime: string;
+    tables: any[]; bookings: any[]; selectedDate: Date; defaultTime: string;
     onClose: () => void; onSave: () => void;
     defaultName?: string; defaultPhone?: string; defaultSize?: number; waitlistId?: string;
     defaultTableId?: string;
 }) {
     const { t } = useTranslations();
+    
+    // Determine occupied tables right now
+    const now = new Date();
+    const occupiedTableIds = new Set(bookings.map(b => {
+        if (!['pending', 'confirmed', 'seated'].includes(b.status)) return null;
+        const start = new Date(b.reservation_time);
+        const end = b.end_time ? new Date(b.end_time) : new Date(start.getTime() + 2 * 3600000);
+        if ((now >= start || b.status === 'seated') && now <= end) return b.table_id;
+        return null;
+    }).filter(Boolean));
+
+    const initialTableId = defaultTableId || tables.find(t => !occupiedTableIds.has(t.id))?.id || tables[0]?.id || '';
+
     const [form, setForm] = useState({
-        table_id: defaultTableId || tables[0]?.id || '',
+        table_id: initialTableId,
         guest_name: defaultName || '',
         guest_count: defaultSize || 2,
         guest_phone: defaultPhone || '',
         guest_notes: '',
         time: defaultTime,
-        duration_hours: 2,
     });
     const [saving, setSaving] = useState(false);
 
@@ -99,7 +111,6 @@ function WalkInModal({
         const [h, m] = form.time.split(':').map(Number);
         const dt = new Date(selectedDate);
         dt.setHours(h, m, 0, 0);
-        const endDt = new Date(dt.getTime() + form.duration_hours * 3600000);
         const result = await createWalkInBooking({
             table_id: form.table_id,
             guest_name: form.guest_name,
@@ -107,7 +118,6 @@ function WalkInModal({
             guest_phone: form.guest_phone || undefined,
             guest_notes: form.guest_notes || undefined,
             reservation_time: dt.toISOString(),
-            end_time: endDt.toISOString(),
         });
         setSaving(true); // intentional to show saving state
         setSaving(false);
@@ -149,9 +159,14 @@ function WalkInModal({
                         <label className="dash-label">{t.calendar?.table}</label>
                         <select className="dash-input w-full" value={form.table_id}
                             onChange={e => setForm(f => ({ ...f, table_id: e.target.value }))}>
-                            {tables.map(table => (
-                                <option key={table.id} value={table.id}>{t('dashboard.tableShort') || 'T'}{table.table_number} ({t.calendar?.guests} {table.capacity})</option>
-                            ))}
+                            {tables.map(table => {
+                                const isOccupied = occupiedTableIds.has(table.id);
+                                return (
+                                    <option key={table.id} value={table.id} disabled={isOccupied}>
+                                        {t('dashboard.tableShort') || 'T'}{table.table_number} ({t.calendar?.guests} {table.capacity}) {isOccupied ? '(Occupied)' : ''}
+                                    </option>
+                                );
+                            })}
                         </select>
                     </div>
                     <div>
@@ -163,15 +178,6 @@ function WalkInModal({
                         <label className="dash-label">{t.calendar?.startTime}</label>
                         <input type="time" className="dash-input w-full" value={form.time}
                             onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
-                    </div>
-                    <div>
-                        <label className="dash-label">{t.calendar?.duration}</label>
-                        <select className="dash-input w-full" value={form.duration_hours}
-                            onChange={e => setForm(f => ({ ...f, duration_hours: +e.target.value }))}>
-                            {[0.5, 1, 1.5, 2, 2.5, 3, 4].map(h => (
-                                <option key={h} value={h}>{h === 0.5 ? `30 ${t.calendar?.min}` : `${h}${t.calendar?.h}`}</option>
-                            ))}
-                        </select>
                     </div>
                     <div>
                         <label className="dash-label">{t.calendar?.phone}</label>
@@ -677,8 +683,8 @@ function LiveFloorPlan({
         const start = new Date(b.reservation_time);
         const end = b.end_time ? new Date(b.end_time) : new Date(start.getTime() + 2 * 3600000); // fallback 2h
         
-        // Is current time within the booking window?
-        return now >= start && now <= end;
+        // Is current time within the booking window, OR are they already physically seated?
+        return (now >= start || b.status === 'seated') && now <= end;
     });
 
     return (
@@ -1157,6 +1163,7 @@ export default function OwnerCalendarPage() {
             {showWalkIn && restaurant && tables && (
                 <WalkInModal
                     tables={tables}
+                    bookings={bookings}
                     selectedDate={selectedDate}
                     defaultTime={nowTime.split(' ')[0]}
                     defaultName={waitlistWalkIn?.name}
