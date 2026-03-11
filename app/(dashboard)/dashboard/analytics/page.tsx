@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useTranslations } from 'next-intl';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from '@/components/translations-provider';
 import {
     Loader2, Calendar, Users, TrendingUp, BarChart3,
     Clock, CheckCircle, PieChart, Users2, Building2, EyeOff,
@@ -34,7 +33,8 @@ function StatCard({ label, value, sub, icon: Icon, color }: { label: string; val
 }
 
 export default function AnalyticsPage() {
-    const t = useTranslations('analytics');
+    const { t } = useTranslations();
+    const at = t.analytics || {};
     
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
             toast.error(error);
         } else if (csvData) {
             downloadCSV(csvData, `reservations_${dateFrom}_to_${dateTo}.csv`);
-            toast.success(t('success.exported'));
+            toast.success(at.success?.exported || 'Export successful!');
         }
         setExporting(null);
     }
@@ -98,7 +98,7 @@ export default function AnalyticsPage() {
             toast.error(error);
         } else if (csvData) {
             downloadCSV(csvData, `guest_list_${format(new Date(), 'yyyy-MM-dd')}.csv`);
-            toast.success(t('success.exported'));
+            toast.success(at.success?.exported || 'Export successful!');
         }
         setExporting(null);
     }
@@ -132,8 +132,8 @@ export default function AnalyticsPage() {
 
     // Weekday labels based on locale
     const weekdayNames = [
-        t('days.sun'), t('days.mon'), t('days.tue'), t('days.wed'), 
-        t('days.thu'), t('days.fri'), t('days.sat')
+        at.days?.sun || 'Sun', at.days?.mon || 'Mon', at.days?.tue || 'Tue', at.days?.wed || 'Wed', 
+        at.days?.thu || 'Thu', at.days?.fri || 'Fri', at.days?.sat || 'Sat'
     ];
 
     // Source breakdown chart 
@@ -148,10 +148,10 @@ export default function AnalyticsPage() {
                 <div className="flex-1">
                     <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
                         <PieChart className="h-6 w-6" style={{ color: 'hsl(347 78% 60%)' }} />
-                        {t('title')}
+                        {at.title}
                     </h2>
                     <p className="text-sm mt-1" style={{ color: 'hsl(220 15% 45%)' }}>
-                        {t('subtitle')}
+                        {at.subtitle}
                     </p>
                 </div>
                 
@@ -162,7 +162,7 @@ export default function AnalyticsPage() {
                         className="btn-dash-primary flex items-center gap-2 h-9 px-3 text-sm shrink-0"
                     >
                         {exporting === 'reservations' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        {t('exportReservations')}
+                        {at.exportReservations}
                     </button>
                     <button 
                         onClick={handleExportGuests} 
@@ -171,15 +171,15 @@ export default function AnalyticsPage() {
                         style={{ border: '1px solid hsl(231 24% 20%)' }}
                     >
                         {exporting === 'guests' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        {t('exportGuests')}
+                        {at.exportGuests}
                     </button>
                 </div>
 
                 <div className="flex-wrap items-center gap-2 bg-hsl(231_24%_12%) p-1 rounded-lg border border-hsl(231_24%_18%)" style={{ background: 'hsl(231 24% 12%)', borderColor: 'hsl(231 24% 18%)' }}>
-                    <button onClick={() => handlePreset(7, '7D')} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === '7D' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === '7D' ? { background: 'hsl(231 24% 20%)' } : {}}>{t('last7Days')}</button>
-                    <button onClick={() => handlePreset(30, '30D')} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === '30D' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === '30D' ? { background: 'hsl(231 24% 20%)' } : {}}>{t('last30Days')}</button>
-                    <button onClick={handleMonth} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === 'MTD' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === 'MTD' ? { background: 'hsl(231 24% 20%)' } : {}}>{t('thisMonth')}</button>
-                    <button onClick={handleYear} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === 'YTD' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === 'YTD' ? { background: 'hsl(231 24% 20%)' } : {}}>{t('yearToDate')}</button>
+                    <button onClick={() => handlePreset(7, '7D')} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === '7D' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === '7D' ? { background: 'hsl(231 24% 20%)' } : {}}>{at.last7Days}</button>
+                    <button onClick={() => handlePreset(30, '30D')} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === '30D' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === '30D' ? { background: 'hsl(231 24% 20%)' } : {}}>{at.last30Days}</button>
+                    <button onClick={handleMonth} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === 'MTD' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === 'MTD' ? { background: 'hsl(231 24% 20%)' } : {}}>{at.thisMonth}</button>
+                    <button onClick={handleYear} className={cn("px-3 py-1.5 text-xs font-medium rounded-md smooth-transition", preset === 'YTD' ? 'bg-hsl(231_24%_25%) text-white' : 'text-hsl(220_15%_55%) hover:text-white')} style={preset === 'YTD' ? { background: 'hsl(231 24% 20%)' } : {}}>{at.yearToDate}</button>
                     <div className="h-4 w-px bg-hsl(231_24%_20%) mx-1" style={{ background: 'hsl(231 24% 25%)' }}></div>
                     <input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPreset('custom'); }} className="bg-transparent border-none text-xs text-white p-1 ml-1 cursor-pointer focus:ring-0" />
                     <span className="text-xs" style={{ color: 'hsl(220 15% 45%)' }}>-</span>
@@ -195,10 +195,10 @@ export default function AnalyticsPage() {
  
             {/* KPIs */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <StatCard label={t('totalReservations')} value={kpis?.totalBookings || 0} icon={Calendar} color="hsl(347 78% 58%)" />
-                <StatCard label={t('totalCovers')} value={kpis?.totalCovers || 0} sub={t('avgPartySize', { size: kpis?.avgPartySize || '0' })} icon={Users} color="hsl(262 60% 56%)" />
-                <StatCard label={t('walkIns')} value={kpis?.walkIns || 0} sub={`${walkInPct}% ${t('ofTotal')}`} icon={Building2} color="hsl(38 80% 55%)" />
-                <StatCard label={t('noShows')} value={kpis?.noShows || 0} sub={`${kpis?.totalBookings > 0 ? ((kpis.noShows / kpis.totalBookings) * 100).toFixed(1) : 0}% ${t('rate')}`} icon={EyeOff} color="hsl(0 72% 55%)" />
+                <StatCard label={at.totalReservations} value={kpis?.totalBookings || 0} icon={Calendar} color="hsl(347 78% 58%)" />
+                <StatCard label={at.totalCovers} value={kpis?.totalCovers || 0} sub={t('analytics.avgPartySize', { size: kpis?.avgPartySize || '0' })} icon={Users} color="hsl(262 60% 56%)" />
+                <StatCard label={at.walkIns} value={kpis?.walkIns || 0} sub={`${walkInPct}% ${at.ofTotal}`} icon={Building2} color="hsl(38 80% 55%)" />
+                <StatCard label={at.noShows} value={kpis?.noShows || 0} sub={`${kpis?.totalBookings > 0 ? ((kpis.noShows / kpis.totalBookings) * 100).toFixed(1) : 0}% ${at.rate}`} icon={EyeOff} color="hsl(0 72% 55%)" />
             </div>
  
             {/* Charts Row 1 */}
@@ -207,7 +207,7 @@ export default function AnalyticsPage() {
                 <div className="dash-card p-6 lg:col-span-2">
                     <h3 className="text-sm font-semibold text-white mb-6 flex items-center gap-2">
                         <TrendingUp className="h-4 w-4" style={{ color: 'hsl(160 60% 50%)' }} />
-                        {t('dailyCoversTrend')}
+                        {at.dailyCoversTrend}
                     </h3>
                     
                     <div className="flex items-end h-[200px] gap-1 px-2">
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
                                 <div key={day.date} className="flex-1 flex flex-col items-center justify-end relative group h-full">
                                     {/* Tooltip */}
                                     <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] py-1 px-2 rounded whitespace-nowrap z-10 pointer-events-none font-bold shadow-lg">
-                                        {format(d, 'MMM d')}: {day.covers} {t('totalCovers').toLowerCase()}
+                                        {format(d, 'MMM d')}: {day.covers} {at.totalCovers?.toLowerCase()}
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-white"></div>
                                     </div>
                                     
@@ -242,7 +242,7 @@ export default function AnalyticsPage() {
                             );
                         })}
                         {(!dailyTrends || dailyTrends.length === 0) && (
-                            <div className="w-full text-center pb-8 text-sm" style={{ color: 'hsl(220 15% 45%)' }}>{t('noData')}</div>
+                            <div className="w-full text-center pb-8 text-sm" style={{ color: 'hsl(220 15% 45%)' }}>{at.noData}</div>
                         )}
                     </div>
                 </div>
@@ -251,7 +251,7 @@ export default function AnalyticsPage() {
                 <div className="dash-card p-6 flex flex-col">
                     <h3 className="text-sm font-semibold text-white mb-6 flex items-center gap-2">
                         <Users2 className="h-4 w-4" style={{ color: 'hsl(200 70% 50%)' }} />
-                        {t('guestSourceMix')}
+                        {at.guestSourceMix}
                     </h3>
                     
                     <div className="flex-1 flex flex-col items-center justify-center">
@@ -271,14 +271,14 @@ export default function AnalyticsPage() {
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-sm text-white">
                                     <div className="w-3 h-3 rounded-sm" style={{ background: 'hsl(262 60% 56%)' }}></div>
-                                    {t('onlinePreBooked')}
+                                    {at.onlinePreBooked}
                                 </div>
                                 <div className="font-bold text-white">{kpis?.preBooked || 0} <span className="text-xs font-normal" style={{ color: 'hsl(220 15% 45%)' }}>({preBookedPct}%)</span></div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2 text-sm text-white">
                                     <div className="w-3 h-3 rounded-sm" style={{ background: 'hsl(38 80% 55%)' }}></div>
-                                    {t('walkIn')}
+                                    {at.walkIn}
                                 </div>
                                 <div className="font-bold text-white">{kpis?.walkIns || 0} <span className="text-xs font-normal" style={{ color: 'hsl(220 15% 45%)' }}>({walkInPct}%)</span></div>
                             </div>
@@ -293,7 +293,7 @@ export default function AnalyticsPage() {
                 <div className="dash-card p-6">
                     <h3 className="text-sm font-semibold text-white mb-6 flex items-center gap-2">
                         <Calendar className="h-4 w-4" style={{ color: 'hsl(347 78% 58%)' }} />
-                        {t('popularDays')}
+                        {at.popularDays}
                     </h3>
                     
                     <div className="space-y-4">
@@ -315,7 +315,7 @@ export default function AnalyticsPage() {
                                         />
                                     </div>
                                     <div className="w-12 shrink-0 text-xs font-bold text-white text-left">
-                                        {day.avgCovers} <span className="font-normal" style={{ color: 'hsl(220 15% 40%)' }}>{t('avg')}</span>
+                                        {day.avgCovers} <span className="font-normal" style={{ color: 'hsl(220 15% 40%)' }}>{at.avg}</span>
                                     </div>
                                 </div>
                             );
@@ -327,7 +327,7 @@ export default function AnalyticsPage() {
                 <div className="dash-card p-6">
                     <h3 className="text-sm font-semibold text-white mb-6 flex items-center gap-2">
                         <Clock className="h-4 w-4" style={{ color: 'hsl(200 70% 50%)' }} />
-                        {t('busiestHours')}
+                        {at.busiestHours}
                     </h3>
                     
                     <div className="flex items-end h-[240px] gap-1 px-2">
@@ -338,7 +338,7 @@ export default function AnalyticsPage() {
                                 <div key={h.hour} className="flex-1 flex flex-col items-center justify-end relative group h-full">
                                     {/* Tooltip */}
                                     <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] py-1 px-2 rounded whitespace-nowrap z-10 pointer-events-none font-bold shadow-lg">
-                                        {h.hour}: {h.count} {t('totalReservations').toLowerCase()}
+                                        {h.hour}: {h.count} {at.totalReservations?.toLowerCase()}
                                         <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-white"></div>
                                     </div>
                                     
@@ -359,7 +359,7 @@ export default function AnalyticsPage() {
                             );
                         })}
                         {(!hourlyDistribution || hourlyDistribution.length === 0) && (
-                            <div className="w-full text-center pb-8 text-sm" style={{ color: 'hsl(220 15% 45%)' }}>{t('noData')}</div>
+                            <div className="w-full text-center pb-8 text-sm" style={{ color: 'hsl(220 15% 45%)' }}>{at.noData}</div>
                         )}
                     </div>
                 </div>
