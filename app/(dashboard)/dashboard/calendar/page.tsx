@@ -225,7 +225,7 @@ function BookingSlideOver({
     );
     const pastVisits = guestHistory.filter((b: any) => b.status === 'completed').length;
     const noShows = guestHistory.filter((b: any) => b.status === 'no_show').length;
-    const totalCovers = guestHistory.reduce((sum: number, b: any) => sum + (b.guest_count || 0), 0);
+    const totalCovers = guestHistory.reduce((sum: number, b: any) => sum + (Number(b.guest_count) || 0), 0);
 
     // Overdue detection: confirmed but past reservation time
     const isOverdue = booking.status === 'confirmed' && new Date() > date;
@@ -905,7 +905,7 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
     const { t } = useTranslations();
     const day = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
     const active = day.filter(b => ['pending', 'confirmed', 'seated'].includes(b.status));
-    const covers = active.reduce((s, b) => s + b.guest_count, 0);
+    const covers = active.reduce((s, b) => s + (Number(b.guest_count) || 0), 0);
     const seated = day.filter(b => b.status === 'seated').length;
     const pending = day.filter(b => b.status === 'pending').length;
     const cancelled = day.filter(b => b.status === 'cancelled').length;
