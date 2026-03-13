@@ -181,18 +181,7 @@ export async function createBooking(data: {
         hour: 'numeric', minute: '2-digit'
     });
 
-    if (guestEmail && restaurant) {
-        sendBookingConfirmation({
-            to: guestEmail,
-            guestName: finalGuestName,
-            restaurantName: restaurant.name,
-            restaurantAddress: restaurant.address,
-            reservationTime: timeStr,
-            guestCount: data.guest_count,
-            locale: 'en'
-        }).catch(err => console.error('Non-critical error sending email:', err));
-    }
-
+    // Non-critical: SMS notification if enabled (optional, but user focused on email)
     if (guestPhone && restaurant && restaurant.sms_enabled) {
         sendSMS(guestPhone, 'confirmation', {
             to: guestPhone,

@@ -150,6 +150,18 @@
         "removeAccess": "Remove Access",
         "removeConfirm": "Are you sure you want to remove this staff member?"
     },
+    "dashboard_enhancements": {
+        "vipGuest": "VIP Guest",
+        "highRiskGuest": "High Risk Guest",
+        "birthday": "Birthday",
+        "anniversary": "Anniversary",
+        "aiBriefing": "✨ AI Briefing",
+        "dailySummary": "Daily Summary",
+        "generating": "Generating briefing...",
+        "noHistory": "No history",
+        "visits": "visits",
+        "noShows": "no-shows"
+    },
     "auth": {
         "signIn": "Sign In",
         "signUp": "Sign Up",
@@ -227,15 +239,15 @@
         },
         "success": "Reservation created successfully!",
         "confirmedPage": {
-            "title": "You're confirmed!",
-            "subtitle": "Your table at {restaurant} is reserved.",
+            "title": "Request Received!",
+            "subtitle": "Your request for {restaurant} is being processed.",
             "celebrationReady": "{occasion} celebration ready!",
             "scanHostStand": "Show at the host stand",
             "addToCalendar": "Add to Calendar",
             "inviteGuests": "Invite Guests",
             "viewBookings": "View My Bookings",
-            "confirmationSent": "A confirmation has been sent to your email and phone.",
-            "loading": "Loading your confirmation...",
+            "confirmationSent": "You will receive a confirmation once the restaurant accepts your request.",
+            "loading": "Loading your request status...",
             "shareModalTitle": "Invite your crew 🍽️",
             "shareModalDesc": "Share this reservation",
             "whosJoining": "Who's joining?",
@@ -659,7 +671,10 @@
         "viewAll": "View All",
         "dailyStats": "Daily stats",
         "quickActions": "Quick Actions",
-        "noReservationsToday": "No reservations for today"
+        "noReservationsToday": "No reservations for today",
+        "walkIn": "Walk-In",
+        "printDailySheet": "Print Daily Sheet",
+        "reportsAndExport": "Reports & Export"
     },
     "aiConcierge": {
         "title": "Dining Concierge",
@@ -696,6 +711,8 @@
         "edit": "Edit",
         "save": "Save",
         "cancel": "Cancel",
+        "refresh": "Refresh",
+        "close": "Close",
         "noNotes": "No notes for this booking",
         "saveSuccess": "Notes saved",
         "bookingTimeline": "Booking Timeline",

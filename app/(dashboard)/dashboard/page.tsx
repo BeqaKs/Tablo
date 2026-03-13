@@ -4,6 +4,8 @@ import { getDictionary } from "@/lib/get-dictionary";
 import Link from "next/link";
 import { RevenueChart } from '@/components/dashboard/revenue-chart';
 import { getDashboardStats } from "@/app/actions/owner";
+import { AIBriefingClient } from "@/components/dashboard/ai-briefing-client";
+import { Sparkles } from "lucide-react";
 
 // Dark metric card
 function MetricCard({
@@ -127,26 +129,27 @@ export default async function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2">
+        <AIBriefingClient bookings={stats.allBookings} />
         <Link
           href="/dashboard/calendar"
           className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
           style={{ background: 'hsl(347 78% 58% / 0.12)', color: 'hsl(347 78% 70%)', border: '1px solid hsl(347 78% 58% / 0.2)' }}
         >
-          <UserPlus className="h-4 w-4" /> Walk-In
+          <UserPlus className="h-4 w-4" /> {t('dashboard_web.walkIn')}
         </Link>
         <Link
           href="/dashboard/print"
           className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
           style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
         >
-          <Printer className="h-4 w-4" /> Print Daily Sheet
+          <Printer className="h-4 w-4" /> {t('dashboard_web.printDailySheet')}
         </Link>
         <Link
           href="/dashboard/export"
           className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
           style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
         >
-          <BarChart3 className="h-4 w-4" /> Reports & Export
+          <BarChart3 className="h-4 w-4" /> {t('dashboard_web.reportsAndExport')}
         </Link>
       </div>
 

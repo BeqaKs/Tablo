@@ -193,11 +193,11 @@ function ConfirmedContent() {
                 {/* Success Header */}
                 <div className="text-center mb-8">
                     <div className="relative inline-block mb-4">
-                        <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-50 rounded-full flex items-center justify-center mx-auto animate-scale-in shadow-lg shadow-green-100">
-                            <PartyPopper className="h-12 w-12 text-green-500" />
+                        <div className="w-24 h-24 bg-gradient-to-br from-amber-100 to-orange-50 rounded-full flex items-center justify-center mx-auto animate-pulse shadow-lg shadow-amber-100">
+                            <Clock className="h-12 w-12 text-amber-500" />
                         </div>
-                        <div className="absolute -top-1 -right-1 w-7 h-7 bg-green-500 rounded-full flex items-center justify-center shadow-md">
-                            <Check className="w-4 h-4 text-white" />
+                        <div className="absolute -top-1 -right-1 w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center shadow-md">
+                            <Clock className="w-4 h-4 text-white" />
                         </div>
                     </div>
                     <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
@@ -264,9 +264,9 @@ function ConfirmedContent() {
                                         <QrCode className="w-3 h-3" /> {t('bookings.confirmedPage.scanAtHostStand')}
                                     </p>
                                     <p className="text-xs font-mono text-gray-500 mt-1">#{bookingId.slice(0, 8).toUpperCase()}</p>
-                                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-100 rounded-full">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-[11px] font-semibold text-green-700">{t('bookings.status.confirmed')}</span>
+                                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-full">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                        <span className="text-[11px] font-semibold text-amber-700">{t('bookings.status.pending')}</span>
                                     </div>
                                 </div>
                                 {qrUrl ? (

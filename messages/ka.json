@@ -150,6 +150,18 @@
         "removeAccess": "წვდომის გაუქმება",
         "removeConfirm": "დარწმუნებული ხართ, რომ გსურთ წვდომის გაუქმება ამ თანამშრომლისთვის?"
     },
+    "dashboard_enhancements": {
+        "vipGuest": "VIP სტუმარი",
+        "highRiskGuest": "მაღალი რისკის სტუმარი",
+        "birthday": "დაბადების დღე",
+        "anniversary": "საიუბილეო",
+        "aiBriefing": "✨ AI ბრიფინგი",
+        "dailySummary": "დღიური შეჯამება",
+        "generating": "ბრიფინგის გენერირება...",
+        "noHistory": "ისტორია არ არის",
+        "visits": "ვიზიტი",
+        "noShows": "არ გამოცხადდა"
+    },
     "auth": {
         "signIn": "შესვლა",
         "signUp": "რეგისტრაცია",
@@ -227,15 +239,15 @@
         },
         "success": "ჯავშანი წარმატებით შეიქმნა!",
         "confirmedPage": {
-            "title": "ჯავშანი დადასტურებულია!",
-            "subtitle": "თქვენი მაგიდა {restaurant}-ში დაჯავშნილია.",
+            "title": "მოთხოვნა მიღებულია!",
+            "subtitle": "თქვენი მოთხოვნა {restaurant}-ისთვის მუშავდება.",
             "celebrationReady": "{occasion} აღსანიშნავად მზადაა!",
             "scanHostStand": "აჩვენეთ მასპინძელს მისვლისას",
             "addToCalendar": "კალენდარში დამატება",
             "inviteGuests": "სტუმრების მოწვევა",
             "viewBookings": "ჩემი ჯავშნების ნახვა",
-            "confirmationSent": "დადასტურება გაიგზავნა თქვენს ელ-ფოსტაზე და ტელეფონზე.",
-            "loading": "თქვენი დადასტურება იტვირთება...",
+            "confirmationSent": "დადასტურებას მიიღებთ მას შემდეგ, რაც რესტორანი მიიღებს თქვენს მოთხოვნას.",
+            "loading": "თქვენი მოთხოვნა იტვირთება...",
             "shareModalTitle": "მოიწვიეთ მეგობრები 🍽️",
             "shareModalDesc": "გააზიარეთ ეს ჯავშანი",
             "whosJoining": "ვინ შემოგიერთდებათ?",
@@ -659,7 +671,10 @@
         "viewAll": "ყველას ნახვა",
         "dailyStats": "დღიური სტატისტიკა",
         "quickActions": "სწრაფი მოქმედებები",
-        "noReservationsToday": "დღეს ჯავშნები არ არის"
+        "noReservationsToday": "დღეს ჯავშნები არ არის",
+        "walkIn": "სტუმარი",
+        "printDailySheet": "დღიური ფურცლის ბეჭდვა",
+        "reportsAndExport": "ანგარიშები და ექსპორტი"
     },
     "aiConcierge": {
         "title": "სასადილო ასისტენტი",
@@ -696,6 +711,8 @@
         "edit": "რედაქტირება",
         "save": "შენახვა",
         "cancel": "გაუქმება",
+        "refresh": "განახლება",
+        "close": "დახურვა",
         "noNotes": "შენიშვნები არ არის",
         "saveSuccess": "შენიშვნები შენახულია",
         "bookingTimeline": "ჯავშნის ტაიმლაინი",

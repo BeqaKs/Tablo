@@ -4,7 +4,7 @@ import { BookingConfirmationEmail } from '@/components/emails/booking-confirmati
 import { StatusChangeEmail } from '@/components/emails/status-change';
 import { ReminderEmail } from '@/components/emails/reminder';
 
-const FROM = 'Tablo <onboarding@resend.dev>';
+const FROM = 'Tablo <hello@tablo.ge>';
 
 function getResend() {
     if (!process.env.RESEND_API_KEY) return null;

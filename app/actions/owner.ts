@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendStatusChangeEmail } from '@/lib/email'
 
 // ========================
 // Auth helper
@@ -303,6 +304,16 @@ export async function getDashboardStats() {
             };
         }) || []
 
+    // 7. Get All Bookings for AI Briefing
+    const { data: allBookings } = await supabase
+        .from('reservations')
+        .select(`
+            *,
+            tables:table_id (id, table_number, capacity)
+        `)
+        .eq('restaurant_id', restaurantId)
+        .order('reservation_time', { ascending: false })
+
     return {
         data: {
             restaurantName: (await supabase.from('restaurants').select('name').eq('id', restaurantId).single()).data?.name || '',
@@ -314,7 +325,8 @@ export async function getDashboardStats() {
             chartData,
             avgCheck,
             upcomingBookings,
-            upsellOpportunities
+            upsellOpportunities,
+            allBookings: allBookings || []
         },
         error: null
     }
@@ -372,6 +384,19 @@ export async function updateOwnerBookingStatus(bookingId: string, status: string
     const { supabase, restaurantId, error: authError } = await requireOwner()
     if (authError) return { error: authError }
 
+    // Fetch reservation details BEFORE update to send status change email
+    const { data: reservation } = await supabase
+        .from('reservations')
+        .select(`
+            id, guest_count, reservation_time, guest_name, guest_phone,
+            user_id,
+            restaurants:restaurant_id (name, address, sms_enabled),
+            users:user_id (email, full_name)
+        `)
+        .eq('id', bookingId)
+        .eq('restaurant_id', restaurantId)
+        .single()
+
     const { error } = await supabase
         .from('reservations')
         .update({ status })
@@ -379,6 +404,33 @@ export async function updateOwnerBookingStatus(bookingId: string, status: string
         .eq('restaurant_id', restaurantId)
 
     if (error) return { error: error.message }
+
+    // If status changed and we have reservation info, send email/SMS
+    if (reservation) {
+        // Handle potentially array-wrapped relations from Supabase
+        const restaurant = Array.isArray(reservation.restaurants) ? reservation.restaurants[0] : (reservation.restaurants as any);
+        const userProfile = Array.isArray(reservation.users) ? reservation.users[0] : (reservation.users as any);
+
+        const guestEmail = userProfile?.email;
+        const guestName = reservation.guest_name || userProfile?.full_name || 'Guest';
+        const timeStr = new Date(reservation.reservation_time).toLocaleString('en-US', {
+            weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+        });
+
+        if (guestEmail && restaurant) {
+            sendStatusChangeEmail({
+                to: guestEmail,
+                guestName,
+                restaurantName: restaurant.name,
+                restaurantAddress: restaurant.address,
+                reservationTime: timeStr,
+                guestCount: reservation.guest_count,
+                newStatus: status as any,
+                locale: 'en',
+            }).catch(err => console.error('Error sending status email:', err));
+        }
+    }
+
     revalidatePath('/dashboard/calendar')
     revalidatePath('/dashboard/guests')
     return { success: true }

@@ -56,6 +56,8 @@ export const metadata: Metadata = {
     },
 };
 
+import { Analytics } from "@vercel/analytics/next";
+
 export default async function RootLayout({
     children,
 }: {
@@ -69,6 +71,7 @@ export default async function RootLayout({
                     {children}
                     <Toaster />
                 </LocaleProvider>
+                <Analytics />
             </body>
         </html>
     );

@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Check, X, Plus, Loader2,
     ChevronDown, CircleDot, AlertCircle, Edit3, Save,
     UserPlus, LayoutGrid, List, RefreshCw, Coffee, ListChecks,
-    Armchair, ZoomIn, ZoomOut
+    Armchair, ZoomIn, ZoomOut, Sparkles, Cake, Gift
 } from 'lucide-react';
 import { TableElement } from '@/components/floor-plan/table-element';
 import { WaitlistPanel } from '@/components/waitlist/waitlist-panel';
@@ -24,6 +24,7 @@ import {
     startOfDay, addMinutes
 } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/lib/locale-context';
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -68,6 +69,9 @@ function StatusBadge({ status }: { status: string }) {
         </span>
     );
 }
+
+// ─── BriefingModal ──────────────────────────────────────────────────────────
+
 
 // ─── WalkInModal ────────────────────────────────────────────────────────────
 
@@ -306,6 +310,42 @@ function BookingSlideOver({
                                 <Coffee className="h-2.5 w-2.5" /> Walk-in
                             </span>
                         )}
+                        {pastVisits >= 5 && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                                <Sparkles className="h-3 w-3" />
+                                {t('dashboard_enhancements.vipGuest')}
+                            </span>
+                        )}
+                        {noShows >= 2 && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-500 border border-red-500/20">
+                                <AlertCircle className="h-3 w-3" />
+                                {t('dashboard_enhancements.highRiskGuest')}
+                            </span>
+                        )}
+                        {booking.guest_notes?.toLowerCase().includes('birthday') && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-pink-500/10 text-pink-500 border border-pink-500/20">
+                                <Cake className="h-3 w-3" />
+                                {t('dashboard_enhancements.birthday')}
+                            </span>
+                        )}
+                        {booking.guest_notes?.toLowerCase().includes('anniversary') && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                <Gift className="h-3 w-3" />
+                                {t('dashboard_enhancements.anniversary')}
+                            </span>
+                        )}
+                        {booking.guest_notes?.toLowerCase().includes('birthday') && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-pink-500/10 text-pink-500 border border-pink-500/20">
+                                <Cake className="h-3 w-3" />
+                                Birthday
+                            </span>
+                        )}
+                        {booking.guest_notes?.toLowerCase().includes('anniversary') && (
+                            <span className="inline-flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                                <Gift className="h-3 w-3" />
+                                Anniversary
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -376,11 +416,11 @@ function BookingSlideOver({
                             <div className="grid grid-cols-3 gap-3">
                                 <div className="text-center">
                                     <p className="text-lg font-bold text-white">{pastVisits}</p>
-                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>Past Visits</p>
+                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>{t('dashboard_enhancements.visits')}</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-lg font-bold" style={{ color: noShows > 0 ? 'hsl(347 78% 65%)' : 'white' }}>{noShows}</p>
-                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>No-Shows</p>
+                                    <p className="text-[10px]" style={{ color: 'hsl(220 15% 42%)' }}>{t('dashboard_enhancements.noShows')}</p>
                                 </div>
                                 <div className="text-center">
                                     <p className="text-lg font-bold text-white">{totalCovers}</p>
@@ -459,9 +499,9 @@ function BookingSlideOver({
 // ─── Timeline ────────────────────────────────────────────────────────────────
 
 function TimelineView({
-    bookings, tables, selectedDate, onSelectBooking
+    bookings, allBookings, tables, selectedDate, onSelectBooking
 }: {
-    bookings: any[]; tables: any[]; selectedDate: Date;
+    bookings: any[]; allBookings: any[]; tables: any[]; selectedDate: Date;
     onSelectBooking: (b: any) => void;
 }) {
     const { t } = useTranslations();
@@ -579,6 +619,9 @@ function TimelineView({
                                                 : startMin + 120;
                                             const durMin = endMin - startMin;
                                             const cfg = getStatusCfg(t)[booking.status];
+                                            const history = allBookings.filter(b => b.guest_name === booking.guest_name && b.id !== booking.id);
+                                            const isVIP = history.filter(b => b.status === 'completed').length >= 5;
+                                            const isRisk = history.filter(b => b.status === 'no_show').length >= 2;
                                             return (
                                                 <button
                                                     key={booking.id}
@@ -590,8 +633,12 @@ function TimelineView({
                                                         borderLeft: `3px solid ${cfg.dot}`,
                                                     }}
                                                 >
-                                                    <p className="text-[11px] font-bold leading-tight truncate" style={{ color: cfg.text }}>
+                                                    <p className="text-[11px] font-bold leading-tight truncate flex items-center gap-1" style={{ color: cfg.text }}>
                                                         {booking.guest_name}
+                                                        {isVIP && <Sparkles className="h-2.5 w-2.5 text-orange-400 shrink-0" />}
+                                                        {isRisk && <AlertCircle className="h-2.5 w-2.5 text-red-400 shrink-0" />}
+                                                        {booking.guest_notes?.toLowerCase().includes('birthday') && <Cake className="h-2.5 w-2.5 text-pink-400 shrink-0" />}
+                                                        {booking.guest_notes?.toLowerCase().includes('anniversary') && <Gift className="h-2.5 w-2.5 text-blue-400 shrink-0" />}
                                                     </p>
                                                     {durMin >= 40 && (
                                                         <p className="text-[10px] mt-0.5" style={{ color: cfg.text, opacity: 0.75 }}>
@@ -613,6 +660,9 @@ function TimelineView({
                                         ? minutesSinceStart(parseISO(booking.end_time))
                                         : startMin + 120;
                                     const cfg = getStatusCfg(t)[booking.status];
+                                    const history = allBookings.filter(b => b.guest_name === booking.guest_name && b.id !== booking.id);
+                                    const isVIP = history.filter(b => b.status === 'completed').length >= 5;
+                                    const isRisk = history.filter(b => b.status === 'no_show').length >= 2;
                                     return (
                                         <button
                                             key={booking.id}
@@ -624,7 +674,13 @@ function TimelineView({
                                                 borderLeft: `3px solid ${cfg.dot}`,
                                             }}
                                         >
-                                            <p className="text-[11px] font-bold truncate" style={{ color: cfg.text }}>{booking.guest_name}</p>
+                                            <p className="text-[11px] font-bold truncate flex items-center gap-1" style={{ color: cfg.text }}>
+                                                {booking.guest_name}
+                                                {isVIP && <Sparkles className="h-2.5 w-2.5 text-orange-400 shrink-0" />}
+                                                {isRisk && <AlertCircle className="h-2.5 w-2.5 text-red-400 shrink-0" />}
+                                                {booking.guest_notes?.toLowerCase().includes('birthday') && <Cake className="h-2.5 w-2.5 text-pink-400 shrink-0" />}
+                                                {booking.guest_notes?.toLowerCase().includes('anniversary') && <Gift className="h-2.5 w-2.5 text-blue-400 shrink-0" />}
+                                            </p>
                                         </button>
                                     );
                                 })}
@@ -638,6 +694,9 @@ function TimelineView({
                                 {unassignedBookings.map(booking => {
                                     const startMin = minutesSinceStart(parseISO(booking.reservation_time));
                                     const cfg = getStatusCfg(t)[booking.status];
+                                    const history = allBookings.filter(b => b.guest_name === booking.guest_name && b.id !== booking.id);
+                                    const isVIP = history.filter(b => b.status === 'completed').length >= 5;
+                                    const isRisk = history.filter(b => b.status === 'no_show').length >= 2;
                                     return (
                                         <button
                                             key={booking.id}
@@ -649,7 +708,11 @@ function TimelineView({
                                                 borderLeft: `3px solid ${cfg.dot}`,
                                             }}
                                         >
-                                            <p className="text-[11px] font-bold truncate" style={{ color: cfg.text }}>{booking.guest_name}</p>
+                                            <p className="text-[11px] font-bold truncate flex items-center gap-1" style={{ color: cfg.text }}>
+                                                {booking.guest_name}
+                                                {isVIP && <Sparkles className="h-2.5 w-2.5 text-orange-400 shrink-0" />}
+                                                {isRisk && <AlertCircle className="h-2.5 w-2.5 text-red-400 shrink-0" />}
+                                            </p>
                                         </button>
                                     );
                                 })}
@@ -801,9 +864,9 @@ function WeekStrip({
 // ─── ListView ───────────────────────────────────────────────────────────────
 
 function ListView({
-    bookings, tables, onSelectBooking
+    bookings, allBookings, tables, onSelectBooking
 }: {
-    bookings: any[]; tables: any[]; onSelectBooking: (b: any) => void;
+    bookings: any[]; allBookings: any[]; tables: any[]; onSelectBooking: (b: any) => void;
 }) {
     const { t } = useTranslations();
     const [statusFilter, setStatusFilter] = useState('all');
@@ -869,6 +932,9 @@ function ListView({
                         {dayBooks.map(booking => {
                             const cfg = getStatusCfg(t)[booking.status];
                             const table = tables.find(t => t.id === booking.table_id);
+                            const history = allBookings.filter(b => b.guest_name === booking.guest_name && b.id !== booking.id);
+                            const isVIP = history.filter(b => b.status === 'completed').length >= 5;
+                            const isRisk = history.filter(b => b.status === 'no_show').length >= 2;
                             return (
                                 <button key={booking.id} onClick={() => onSelectBooking(booking)}
                                     className="w-full text-left rounded-xl px-4 py-3 smooth-transition flex items-center gap-4"
@@ -880,6 +946,10 @@ function ListView({
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-semibold text-white text-sm truncate">{booking.guest_name}</p>
+                                            {isVIP && <Sparkles className="h-3 w-3 text-orange-400 shrink-0" />}
+                                            {isRisk && <AlertCircle className="h-3 w-3 text-red-400 shrink-0" />}
+                                            {booking.guest_notes?.toLowerCase().includes('birthday') && <Cake className="h-3 w-3 text-pink-400 shrink-0" />}
+                                            {booking.guest_notes?.toLowerCase().includes('anniversary') && <Gift className="h-3 w-3 text-blue-400 shrink-0" />}
                                             <StatusBadge status={booking.status} />
                                         </div>
                                         <div className="flex gap-4 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>
@@ -901,8 +971,9 @@ function ListView({
 
 // ─── StatsBar ────────────────────────────────────────────────────────────────
 
-function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: Date }) {
+function StatsBar({ bookings, tables, selectedDate }: { bookings: any[]; tables: any[]; selectedDate: Date }) {
     const { t } = useTranslations();
+    
     const day = bookings.filter(b => isSameDay(parseISO(b.reservation_time), selectedDate));
     const active = day.filter(b => ['pending', 'confirmed', 'seated'].includes(b.status));
     const covers = active.reduce((s, b) => s + (Number(b.guest_count) || 0), 0);
@@ -917,19 +988,27 @@ function StatsBar({ bookings, selectedDate }: { bookings: any[]; selectedDate: D
         { label: t.calendar?.stats?.pending, value: pending, sub: t.calendar?.stats?.needConfirm, dot: 'hsl(38 80% 60%)' },
         { label: t.calendar?.stats?.cancelled, value: cancelled, sub: t.calendar?.stats?.today, dot: 'hsl(347 78% 58%)' },
     ];
-
     return (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {stats.map(s => (
-                <div key={s.label} className="rounded-xl p-4" style={{ background: 'hsl(231 32% 10%)', border: '1px solid hsl(231 24% 16%)' }}>
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
-                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(220 15% 40%)' }}>{s.label}</span>
-                    </div>
-                    <p className="text-2xl font-bold text-white">{s.value}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'hsl(220 15% 42%)' }}>{s.sub}</p>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" style={{ color: 'hsl(38 80% 55%)' }} />
+                    <h3 className="text-sm font-semibold text-white">{t('dashboard_enhancements.dailySummary')}</h3>
                 </div>
-            ))}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {stats.map(s => (
+                    <div key={s.label} className="rounded-xl p-4" style={{ background: 'hsl(231 32% 10%)', border: '1px solid hsl(231 24% 16%)' }}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />
+                            <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: 'hsl(220 15% 40%)' }}>{s.label}</span>
+                        </div>
+                        <p className="text-2xl font-bold text-white">{s.value}</p>
+                        <p className="text-[11px] mt-0.5" style={{ color: 'hsl(220 15% 42%)' }}>{s.sub}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
@@ -1076,7 +1155,7 @@ export default function OwnerCalendarPage() {
 
             {/* ── Stats bar ── */}
             <div className="shrink-0">
-                <StatsBar bookings={bookings} selectedDate={selectedDate} />
+                <StatsBar bookings={bookings} tables={tables} selectedDate={selectedDate} />
             </div>
 
             {/* ── Main content ── */}
@@ -1085,6 +1164,7 @@ export default function OwnerCalendarPage() {
                     {viewMode === 'timeline' ? (
                         <TimelineView
                             bookings={bookings}
+                            allBookings={bookings}
                             tables={tables}
                             selectedDate={selectedDate}
                             onSelectBooking={setSelectedBooking}
@@ -1093,6 +1173,7 @@ export default function OwnerCalendarPage() {
                         <div className="h-full overflow-auto p-5">
                             <ListView
                                 bookings={bookings}
+                                allBookings={bookings}
                                 tables={tables}
                                 onSelectBooking={setSelectedBooking}
                             />

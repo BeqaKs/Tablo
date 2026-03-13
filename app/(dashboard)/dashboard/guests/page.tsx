@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { getOwnerBookings, getOwnerGuestProfiles } from '@/app/actions/owner';
 import { markNoShow } from '@/app/actions/no-show';
 import { flagGuest, unflagGuest, addGuestTag, removeGuestTag } from '@/app/actions/guest-profiles';
+import { useTranslations } from '@/components/translations-provider';
 import { toast } from 'sonner'
-import { Loader2, Star, Phone, Mail, Flag, AlertOctagon, X, Plus, Tag as TagIcon } from 'lucide-react';
+import { Loader2, Star, Phone, Mail, Flag, AlertOctagon, X, Plus, Tag as TagIcon, AlertCircle } from 'lucide-react';
 
 export default function OwnerGuestsPage() {
+    const { t } = useTranslations();
     const [bookings, setBookings] = useState<any[]>([]);
     const [profiles, setProfiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -209,7 +211,8 @@ export default function OwnerGuestsPage() {
                         <tbody>
                             {uniqueGuests.map((guest, idx) => {
                                 const completed = vipCount(guest);
-                                const isVip = completed >= 3 || guest.tags.includes('vip');
+                                const isVip = completed >= 5 || guest.tags.includes('vip');
+                                const isRisk = guest.noShow >= 2 || guest.tags.includes('risk') || guest.tags.includes('high risk');
 
                                 return (
                                     <tr
@@ -230,7 +233,14 @@ export default function OwnerGuestsPage() {
                                                         <div className="flex items-center gap-1.5">
                                                             <span className="font-semibold text-white">{guest.guest_name}</span>
                                                             {isVip && (
-                                                                <Star className="h-3.5 w-3.5" style={{ color: 'hsl(38 80% 55%)', fill: 'hsl(38 80% 55%)' }} />
+                                                                <span title={t('dashboard_enhancements.vipGuest')}>
+                                                                    <Star className="h-3.5 w-3.5" style={{ color: 'hsl(38 80% 55%)', fill: 'hsl(38 80% 55%)' }} />
+                                                                </span>
+                                                            )}
+                                                            {isRisk && (
+                                                                <span title={t('dashboard_enhancements.highRiskGuest')}>
+                                                                    <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+                                                                </span>
                                                             )}
                                                             {guest.user_id && flaggedIds.has(guest.user_id) && (
                                                                 <span title="Flagged Guest">
