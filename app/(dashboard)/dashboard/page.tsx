@@ -2,10 +2,17 @@ import { Users, CalendarCheck, TrendingUp, Clock, Phone, ChevronRight, Flame, Us
 import { formatGEL } from "@/lib/utils/currency";
 import { getDictionary } from "@/lib/get-dictionary";
 import Link from "next/link";
-import { RevenueChart } from '@/components/dashboard/revenue-chart';
+import dynamic from 'next/dynamic';
 import { getDashboardStats } from "@/app/actions/owner";
-import { AIBriefingClient } from "@/components/dashboard/ai-briefing-client";
 import { Sparkles } from "lucide-react";
+
+const RevenueChart = dynamic(() => import('@/components/dashboard/revenue-chart').then(mod => mod.RevenueChart), {
+  loading: () => <div className="h-48 rounded-lg animate-pulse" style={{ background: 'hsl(231 24% 12%)' }} />,
+});
+
+const AIBriefingClient = dynamic(() => import('@/components/dashboard/ai-briefing-client').then(mod => mod.AIBriefingClient), {
+  loading: () => <div className="h-10 w-32 rounded-lg animate-pulse" style={{ background: 'hsl(231 24% 12%)' }} />,
+});
 
 // Dark metric card
 function MetricCard({

@@ -22,36 +22,24 @@ export default async function DashboardLayout({
   let userName = '';
 
   if (user) {
-    // Fetch profile
-    const { data: profile } = await supabase
-      .from('users')
-      .select('role, full_name')
-      .eq('id', user.id)
-      .maybeSingle();
+    // Run all DB queries in parallel
+    const [profileResult, staffResult, restaurantResult] = await Promise.all([
+      supabase.from('users').select('role, full_name').eq('id', user.id).maybeSingle(),
+      supabase.from('staff_roles').select('role').eq('user_id', user.id).maybeSingle(),
+      supabase.from('restaurants').select('id, name').eq('owner_id', user.id).maybeSingle(),
+    ]);
 
-    userRole = profile?.role || null;
-    userName = profile?.full_name || user.email?.split('@')[0] || 'User';
+    userRole = profileResult.data?.role || null;
+    userName = profileResult.data?.full_name || user.email?.split('@')[0] || 'User';
 
     // Check staff roles if needed
-    if (userRole !== 'restaurant_owner' && userRole !== 'admin') {
-      const { data: staff } = await supabase
-        .from('staff_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (staff) userRole = staff.role;
+    if (userRole !== 'restaurant_owner' && userRole !== 'admin' && staffResult.data) {
+      userRole = staffResult.data.role;
     }
 
-    // Fetch restaurant
-    const { data: restaurant } = await supabase
-      .from('restaurants')
-      .select('id, name')
-      .eq('owner_id', user.id)
-      .maybeSingle();
-
-    if (restaurant) {
-      restaurantName = restaurant.name;
-      restaurantId = restaurant.id;
+    if (restaurantResult.data) {
+      restaurantName = restaurantResult.data.name;
+      restaurantId = restaurantResult.data.id;
     }
   }
 

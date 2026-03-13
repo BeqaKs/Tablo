@@ -172,104 +172,79 @@ export async function getDashboardStats() {
     today.setHours(0, 0, 0, 0)
     const tonight = new Date(today)
     tonight.setHours(23, 59, 59, 999)
-
-    // 1. Get Restaurant for Average Check
-    const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('average_check')
-        .eq('id', restaurantId)
-        .single()
-
-    const avgCheck = restaurant?.average_check || 0
-
-    // 2. Get Today's Reservations
-    const { data: reservations } = await supabase
-        .from('reservations')
-        .select('guest_count, status')
-        .eq('restaurant_id', restaurantId)
-        .gte('reservation_time', today.toISOString())
-        .lte('reservation_time', tonight.toISOString())
-
-    const totalCovers = reservations?.reduce((sum: number, r: any) => sum + (r.guest_count || 0), 0) || 0
-    const activeReservations = reservations?.filter((r: any) => ['pending', 'confirmed', 'seated'].includes(r.status)).length || 0
-
-    // 3. Get Today's Orders for Revenue
-    const { data: orders } = await supabase
-        .from('orders')
-        .select('total_amount, status')
-        .eq('restaurant_id', restaurantId)
-        .gte('created_at', today.toISOString())
-        .lte('created_at', tonight.toISOString())
-        .neq('status', 'cancelled')
-
-    const actualRevenue = orders?.reduce((sum: number, o: any) => sum + Number(o.total_amount || 0), 0) || 0
-
-    // Fallback revenue calculation for showcase consistency
-    const estimatedRevenue = actualRevenue > 0 ? actualRevenue : (totalCovers * Number(avgCheck))
-
-    // 4. Get Past 7 Days Revenue for Chart
     const sevenDaysAgo = new Date(today)
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
 
-    const { data: pastOrders } = await supabase
-        .from('orders')
-        .select('total_amount, created_at')
-        .eq('restaurant_id', restaurantId)
-        .gte('created_at', sevenDaysAgo.toISOString())
-        .neq('status', 'cancelled')
+    // Run ALL queries in parallel for maximum speed
+    const [
+        restaurantResult,
+        reservationsResult,
+        ordersResult,
+        pastOrdersResult,
+        tablesResult,
+        seatedResult,
+        upcomingResult,
+        allBookingsResult,
+        restaurantNameResult
+    ] = await Promise.all([
+        // 1. Restaurant avg check
+        supabase.from('restaurants').select('average_check').eq('id', restaurantId).single(),
+        // 2. Today's reservations
+        supabase.from('reservations').select('guest_count, status').eq('restaurant_id', restaurantId)
+            .gte('reservation_time', today.toISOString()).lte('reservation_time', tonight.toISOString()),
+        // 3. Today's orders for revenue
+        supabase.from('orders').select('total_amount, status').eq('restaurant_id', restaurantId)
+            .gte('created_at', today.toISOString()).lte('created_at', tonight.toISOString()).neq('status', 'cancelled'),
+        // 4. Past 7 days orders for chart
+        supabase.from('orders').select('total_amount, created_at').eq('restaurant_id', restaurantId)
+            .gte('created_at', sevenDaysAgo.toISOString()).neq('status', 'cancelled'),
+        // 5. Tables for occupancy
+        supabase.from('tables').select('id').eq('restaurant_id', restaurantId),
+        // 6. Seated count for occupancy
+        supabase.from('reservations').select('*', { count: 'exact', head: true })
+            .eq('restaurant_id', restaurantId).eq('status', 'seated'),
+        // 7. Upcoming bookings with details
+        supabase.from('reservations').select(`
+            id, guest_name, guest_count, reservation_time, status, guest_phone, occasion,
+            tables ( table_number ),
+            orders:order_id ( order_items ( quantity, menu_items ( name ) ) )
+        `).eq('restaurant_id', restaurantId).gte('reservation_time', new Date().toISOString())
+            .in('status', ['pending', 'confirmed']).order('reservation_time', { ascending: true }).limit(10),
+        // 8. All bookings for AI briefing
+        supabase.from('reservations').select(`*, tables:table_id (id, table_number, capacity)`)
+            .eq('restaurant_id', restaurantId).order('reservation_time', { ascending: false }),
+        // 9. Restaurant name
+        supabase.from('restaurants').select('name').eq('id', restaurantId).single()
+    ])
 
-    // Group by day for the chart
+    // Process results
+    const avgCheck = restaurantResult.data?.average_check || 0
+    const reservations = reservationsResult.data
+    const totalCovers = reservations?.reduce((sum: number, r: any) => sum + (r.guest_count || 0), 0) || 0
+    const activeReservations = reservations?.filter((r: any) => ['pending', 'confirmed', 'seated'].includes(r.status)).length || 0
+
+    const actualRevenue = ordersResult.data?.reduce((sum: number, o: any) => sum + Number(o.total_amount || 0), 0) || 0
+    const estimatedRevenue = actualRevenue > 0 ? actualRevenue : (totalCovers * Number(avgCheck))
+
+    // Chart data
     const dailyRevenue: Record<string, number> = {}
     for (let i = 0; i < 7; i++) {
         const d = new Date(today)
         d.setDate(d.getDate() - i)
         dailyRevenue[d.toLocaleDateString('en-US', { weekday: 'short' })] = 0
     }
-
-    pastOrders?.forEach((o: any) => {
+    pastOrdersResult.data?.forEach((o: any) => {
         const day = new Date(o.created_at).toLocaleDateString('en-US', { weekday: 'short' })
-        if (dailyRevenue[day] !== undefined) {
-            dailyRevenue[day] += Number(o.total_amount || 0)
-        }
+        if (dailyRevenue[day] !== undefined) dailyRevenue[day] += Number(o.total_amount || 0)
     })
-
     const chartData = Object.entries(dailyRevenue).map(([name, revenue]) => ({ name, revenue })).reverse()
 
-    // 5. Calculate Occupancy (Active tables / Total tables)
-    const { data: tables } = await supabase
-        .from('tables')
-        .select('id')
-        .eq('restaurant_id', restaurantId)
+    // Occupancy
+    const totalTables = tablesResult.data?.length || 1
+    const occupancy = Math.min(Math.round(((seatedResult.count || 0) / totalTables) * 100), 100)
 
-    const totalTables = tables?.length || 1
-    const { count: seatedCount } = await supabase
-        .from('reservations')
-        .select('*', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId)
-        .eq('status', 'seated')
-
-    const occupancy = Math.min(Math.round(((seatedCount || 0) / totalTables) * 100), 100)
-
-    // 6. Upcoming Bookings & Upsell Opportunities
-    const { data: upcomingData } = await supabase
-        .from('reservations')
-        .select(`
-            id, guest_name, guest_count, reservation_time, status, guest_phone, occasion,
-            tables ( table_number ),
-            orders:order_id (
-                order_items (
-                    quantity,
-                    menu_items ( name )
-                )
-            )
-        `)
-        .eq('restaurant_id', restaurantId)
-        .gte('reservation_time', new Date().toISOString())
-        .in('status', ['pending', 'confirmed'])
-        .order('reservation_time', { ascending: true })
-        .limit(10)
-
-    const upcomingBookings = upcomingData?.map((r: any) => ({
+    // Upcoming bookings
+    const upcomingBookings = upcomingResult.data?.map((r: any) => ({
         id: r.id,
         time: new Date(r.reservation_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         guestName: r.guest_name || 'Guest',
@@ -282,7 +257,8 @@ export async function getDashboardStats() {
         rawReservation: r
     })) || []
 
-    const upsellOpportunities = upcomingData
+    // Upsell opportunities
+    const upsellOpportunities = upcomingResult.data
         ?.filter((r: any) => r.occasion && r.occasion !== '')
         .map((r: any) => {
             const occasionEmoji: Record<string, { emoji: string; suggestion: string }> = {
@@ -304,19 +280,9 @@ export async function getDashboardStats() {
             };
         }) || []
 
-    // 7. Get All Bookings for AI Briefing
-    const { data: allBookings } = await supabase
-        .from('reservations')
-        .select(`
-            *,
-            tables:table_id (id, table_number, capacity)
-        `)
-        .eq('restaurant_id', restaurantId)
-        .order('reservation_time', { ascending: false })
-
     return {
         data: {
-            restaurantName: (await supabase.from('restaurants').select('name').eq('id', restaurantId).single()).data?.name || '',
+            restaurantName: restaurantNameResult.data?.name || '',
             occupancy,
             totalTables,
             totalCovers,
@@ -326,7 +292,7 @@ export async function getDashboardStats() {
             avgCheck,
             upcomingBookings,
             upsellOpportunities,
-            allBookings: allBookings || []
+            allBookings: allBookingsResult.data || []
         },
         error: null
     }
