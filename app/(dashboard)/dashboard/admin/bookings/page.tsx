@@ -246,10 +246,10 @@ export default function AdminBookingsPage() {
             </div>
 
             <Tabs defaultValue="list" className="w-full">
-                <TabsList className="mb-8 w-full md:w-auto grid grid-cols-3">
-                    <TabsTrigger value="list" className="flex items-center gap-2"><Filter className="w-4 h-4" />List</TabsTrigger>
-                    <TabsTrigger value="calendar" className="flex items-center gap-2"><CalendarDays className="w-4 h-4" />Calendar</TabsTrigger>
-                    <TabsTrigger value="live" disabled={!selectedRestaurantId} className="flex items-center gap-2">
+                <TabsList className="mb-8 w-full !h-auto flex flex-col sm:flex-row sm:inline-flex bg-muted/50 sm:bg-muted p-1 gap-1">
+                    <TabsTrigger value="list" className="w-full sm:w-auto flex items-center gap-2"><Filter className="w-4 h-4" />List</TabsTrigger>
+                    <TabsTrigger value="calendar" className="w-full sm:w-auto flex items-center gap-2"><CalendarDays className="w-4 h-4" />Calendar</TabsTrigger>
+                    <TabsTrigger value="live" disabled={!selectedRestaurantId} className="w-full sm:w-auto flex items-center gap-2">
                         <LayoutGrid className="w-4 h-4" />Live Floor Plan {(!selectedRestaurantId) && '(Select Restaurant)'}
                     </TabsTrigger>
                 </TabsList>

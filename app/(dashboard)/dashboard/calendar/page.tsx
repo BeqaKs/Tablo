@@ -540,14 +540,14 @@ function TimelineView({
             {/* Column headers */}
             <div className="flex shrink-0 overflow-hidden" style={{ marginLeft: TIMELINE_LABEL_W }}>
                 {tables.map(tbl => (
-                    <div key={tbl.id} className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
+                    <div key={tbl.id} className="flex-1 min-w-[72px] text-center py-2 text-xs font-semibold"
                         style={{ color: 'hsl(220 20% 65%)', borderRight: '1px solid hsl(231 24% 15%)' }}>
                         {t('dashboard.tableShort') || 'T'}{tbl.table_number}
                         <span className="block text-[9px] font-normal" style={{ color: 'hsl(220 15% 38%)' }}>cap {tbl.capacity}</span>
                     </div>
                 ))}
                 {unassignedBookings.length > 0 && (
-                    <div className="flex-1 min-w-[100px] text-center py-2 text-xs font-semibold"
+                    <div className="flex-1 min-w-[72px] text-center py-2 text-xs font-semibold"
                         style={{ color: 'hsl(38 80% 65%)' }}>
                         {t.calendar?.unassigned}
                     </div>
@@ -610,7 +610,7 @@ function TimelineView({
                             tables.map(table => {
                                 const tableBookings = assignedBookings.filter(b => b.table_id === table.id);
                                 return (
-                                    <div key={table.id} className="flex-1 min-w-[100px] relative"
+                                    <div key={table.id} className="flex-1 min-w-[72px] relative"
                                         style={{ borderRight: '1px solid hsl(231 24% 13%)', height: `${HOURS.length * HOUR_HEIGHT}px` }}>
                                         {tableBookings.map(booking => {
                                             const startMin = minutesSinceStart(parseISO(booking.reservation_time));
@@ -689,7 +689,7 @@ function TimelineView({
 
                         {/* Unassigned column */}
                         {unassignedBookings.length > 0 && (
-                            <div className="flex-1 min-w-[100px] relative"
+                            <div className="flex-1 min-w-[72px] relative"
                                 style={{ borderRight: '1px solid hsl(231 24% 13%)', height: `${HOURS.length * HOUR_HEIGHT}px` }}>
                                 {unassignedBookings.map(booking => {
                                     const startMin = minutesSinceStart(parseISO(booking.reservation_time));
@@ -734,7 +734,17 @@ function LiveFloorPlan({
     onSelectTable: (table: any, currentBooking?: any) => void;
 }) {
     const { t } = useTranslations();
-    const [zoom, setZoom] = useState(0.8);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [zoom, setZoom] = useState(0.5);
+
+    // Auto-scale floor plan to fit container on mount
+    useEffect(() => {
+        if (containerRef.current) {
+            const containerW = containerRef.current.clientWidth - 32; // padding
+            const autoZoom = Math.min(containerW / 1200, 0.8);
+            setZoom(Math.max(0.25, autoZoom));
+        }
+    }, []);
     const bgImageUrl = restaurant?.floor_plan_json?.backgroundImage || '';
 
     // Calculate current status for each table
@@ -759,7 +769,7 @@ function LiveFloorPlan({
                 <button className="p-1.5 hover:bg-gray-100 rounded smooth-transition flex items-center justify-center text-gray-600" onClick={() => setZoom(Math.min(2, zoom + 0.1))}><ZoomIn className="h-4 w-4" /></button>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 bg-gray-50/50">
+            <div ref={containerRef} className="flex-1 overflow-auto p-4 bg-gray-50/50">
                 <div style={{ width: '1200px', height: '800px', transform: `scale(${zoom})`, transformOrigin: 'top left', transition: 'transform 0.1s ease-out', margin: '0 auto', position: 'relative' }} className="bg-white border-2 border-dashed border-gray-300 rounded-lg">
                     {bgImageUrl && (
                         <div
@@ -899,14 +909,14 @@ function ListView({
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
-                <div className="flex gap-1 p-1 rounded-lg" style={{ background: 'hsl(231 32% 10%)' }}>
+                <div className="flex gap-1 p-1 rounded-lg overflow-x-auto scrollbar-hide" style={{ background: 'hsl(231 32% 10%)' }}>
                     {['all', 'pending', 'confirmed', 'seated', 'completed', 'cancelled'].map(s => {
                         const active = statusFilter === s;
                         const cfg = getStatusCfg(t)[s] as any;
                         const label = s === 'all' ? (t.calendar?.all || 'All') : (t.calendar?.status?.[s === 'no_show' ? 'noShow' : s] || s.replace('_', ' '));
                         return (
                             <button key={s} onClick={() => setStatusFilter(s)}
-                                className="px-3 py-1.5 rounded-md text-[11px] font-semibold smooth-transition capitalize"
+                                className="px-3 py-1.5 rounded-md text-[11px] font-semibold smooth-transition capitalize whitespace-nowrap"
                                 style={active
                                     ? { background: cfg ? cfg.bg : 'hsl(347 78% 58% / 0.15)', color: cfg ? cfg.text : 'hsl(347 78% 70%)' }
                                     : { color: 'hsl(220 15% 45%)' }
@@ -1080,64 +1090,67 @@ export default function OwnerCalendarPage() {
     const nowTime = format(new Date(), 'h:mm a');
 
     return (
-        <div className="flex flex-col gap-4 h-[calc(100vh-80px)]">
+        <div className="flex flex-col gap-3 sm:gap-4 h-[calc(100vh-80px)]">
             {/* ── Header ── */}
-            <div className="flex items-start justify-between gap-4 shrink-0">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-white">
-                        {format(selectedDate, 'EEEE, MMMM d')}
-                    </h1>
-                    <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: 'hsl(220 15% 44%)' }}>
-                        <Clock className="h-3.5 w-3.5" />
-                        {nowTime} · {restaurant.name}
-                        {refreshing && <RefreshCw className="h-3 w-3 animate-spin" />}
-                    </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                    {/* Today */}
+            <div className="flex flex-col gap-3 shrink-0">
+                {/* Top row: Title + Today */}
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                        <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white truncate">
+                            {format(selectedDate, 'EEE, MMM d')}
+                        </h1>
+                        <p className="text-xs sm:text-sm mt-0.5 flex items-center gap-2" style={{ color: 'hsl(220 15% 44%)' }}>
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{nowTime} · {restaurant.name}</span>
+                            {refreshing && <RefreshCw className="h-3 w-3 animate-spin shrink-0" />}
+                        </p>
+                    </div>
                     <button onClick={() => setSelectedDate(startOfDay(new Date()))}
-                        className="px-3 py-2 rounded-lg text-sm font-semibold btn-dash-ghost hidden sm:block">
+                        className="px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold btn-dash-ghost shrink-0">
                         {t.calendar?.today}
                     </button>
-                    {/* View toggle */}
-                    <div className="flex bg-[hsl(231_32%_10%)] p-1 rounded-lg">
+                </div>
+                {/* Bottom row: View toggle + action buttons */}
+                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+                    {/* View toggle — icons only on mobile */}
+                    <div className="flex bg-[hsl(231_32%_10%)] p-1 rounded-lg shrink-0">
                         <button onClick={() => setViewMode('timeline')}
-                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
-                                viewMode === 'timeline' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
-                            style={viewMode === 'timeline' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            className={cn('p-1.5 sm:px-3 sm:py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-1.5',
+                                viewMode === 'timeline' ? '' : '')}
+                            style={viewMode === 'timeline' ? { background: 'hsl(231 24% 18%)', color: 'white' } : { color: 'hsl(220 15% 45%)' }}>
                             <LayoutGrid className="h-3.5 w-3.5" />
-                            {t.calendar?.timeline}
+                            <span className="hidden sm:inline">{t.calendar?.timeline}</span>
                         </button>
                         <button onClick={() => setViewMode('list')}
-                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
-                                viewMode === 'list' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
-                            style={viewMode === 'list' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            className={cn('p-1.5 sm:px-3 sm:py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-1.5',
+                                viewMode === 'list' ? '' : '')}
+                            style={viewMode === 'list' ? { background: 'hsl(231 24% 18%)', color: 'white' } : { color: 'hsl(220 15% 45%)' }}>
                             <List className="h-3.5 w-3.5" />
-                            {t.calendar?.list}
+                            <span className="hidden sm:inline">{t.calendar?.list}</span>
                         </button>
                         <button onClick={() => setViewMode('floor')}
-                            className={cn('px-4 py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-2',
-                                viewMode === 'floor' ? 'bg-hsl(231_24%_18%) text-white' : 'text-hsl(220_15%_45%)')}
-                            style={viewMode === 'floor' ? { background: 'hsl(231 24% 18%)', color: 'white' } : {}}>
+                            className={cn('p-1.5 sm:px-3 sm:py-1.5 rounded-md text-xs font-semibold smooth-transition flex items-center gap-1.5',
+                                viewMode === 'floor' ? '' : '')}
+                            style={viewMode === 'floor' ? { background: 'hsl(231 24% 18%)', color: 'white' } : { color: 'hsl(220 15% 45%)' }}>
                             <Armchair className="h-3.5 w-3.5" />
-                            {t.dashboard_web?.live || 'Live'}
+                            <span className="hidden sm:inline">{t.dashboard_web?.live || 'Live'}</span>
                         </button>
                     </div>
                     {/* Walk-in */}
                     <button
                         onClick={() => setShowWalkIn(true)}
-                        className="bg-hsl(160_60%_45%) hover:bg-hsl(160_60%_40%) text-white px-4 py-2 rounded-lg text-sm font-semibold smooth-transition flex items-center gap-2"
+                        className="text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold smooth-transition flex items-center gap-1.5 shrink-0"
                         style={{ background: 'hsl(160 60% 45%)' }}
                     >
                         <UserPlus className="h-4 w-4" />
-                        {t.calendar?.quickWalkIn}
+                        <span className="hidden sm:inline">{t.calendar?.quickWalkIn}</span>
                     </button>
                     {/* Waitlist Toggle */}
                     <button onClick={() => setShowWaitlist(!showWaitlist)}
-                        className={`px-4 py-2 rounded-lg text-sm font-semibold smooth-transition flex items-center gap-2 ${showWaitlist ? 'bg-hsl(38_80%_55%) text-hsl(231_38%_6%) shadow-sm' : 'btn-dash-primary'}`}
+                        className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold smooth-transition flex items-center gap-1.5 shrink-0 ${showWaitlist ? '' : 'btn-dash-primary'}`}
                         style={showWaitlist ? { background: 'hsl(38 80% 55%)', color: 'hsl(231 38% 6%)' } : {}}>
-                        <ListChecks className="h-4 w-4" /> 
-                        {t.calendar?.waitlist} 
+                        <ListChecks className="h-4 w-4" />
+                        <span className="hidden sm:inline">{t.calendar?.waitlist}</span>
                     </button>
                 </div>
             </div>
@@ -1195,22 +1208,31 @@ export default function OwnerCalendarPage() {
                     )}
                 </div>
 
-                {/* Waitlist Sidebar (Visible on Timeline and List views) */}
+                {/* Waitlist Sidebar — desktop inline, mobile as drawer overlay */}
                 {restaurant && viewMode !== 'floor' && showWaitlist && (
-                    <div className="hidden lg:block h-full shadow-xl z-10 relative">
-                        <WaitlistPanel 
-                            restaurantId={restaurant.id}
-                            onSeatGuest={(entry) => {
-                                setWaitlistWalkIn({
-                                    id: entry.id,
-                                    name: entry.guest_name,
-                                    phone: entry.guest_phone || '',
-                                    size: entry.party_size
-                                });
-                                setShowWalkIn(true);
-                            }}
+                    <>
+                        {/* Mobile overlay backdrop */}
+                        <div
+                            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm lg:hidden"
+                            onClick={() => setShowWaitlist(false)}
                         />
-                    </div>
+                        {/* Panel */}
+                        <div className="fixed inset-y-0 right-0 z-[70] w-[320px] lg:relative lg:w-auto lg:z-10 h-full shadow-xl">
+                            <WaitlistPanel 
+                                restaurantId={restaurant.id}
+                                onSeatGuest={(entry) => {
+                                    setWaitlistWalkIn({
+                                        id: entry.id,
+                                        name: entry.guest_name,
+                                        phone: entry.guest_phone || '',
+                                        size: entry.party_size
+                                    });
+                                    setShowWalkIn(true);
+                                    setShowWaitlist(false);
+                                }}
+                            />
+                        </div>
+                    </>
                 )}
             </div>
 

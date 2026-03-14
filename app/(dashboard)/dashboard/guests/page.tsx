@@ -191,8 +191,109 @@ export default function OwnerGuestsPage() {
                 ))}
             </div>
 
-            {/* Table */}
-            <div className="dash-card overflow-hidden pb-32">
+            {/* Mobile Card Layout */}
+            <div className="dash-card overflow-hidden pb-8 md:hidden">
+                <div className="p-3 space-y-2">
+                    {uniqueGuests.length === 0 && (
+                        <div className="text-center py-16 text-sm text-muted-foreground">
+                            {search ? `No guests matching "${search}"` : 'No guests found.'}
+                        </div>
+                    )}
+                    {uniqueGuests.map((guest, idx) => {
+                        const completed = vipCount(guest);
+                        const isVip = completed >= 5 || guest.tags.includes('vip');
+                        const isRisk = guest.noShow >= 2 || guest.tags.includes('risk') || guest.tags.includes('high risk');
+
+                        return (
+                            <div
+                                key={idx}
+                                className="rounded-xl p-4 space-y-3"
+                                style={{ background: 'hsl(231 24% 11%)', border: '1px solid hsl(231 24% 16%)' }}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div
+                                            className="h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                                            style={{ background: avatarGradient(guest.guest_name || 'U') }}
+                                        >
+                                            {guest.guest_name?.[0]?.toUpperCase() || '?'}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="font-semibold text-white text-sm truncate">{guest.guest_name}</span>
+                                                {isVip && <Star className="h-3.5 w-3.5 shrink-0" style={{ color: 'hsl(38 80% 55%)', fill: 'hsl(38 80% 55%)' }} />}
+                                                {isRisk && <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+                                                {guest.user_id && flaggedIds.has(guest.user_id) && <AlertOctagon className="h-3.5 w-3.5 text-red-500 shrink-0" />}
+                                            </div>
+                                            {guest.guest_phone && (
+                                                <div className="flex items-center gap-1 text-xs" style={{ color: 'hsl(220 15% 50%)' }}>
+                                                    <Phone className="h-3 w-3" /> {guest.guest_phone}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                        <button onClick={() => { setTaggingRow(taggingRow === guest.user_id ? null : guest.user_id); setActionRow(null); }}
+                                            className="p-1.5 rounded-lg" style={{ color: 'hsl(220 15% 50%)' }}>
+                                            <TagIcon className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => { setActionRow(actionRow === guest.user_id ? null : guest.user_id); setTaggingRow(null); }}
+                                            className={`p-1.5 rounded-lg ${guest.user_id && flaggedIds.has(guest.user_id) ? 'text-red-400' : ''}`}
+                                            style={!(guest.user_id && flaggedIds.has(guest.user_id)) ? { color: 'hsl(220 15% 50%)' } : {}}>
+                                            <Flag className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Stats row */}
+                                <div className="flex items-center gap-4 text-xs" style={{ color: 'hsl(220 15% 50%)' }}>
+                                    <span className="font-bold text-white text-base">{guest.totalVisits}</span>
+                                    <span>visits</span>
+                                    {completed > 0 && <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{completed} done</span>}
+                                    {guest.noShow > 0 && <span className="flex items-center gap-1 text-red-400"><span className="h-1.5 w-1.5 rounded-full bg-red-500" />{guest.noShow} no-show</span>}
+                                </div>
+
+                                {/* Tags */}
+                                {guest.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1">
+                                        {guest.tags.map((tag: string) => (
+                                            <span key={tag} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider" style={{ background: 'hsl(231 24% 16%)', color: 'hsl(220 15% 60%)', border: '1px solid hsl(231 24% 22%)' }}>
+                                                {tag}
+                                                <button onClick={() => handleRemoveTag(guest.user_id, tag)} className="hover:text-red-400"><X className="h-2 w-2" /></button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Inline tag add / flag dropdown */}
+                                {taggingRow === guest.user_id && guest.user_id && (
+                                    <div className="flex items-center gap-2 p-2 rounded-lg" style={{ background: 'hsl(231 32% 13%)', border: '1px solid hsl(231 24% 20%)' }}>
+                                        <input autoFocus type="text" className="dash-input text-xs py-1 px-2 h-7 flex-1" placeholder="allergy, vip..."
+                                            value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddTag(guest.user_id)} />
+                                        <button onClick={() => handleAddTag(guest.user_id)} className="h-7 w-7 flex-shrink-0 flex items-center justify-center rounded" style={{ background: 'hsl(231 24% 20%)', color: 'white' }}><Plus className="w-3 h-3" /></button>
+                                    </div>
+                                )}
+                                {actionRow === guest.user_id && guest.user_id && (
+                                    <div className="p-2 rounded-lg space-y-1" style={{ background: 'hsl(231 32% 13%)', border: '1px solid hsl(231 24% 20%)' }}>
+                                        <p className="text-[10px] px-2 pb-1 uppercase tracking-wider font-semibold" style={{ color: 'hsl(220 15% 45%)' }}>Flag reason</p>
+                                        {['rude', 'serial_canceler', 'disruptive', 'other'].map(reason => (
+                                            <button key={reason} className="w-full text-left px-3 py-1.5 text-xs rounded-lg text-white capitalize" style={{ background: 'transparent' }}
+                                                onClick={() => handleFlag(guest.user_id, guest.user_id, reason)}>{reason.replace('_', ' ')}</button>
+                                        ))}
+                                        {flaggedIds.has(guest.user_id) && (
+                                            <button className="w-full text-left px-3 py-1.5 text-xs rounded-lg" style={{ color: 'hsl(220 15% 50%)', borderTop: '1px solid hsl(231 24% 20%)' }}
+                                                onClick={() => handleFlag(guest.user_id, guest.user_id, '')}>Remove flag</button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Desktop Table Layout */}
+            <div className="dash-card overflow-hidden pb-32 hidden md:block">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
@@ -302,63 +403,37 @@ export default function OwnerGuestsPage() {
 
                                         <td className="px-5 py-4 text-right relative">
                                             <div className="flex items-center justify-end gap-1">
-
-                                                {/* Add Tag UI */}
                                                 <div className="relative">
                                                     <button onClick={() => { setTaggingRow(taggingRow === guest.user_id ? null : guest.user_id); setActionRow(null); }} className="p-1.5 text-muted-foreground hover:bg-white/5 rounded-lg transition-colors" title="Add Tag">
                                                         <TagIcon className="w-4 h-4" />
                                                     </button>
                                                     {taggingRow === guest.user_id && guest.user_id && (
                                                         <div className="absolute right-0 top-8 z-20 w-48 p-2 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl flex items-center gap-2">
-                                                            <input
-                                                                autoFocus
-                                                                type="text"
-                                                                className="dash-input text-xs py-1 px-2 h-7"
-                                                                placeholder="allergy, vip..."
-                                                                value={newTag}
-                                                                onChange={e => setNewTag(e.target.value)}
-                                                                onKeyDown={e => e.key === 'Enter' && handleAddTag(guest.user_id)}
-                                                            />
+                                                            <input autoFocus type="text" className="dash-input text-xs py-1 px-2 h-7" placeholder="allergy, vip..."
+                                                                value={newTag} onChange={e => setNewTag(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddTag(guest.user_id)} />
                                                             <button onClick={() => handleAddTag(guest.user_id)} className="h-7 w-7 flex-shrink-0 flex items-center justify-center bg-white/10 text-white rounded hover:bg-white/20"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     )}
                                                 </div>
-
                                                 <div className="relative">
-                                                    <button
-                                                        onClick={() => { setActionRow(actionRow === guest.user_id ? null : guest.user_id); setTaggingRow(null); }}
-                                                        title="Flag / unflag guest"
-                                                        className={`p-1.5 rounded-lg transition-colors ${guest.user_id && flaggedIds.has(guest.user_id)
-                                                            ? 'text-red-400 bg-red-400/10'
-                                                            : 'text-muted-foreground hover:bg-white/5'
-                                                            }`}
-                                                    >
+                                                    <button onClick={() => { setActionRow(actionRow === guest.user_id ? null : guest.user_id); setTaggingRow(null); }} title="Flag / unflag guest"
+                                                        className={`p-1.5 rounded-lg transition-colors ${guest.user_id && flaggedIds.has(guest.user_id) ? 'text-red-400 bg-red-400/10' : 'text-muted-foreground hover:bg-white/5'}`}>
                                                         <Flag className="h-4 w-4" />
                                                     </button>
                                                     {actionRow === guest.user_id && guest.user_id && (
                                                         <div className="absolute right-0 top-8 z-10 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl p-2 w-44 space-y-1">
                                                             <p className="text-[10px] text-muted-foreground px-2 pb-1 uppercase tracking-wider font-semibold">Flag reason</p>
                                                             {['rude', 'serial_canceler', 'disruptive', 'other'].map(reason => (
-                                                                <button
-                                                                    key={reason}
-                                                                    className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-red-500/20 text-white transition-colors capitalize"
-                                                                    onClick={() => handleFlag(guest.user_id, guest.user_id, reason)}
-                                                                >
-                                                                    {reason.replace('_', ' ')}
-                                                                </button>
+                                                                <button key={reason} className="w-full text-left px-3 py-1.5 text-xs rounded-lg hover:bg-red-500/20 text-white transition-colors capitalize"
+                                                                    onClick={() => handleFlag(guest.user_id, guest.user_id, reason)}>{reason.replace('_', ' ')}</button>
                                                             ))}
                                                             {flaggedIds.has(guest.user_id) && (
-                                                                <button
-                                                                    className="w-full text-left mt-2 border-t border-white/10 px-3 py-1.5 text-xs rounded-b-lg hover:bg-white/5 transition-colors text-muted-foreground"
-                                                                    onClick={() => handleFlag(guest.user_id, guest.user_id, '')}
-                                                                >
-                                                                    Remove flag
-                                                                </button>
+                                                                <button className="w-full text-left mt-2 border-t border-white/10 px-3 py-1.5 text-xs rounded-b-lg hover:bg-white/5 transition-colors text-muted-foreground"
+                                                                    onClick={() => handleFlag(guest.user_id, guest.user_id, '')}>Remove flag</button>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
-
                                             </div>
                                         </td>
                                     </tr>

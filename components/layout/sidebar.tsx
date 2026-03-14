@@ -115,8 +115,8 @@ export function Sidebar({
               <UtensilsCrossed className="h-4 w-4 text-white" />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold tracking-tight text-gray-900">Tablo</span>
-              <span className="text-[10px] font-medium text-gray-500">
+              <span className="text-sm font-bold tracking-tight" style={{ color: 'hsl(220 20% 90%)' }}>Tablo</span>
+              <span className="text-[10px] font-medium" style={{ color: 'hsl(220 15% 45%)' }}>
                 {userRole === 'admin' ? dict.adminPanel : dict.restaurantPanel}
               </span>
             </div>
@@ -133,9 +133,10 @@ export function Sidebar({
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className={cn(
-            'hidden lg:flex h-7 w-7 items-center justify-center rounded-md smooth-transition bg-gray-100 hover:bg-gray-200 text-gray-500',
+            'hidden lg:flex h-7 w-7 items-center justify-center rounded-md smooth-transition',
             isCollapsed && 'mx-auto'
           )}
+          style={{ background: 'hsl(231 24% 15%)', color: 'hsl(220 15% 55%)' }}
         >
           {isCollapsed ? (
             <ChevronRight className="h-3.5 w-3.5" />
@@ -146,7 +147,8 @@ export function Sidebar({
 
         <button
           onClick={onClose}
-          className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg smooth-transition bg-gray-100 text-gray-500"
+          className="flex lg:hidden h-8 w-8 items-center justify-center rounded-lg smooth-transition"
+          style={{ background: 'hsl(231 24% 15%)', color: 'hsl(220 15% 55%)' }}
         >
           <X className="h-4 w-4" />
         </button>
@@ -154,14 +156,15 @@ export function Sidebar({
 
       {/* Service Status (owner only) */}
       {userRole === 'restaurant_owner' && (
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid hsl(231 24% 13%)' }}>
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-500">
               {dict.serviceStatus}
             </span>
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold smooth-transition bg-gray-50 text-gray-600 hover:bg-gray-100"
+              className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold smooth-transition"
+              style={{ background: 'hsl(231 24% 15%)', color: 'hsl(220 15% 65%)' }}
             >
               <span
                 className="h-1.5 w-1.5 rounded-full shadow-sm"
@@ -171,7 +174,7 @@ export function Sidebar({
             </button>
           </div>
           {isOpen && (
-            <p className="mt-1.5 text-[11px] text-gray-400">
+            <p className="mt-1.5 text-[11px]" style={{ color: 'hsl(220 15% 50%)' }}>
               {dict.acceptingReservations}
             </p>
           )}
@@ -182,7 +185,8 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5 scrollbar-hide">
         {userRole === 'admin' && (
           <p
-            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-gray-400"
+            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest"
+            style={{ color: 'hsl(220 15% 45%)' }}
           >
             {dict.admin}
           </p>
@@ -231,7 +235,7 @@ export function Sidebar({
       </nav>
 
       {/* Language Toggle & Footer */}
-      <div className="p-3 space-y-1 border-t border-gray-100">
+      <div className="p-3 space-y-1" style={{ borderTop: '1px solid hsl(231 24% 13%)' }}>
         <button
           onClick={() => {
             const newLocale = currentLocale === 'en' ? 'ka' : 'en';
@@ -239,16 +243,18 @@ export function Sidebar({
             router.refresh();
           }}
           className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-gray-50 text-gray-500',
+            'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition',
             isCollapsed && 'justify-center'
           )}
+          style={{ color: 'hsl(220 15% 55%)' }}
         >
           <Globe className="h-4 w-4" />
           {!isCollapsed && (currentLocale === 'en' ? 'ქართული' : 'English')}
         </button>
 
         {!isCollapsed && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1 bg-gray-50"
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg mb-1"
+            style={{ background: 'hsl(231 24% 12%)' }}
           >
             <div
               className="flex h-8 w-8 items-center justify-center rounded-md font-semibold text-white bg-primary text-xs"
@@ -256,8 +262,8 @@ export function Sidebar({
               {userName.charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col truncate">
-              <span className="text-sm font-medium truncate text-gray-900">{userName}</span>
-              <span className="text-xs truncate text-gray-500 capitalize">{userRole?.replace('_', ' ')}</span>
+              <span className="text-sm font-medium truncate" style={{ color: 'hsl(220 20% 85%)' }}>{userName}</span>
+              <span className="text-xs truncate capitalize" style={{ color: 'hsl(220 15% 50%)' }}>{userRole?.replace('_', ' ')}</span>
             </div>
           </div>
         )}
@@ -265,9 +271,10 @@ export function Sidebar({
           <button
             type="submit"
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition hover:bg-gray-50 hover:text-red-500 text-gray-500',
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium smooth-transition',
               isCollapsed && 'justify-center'
             )}
+            style={{ color: 'hsl(220 15% 55%)' }}
             title={isCollapsed ? dict.signOut : undefined}
           >
             <LogOut className="h-4 w-4" />

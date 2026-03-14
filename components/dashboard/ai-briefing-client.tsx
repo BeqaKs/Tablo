@@ -174,7 +174,7 @@ export function AIBriefingClient({ bookings, selectedDate = new Date() }: AIBrie
             <button
                 onClick={() => { setShowModal(true); if (!briefing) generateBriefing(); }}
                 disabled={loading}
-                className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold smooth-transition shadow-sm border animate-in slide-in-from-right-2"
+                className="flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold smooth-transition shadow-sm border animate-in slide-in-from-right-2"
                 style={{ 
                     background: 'hsl(38 80% 55% / 0.12)', 
                     color: 'hsl(38 80% 65%)', 

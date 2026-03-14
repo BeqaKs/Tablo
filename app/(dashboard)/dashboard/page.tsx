@@ -32,9 +32,9 @@ function MetricCard({
 }) {
   return (
     <div
-      className="dash-card p-5 flex flex-col gap-4"
-      style={{ borderLeft: `3px solid ${accent}` }}
+      className="dash-card p-4 sm:p-5 flex flex-col gap-3 sm:gap-4 relative overflow-hidden"
     >
+      <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: accent }} />
       <div className="flex items-start justify-between">
         <span
           className="text-[11px] font-semibold uppercase tracking-widest"
@@ -50,7 +50,7 @@ function MetricCard({
         </div>
       </div>
       <div>
-        <div className="text-3xl font-bold text-white tracking-tight">{value}</div>
+        <div className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{value}</div>
         {sub && <div className="mt-1 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>{sub}</div>}
       </div>
       {children}
@@ -135,29 +135,33 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex flex-wrap gap-2">
-        <AIBriefingClient bookings={stats.allBookings} />
-        <Link
-          href="/dashboard/calendar"
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
-          style={{ background: 'hsl(347 78% 58% / 0.12)', color: 'hsl(347 78% 70%)', border: '1px solid hsl(347 78% 58% / 0.2)' }}
-        >
-          <UserPlus className="h-4 w-4" /> {t('dashboard_web.walkIn')}
-        </Link>
-        <Link
-          href="/dashboard/print"
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
-          style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
-        >
-          <Printer className="h-4 w-4" /> {t('dashboard_web.printDailySheet')}
-        </Link>
-        <Link
-          href="/dashboard/export"
-          className="flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium smooth-transition"
-          style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
-        >
-          <BarChart3 className="h-4 w-4" /> {t('dashboard_web.reportsAndExport')}
-        </Link>
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        <div className="w-full sm:w-auto">
+          <AIBriefingClient bookings={stats.allBookings} />
+        </div>
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto sm:flex-1">
+          <Link
+            href="/dashboard/calendar"
+            className="flex items-center justify-center sm:justify-start gap-2 rounded-lg px-4 py-2.5 text-xs sm:text-sm font-medium smooth-transition"
+            style={{ background: 'hsl(347 78% 58% / 0.12)', color: 'hsl(347 78% 70%)', border: '1px solid hsl(347 78% 58% / 0.2)' }}
+          >
+            <UserPlus className="h-4 w-4" /> {t('dashboard_web.walkIn')}
+          </Link>
+          <Link
+            href="/dashboard/print"
+            className="flex items-center justify-center sm:justify-start gap-2 rounded-lg px-4 py-2.5 text-xs sm:text-sm font-medium smooth-transition"
+            style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
+          >
+            <Printer className="h-4 w-4" /> {t('dashboard_web.printDailySheet')}
+          </Link>
+          <Link
+            href="/dashboard/export"
+            className="col-span-2 sm:col-span-1 flex items-center justify-center sm:justify-start gap-2 rounded-lg px-4 py-2.5 text-xs sm:text-sm font-medium smooth-transition"
+            style={{ background: 'hsl(231 24% 12%)', color: 'hsl(220 15% 65%)', border: '1px solid hsl(231 24% 18%)' }}
+          >
+            <BarChart3 className="h-4 w-4" /> {t('dashboard_web.reportsAndExport')}
+          </Link>
+        </div>
       </div>
 
       {/* KPI Grid */}
@@ -269,7 +273,7 @@ export default async function DashboardPage() {
                       </span>
                     </div>
                     <div
-                      className="flex items-center gap-3 mt-0.5 text-xs"
+                      className="flex items-center gap-3 mt-0.5 text-xs flex-wrap"
                       style={{ color: 'hsl(220 15% 45%)' }}
                     >
                       <span className="flex items-center gap-1">

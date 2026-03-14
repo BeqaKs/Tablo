@@ -32,7 +32,7 @@ export function DashboardHeader({
 
     return (
         <header
-            className="sticky top-0 z-20 flex h-14 items-center justify-between px-6"
+            className="sticky top-0 z-20 flex h-14 items-center justify-between px-3 sm:px-6"
             style={{
                 background: 'hsl(231 38% 6% / 0.85)',
                 backdropFilter: 'blur(12px)',
@@ -40,16 +40,16 @@ export function DashboardHeader({
             }}
         >
             {/* Left: Restaurant name + live badge */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                 <button
                     onClick={onMenuClick}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white lg:hidden smooth-transition hover:bg-white/10"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white lg:hidden smooth-transition hover:bg-white/10 shrink-0"
                 >
                     <Menu className="h-5 w-5" />
                 </button>
-                <h1 className="text-sm font-semibold text-white">{restaurantName}</h1>
+                <h1 className="text-sm font-semibold text-white truncate">{restaurantName}</h1>
                 <span
-                    className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    className="hidden sm:flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold shrink-0"
                     style={{
                         background: 'hsl(160 60% 45% / 0.14)',
                         color: 'hsl(160 60% 60%)',
@@ -62,7 +62,7 @@ export function DashboardHeader({
             </div>
 
             {/* Right: Date + bell */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                 {date && (
                     <div className="hidden sm:flex items-center gap-1.5 text-xs" style={{ color: 'hsl(220 15% 45%)' }}>
                         <span>{date}</span>
